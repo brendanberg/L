@@ -164,7 +164,7 @@ __L__ defines binary arithmetic operators for addition, subtraction, multiplicat
 	> = 10 ^ 12
 	6
 
-The binary bitwise operators for *and*, *or*, and *exclusive or* operate on integers. The arguments are converted to a common type before evaluation.
+The binary bitwise operators for *and*, *or*, and *exclusive or* operate on integers.
 
 
 __Guard and Default Operators__
@@ -195,42 +195,18 @@ The `and` operator (also known as guard) evaluates the left-hand expression and 
 
 __The Condition Operator__
 
-	> = number == 42 then
+	> = if number == 42 then
 	-     print "Life, universe, everything"
-	- or
+	- else
 	-     print "Sorry"
 	Life, universe, everything
 
 Conditional expressions evaluate a consequent if a condition is not `False`, `_`, `''`, or `0`, and may evaluate an optional alternate if the condition is `False`, `_`, `''`, or `0`. The consequent and alternate may be blocks which are evaluated as dictated by the truth value of the condition.
 
-Evaluating expressions with condition operator have the same truthiness value as the guard operator Unlike the guard operator above, the condition operator actually performs logical and with lazy evaluation.
-
 Interestingly, specifying blocks for the consequent and alternate avoids the dangling else problem. If a nested if expression is on one line, the precedence rules for identifier application force the `else` keyword to bind to the inner expression. That is, the `else` belongs to the `if` that immediately precedes it.
 
----
 
-	if [condition] then [consequent] :
-	    return (condition and consequent)
-
-	if [condition] then [consequent] else [alternate] :
-
-	    return (condition and consequent) or alternate
-	
-	> if 1 = 1 then False else True
-	True
-	
-	> if 1 = 0 then False else True
-	True
-	
-	if [condition] then [consequent] :
-	    = ((condition = True) and consequent) or _
-	
-	if [condition] then [consequent] else [alternate] :
-	    = condition ? consequent : alternate
-
----
-
-ALSO:
+__ALSO:__
 
 Logical operators: `and`, `or`, `=`, `is`, `is not`, `not`, `<`, `>`, `<=`, `>=`
 Equality vs. equivalence: `=` : `is` :: `==` : `===`
@@ -498,7 +474,7 @@ Pretty clear, really.
 Property lookup on an object.
 
 
-[Note: Iterating with `for` can be implemented with `map`, `fold`, `filter`, etc. with better concurrency (out-of-order fn calls are more intuitive that way.) --Bb]
+[Note: Iterating with `for` can be implemented with `map`, `fold`, `filter`, etc. with better concurrency (out-of-order fn calls are more intuitive that way.) --Bb] asdlgkj introductory 
 
 __Control Flow__
 
