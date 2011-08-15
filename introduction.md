@@ -101,12 +101,12 @@ Pretty self-explanatory.
 Maybe?
 
 	> = ['a', 4] type
-	list[_]
+	list[T]
 	
 	> = { 'a' : 1, 'b' : 2, 'c' : 3 } type
 	map{string:int}
 
-Container types are further identified by the keys' type and the values' type.
+Container types are further identified by the keys' type and the values' type. Heterogeneous lists are specified with a type variable.
 
 	> = int type
 	type
@@ -114,7 +114,7 @@ Container types are further identified by the keys' type and the values' type.
 	> = type type
 	type
 
-Who the fuck knows.
+Types also have a type. Their type is `type`.
 
 
 ## Operators on Scalar Types
@@ -124,6 +124,40 @@ Who the fuck knows.
 	42
 
 A value can be assigned to an atom within a context using the assignment operator, a colon. An assignment expression evaluates to the empty type. Following an assignment, evaluating the atom in the same context results in the given value.
+
+	> exp : 4 + 3
+	> exp
+	4 + 3
+	> = exp
+	7
+	
+	> sum : = 4 + 3
+	> sum
+	7
+
+An expression can be assigned to an identifier to be retrieved later. To evaluate its value, you must explicitly do so with the `=` operator either before or after assignment.
+
+	> x, y := [ 4, 3 ]
+	> = x
+	4
+	> = y
+	3
+
+The target (left-hand side) of the assignment operator can also be a list of identifiers. Assigning a list of the same number of elements assigns each element of the list to each identifier, in order.
+
+	> m, n := { m: 7, q : -3 }
+	     ^    ^--------------^
+	ValueError: identifier 'n' is not defined in map
+	> m, n := { m: 7, n: 4, q: -3 }
+	> = m
+	7
+	> = n
+	4
+	> = q
+	    ^
+	NameError: identifier 'q' is not defined
+
+The same is possible with mapping types, but the target identifiers must be present in the map being unpacked. Superfluous identifiers in the map are ignored.
 
 (Also: `+:`, `-:`, `*:`, `/:`, `|:`, `&:`, etc.)
 
@@ -136,7 +170,7 @@ A value can be assigned to an atom within a context using the assignment operato
 	> = - 4
 	-4
 
-The unary operator `!` performs a boolean negation. The values `_`, `0`, `False`, and `""`, the empty string are considered false; any other value is considered true. The unary operator `~` performs a bitwise inversion on an integer value. The unary operator `-` negates an integer value.
+The unary operator `!` (bang) performs a boolean negation. The values `_`, `0`, `False`, and `""`, the empty string are considered false; any other value is considered true. The unary operator `~` (tilde) performs a bitwise inversion on an integer value. The unary operator `-` (minus) negates an integer value.
 
 	> = 3 + 4 * 9
 	39
@@ -320,23 +354,9 @@ A block is deferred computation. It is a newline character followed by an indent
 	> = 2 * later
 	100
 	> explain 2 * later
-	      2 * (8 + number)
+	      2 * (= 8 + number)
 
 When evaluating an expression containing a block, the block will be evaluated before evaluating the enclosing expression.
-
----
-
-[TODO: this is weird.]
-
-	>     print 'Hello '
-	- 3 times
-	Hello Hello Hello 
-
-A block literal can be used as an expression inside another expression. Here, a block containing the expression `print 'Hello '` is used for the body of the expression `do | body number | times`. (defined below)
-
-	> do body number times:
-	-     return for _ in range (0, number) body
----
 
 
 ## Functions are Blocks
@@ -348,10 +368,10 @@ A block literal can be used as an expression inside another expression. Here, a 
 	x ->
 	    = x * 2
 	
-A function is a block that takes input returns a value. Functions can be assigned to an identifier, and the body of the function can be recalled.
+A function is a block that takes input and returns a value. Functions can be assigned to an identifier, and the body of the function can be recalled.
 
 	> = double type
-	number -> number
+	fn(number->number)
 	> = double 4
 	8
 
@@ -363,12 +383,12 @@ Explain arguments. Evaluating the function (passing arguments ...) results in th
 	-     = total / ( m length )
 	- 
 	> = average [21, 26, 22]
-	23
+	23.0
 
 More about functions
 
 	> = average type
-	list[number] -> float
+	fn(list[number]->float)
 
 Function types are identified by the argument types and the return type
 
@@ -422,11 +442,11 @@ All values in __L__ are objects (or more precisely, have methods defined for the
 
 The `filter` function takes a function argument and applies it to each element of the list in turn, appending the element to the new list based on the truthiness of the test function.
 
-	> = [1 : 5] map x -> = x * x
-	[1, 4, 9, 16, 25]
-	
 	> = [1 : 5] map x -> x * x
 	[1 * 1, 2 * 2, 3 * 3, 4 * 4, 5 * 5]
+	
+	> = [1 : 5] map x -> = x * x
+	[1, 4, 9, 16, 25]
 
 The `map` function applies a given function to each element of the list, and the new list is made up of the result of evaluating the function for each element. Note that removing the eval operator (`=`) from the function results in a list of expressions instead of values.
 
@@ -474,58 +494,29 @@ Pretty clear, really.
 Property lookup on an object.
 
 
-[Note: Iterating with `for` can be implemented with `map`, `fold`, `filter`, etc. with better concurrency (out-of-order fn calls are more intuitive that way.) --Bb] asdlgkj introductory 
+## Control Flow
 
-__Control Flow__
+The __L__ programming language lacks a traditional `for` statement, since `map`, `fold`, and `filter` can perform the same computation. Explicit looping is also discouraged because it makes concurrency difficult. For example, folding a list with a function that is mathematically associative can be implicitly paralellized.
 
-	> for i in list :
-	-     sum := sum or 0
-	-     sum +:= i
-	- 
-	
-	+ for | ident | in | enumerable block | :
-	+     pass
-	
-	> sum = 0
-	>
-	> for x in [1, 2, 3] :
+	> sum : 0
+	> = [ 2, 4, 6 ] map x ->
 	-     sum +: x
 	- 
+	> = sum
+	6
 	
-	> for x in [1, 2, 3]
-	[1, 2, 3]
-	> double : [x] ->
-	-     return x * 2
-	-
-	> double for x in [1, 2, 3]
-	[2, 4, 6]
-	
-	+ | block | for | ident | in | enumerable | :
-	+     pass
-	
-	+ | block | for | ident | in | enumerable | if | condition | : _
-	
-	> sum = 0
-	> 
-	>     sum +: x
-	- for x in [1, 2, 3, 4, 5]
-	> sum
-	15
-	
-	> double x :
-	-     x * 2
-	-
-	> double for x in [1, 2, 3, 4]
-	[2, 4, 6, 8]
-	
-	+ with | enumerable | 
-	+   
+	> = [ 1, 3, 5, 7] folda [i, j] ->
+	-     = i + j
+	16
+
+Two ways to compute the sum of a list.
+
 
 ## Languages That Influenced __L__
 
-- [Self]()
-- [Smalltalk]()
-- [Python](), obvs
-- [CoffeeScript](http://jashkenas.github.com/coffee-script/)
+- [Self](http://en.wikipedia.org/wiki/Self_%28programming_language%29), a prototypical OO language similar to Smalltalk
+- [Smalltalk](http://en.wikipedia.org/wiki/Smalltalk), a dynamically typed, reflective OO language developed at Xerox PARC.
+- [Python](http://python.org/), a dynamic scripting language that pairs powerful features and clear syntax
+- [CoffeeScript](http://jashkenas.github.com/coffee-script/), a candy coating for JavaScript
 
   
