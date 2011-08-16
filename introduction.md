@@ -30,8 +30,8 @@ Atom types are identifiers in a context. Atoms are any string of characters that
 	> 0x2A
 	42
 
-	> 0.3
-	0.29999999999999999
+	> 0.29999999999999999
+	0.3
 
 	> 6.02e23
 	6.02e+23
