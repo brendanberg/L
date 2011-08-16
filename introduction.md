@@ -244,34 +244,8 @@ __ALSO:__
 
 Logical operators: `and`, `or`, `=`, `is`, `is not`, `not`, `<`, `>`, `<=`, `>=`
 Equality vs. equivalence: `=` : `is` :: `==` : `===`
+Precedence rules: operators have overriding rules, but in general a shift-reduce eval stack is used.
 
-Precedence rules:
-
-if a then (if b then c else d)   # By default
-if a then (if b then c) else d   # Force the `else` to bind to the first if.
-
-a : (b c) d   # by default
-(a b) : (c d)   # by default
-
-a : bA x y bB z    # bA | w | bB | v |  => OK
-a : bC x y bD z    # bC | w v | bD | t |  => NO  ??????
-
-1. bA not in ctx: shift x
-2. bA_ not in ctx: shift y
-3. bA__ not in ctx: shift bB
-4. bA_bB in ctx: shift z
-
-3 + (4 * 5)
-(3 * 4) + 5
-
-(object identifier) subidentifier
-(object identifier) or (another again)
-((a b) > (b c)) and ((b c) > (c d))
-
-Blah.
-
-
----
 
 ## Operators on Sequence Types
 
