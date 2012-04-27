@@ -47,18 +47,18 @@ Numeric types consist of integer or floating-point values. Integers can be repre
 Lists are a sequence type in __L__. They are represented as comma separated values enclosed in square brackets. Note that while the hexadecimal numeric literal is converted into the canonical base 10 equivalent, the identifier `blub` has not been evaluated. In __L__, identifiers are not evaluated until their value is explicitly requested.
 
 	> = [3 : 7]
-	[3, 4, 5, 6, 7]
+	[3, 4, 5, 6]
 	
 	> = [1 : 10 \ 2]
 	[1, 3, 5, 7, 9]
 	
 	> = [5 : 0]
-	[5, 4, 3, 2, 1, 0]
+	[5, 4, 3, 2, 1]
 
 	> = [60 : 1 \ 10]
 	[60, 50, 40, 30, 20, 10]
 
-Range literals are shorthand for numeric lists. They take a lower bound, an upper bound and an optional stride. Bounds are inclusive, and in the case that the lower bound is greater than the upper bound, the resulting list is in descending order. __L__ uses the backslash character to designate the stride of the list. An easy mnemonic for this syntax is "from x to y counting by z". For more complex list generation, see examples using the `map` and `filter` functions on sequence types.
+Range literals are shorthand for numeric lists. They take a start value, a stop value and an optional stride. The resulting list is an arithmetic progression of integers from the start value up to, but not including the stop value. In the case that the lower bound is greater than the upper bound, the resulting list is in descending order. __L__ uses the backslash character to designate the stride of the list. An easy mnemonic for this syntax is "from x to y counting by z". For more complex list generation, see examples using the `map` and `filter` functions on sequence types.
 
 	> "Hello, world!"
 	'Hello, world!'
@@ -75,6 +75,15 @@ Strings are sequences of unicode code points. Strings literals are characters en
 	{pianist: 'Bill', bassist: 'Scott', drummer: 'Paul'}
 
 Dictionaries are ordered collections of key-value pairs. The Keys are objects that have defined an equality method and are hashable. Values are any object.
+
+	> {
+	-     pianist : 'Bill'
+	-     bassist : 'Scott'
+	-     drummer : 'Paul'
+	- }
+	{pianist: 'Bill', bassist: 'Scott', drummer: 'Paul'}
+
+Dictionaries may span multiple lines. Commas are not necessary if each line contains only one key-value pair.
 
 
 ## Types and Evaluation
@@ -142,6 +151,14 @@ An expression can be assigned to an identifier to be retrieved later. To evaluat
 	4
 	> = y
 	3
+	
+	> a, b..., c := [ 1, 2, 3, 4, 5 ]
+	> = a
+	1
+	> = b
+	[2, 3, 4]
+	> = c
+	5
 
 The target (left-hand side) of the assignment operator can also be a list of identifiers. Assigning a list of the same number of elements assigns each element of the list to each identifier, in order.
 
@@ -204,11 +221,13 @@ The binary bitwise operators for *and*, *or*, and *exclusive or* operate on inte
 __Guard and Default Operators__
 
 	> defaultAge : 18
-	> ben :
+	> ben : {
 	-     height : 1.95
+	- }
 	- 
-	> tim :
+	> tim : {
 	-     age : 23
+	- }
 	- 
 	
 The guard and default operators use short-circuit evaluation to return the result of a logical and or logical or. (The preceding values will be used in the illustrations to follow.)
@@ -255,20 +274,20 @@ Precedence rules: operators have overriding rules, but in general a shift-reduce
 	> = numbers [0, 3, 5, 2]
 	['zero', 'three', 'five', 'two']
 	> = numbers [2 : 4]
-	['two', 'three', 'four']
+	['two', 'three']
 	> = numbers [0 : 5 \ 2]
-	['zero', 'two', 'four]
+	['zero', 'two', 'four']
 	> = numbers [1 : 5 \ 2]
-	['one', 'three', 'five']
+	['one', 'three']
 
 A subscript of a sequence is a selection of an item or list of items from a sequence. If the subscript is a list with a single item, the result is the value in the mapping that corresponds to that key. If the subscription is a list with multiple values, the result is a list made up of the values in the mapping that corresponds to each key, in order.
 
 	> words: "a man a plan a cam a yak a yam a canal panama"
-	> = words [2 : 4]
+	> = words [2 : 5]
 	'man'
-	> = words [44 : 35]
+	> = words [44 : 34]
 	'amanap lan'
-	> = words [13 : 31 \ 6]
+	> = words [13 : 32 \ 6]
 	'aaaa'
 
 Because strings are sequences of unicode code points, string subscription works the same way.
@@ -316,10 +335,14 @@ Assignment to a dictionary key sets a value (replacing any existing value).
 
 A block is deferred computation. Blocks consist of indented expression lists. 
 
-	> later :
+	> later : {
 	-     = 8 + number
+	- }
+	- 
 	> later
+	{
 	    = 8 + number
+	}
 	> = later
 	50
 
@@ -335,26 +358,30 @@ When evaluating an expression containing a block, the block will be evaluated be
 
 ## Functions are Blocks
 
-	> double : x ->
+	> double : x => {
 	-     = x * 2
+	- }
 	- 
 	> double
-	x ->
+	x => {
 	    = x * 2
+	}
 	
 A function is a block that takes input and returns a value. Functions can be assigned to an identifier, and the body of the function can be recalled.
 
 	> = double type
-	fn(number->number)
+	fn(number => number)
 	> = double 4
 	8
 
 Explain arguments. Evaluating the function (passing arguments ...) results in the application of argument in the function body
 
-	> average : m ->
-	-     total : m folda [x, s] ->
+	> average : m => {
+	-     total : m folda [x, s] => {
 	-         = x + s
+	-     }
 	-     = total / ( m length )
+	- }
 	- 
 	> = average [21, 26, 22]
 	23.0
@@ -362,34 +389,42 @@ Explain arguments. Evaluating the function (passing arguments ...) results in th
 More about functions
 
 	> = average type
-	fn(list[number]->float)
+	fn(list[number] => float)
 
 Function types are identified by the argument types and the return type
 
-	> fact : n ->
+	> fact : n => {
 	-     = n * fact (n - 1)
-	- 1 ->
+	- },
+	- 1 => {
 	-     = 1
+	- }
+	- 
 	> fact
-	n ->
+	n => {
 	    = n * fact (n - 1)
-	1 ->
+	}
+	1 => {
 	    = 1
+	}
 	> = fact 4
 	24
 
 Functions may also accept named arguments, which are atoms captured by the function block. Calling a function with an argument simply uses an expression in place of the captured identifier.
 
-	> acc : i ->
-	-     n ->
+	> acc : i => {
+	-     n => {
 	-         i +:= n
 	-         = i
+	-     }
+	- }
 	- 
 	> f := acc 4
 	> f
-	n ->
+	n => {
 	    i +:= n
 	    = i
+	}
 	> = f 1
 	5
 	> = f 3
@@ -397,10 +432,11 @@ Functions may also accept named arguments, which are atoms captured by the funct
 
 Closures.
 
-	> plus : [a, b] ->
+	> plus : [a, b] => {
 	-     = a + b
+	- }
 	- 
-	> xplus1 : x -> plus [x, 1]
+	> xplus1 : x => plus [x, 1]
 	> = xplus1 5
 	6
 
