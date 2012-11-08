@@ -30,13 +30,21 @@ Atom types are identifiers in a context. Atoms are any string of characters that
 	> 0x2A
 	42
 
-	> 0.29999999999999999
+	> 0.3
 	0.3
-
+	
 	> 6.02e23
 	6.02e+23
 
-Numeric types consist of integer or floating-point values. Integers can be represented in decimal or hexadecimal notation. Floating point numbers can include an optional exponent. Remember that [IEEE 754](http://en.wikipedia.org/wiki/IEEE_754-2008) floating-point values are approximations.
+The main numeric type in __L__ is the rational type. It can represent integers and fractions with arbitrary precision. Integers can be represented in decimal or hexadecimal notation.
+
+	> Math.pi
+	≈ 3.141592653589793
+	
+	> Math.sin 0.5
+	≈ 0.479425538604203
+
+Numeric approximation types are double-precision [IEEE 754](http://en.wikipedia.org/wiki/IEEE_754-2008) floating-point values. Floating point numbers can include an optional exponent.
 
 	> [2, 4, 6, 8]
 	[2, 4, 6, 8]
@@ -91,18 +99,18 @@ Dictionaries may span multiple lines. Commas are not necessary if each line cont
 The __L__ programming language is strongly, but not explicitly, typed. The postfix `type` operator evaluates the type of a given expression.
 
 	> = 16 type
-	int
+	rational
 	
 	> = 'a' type
 	string
 	
 	> = 3.14 type
-	float
+	rational
 
 Pretty self-explanatory.
 
 	> = [4, 5, 6] type
-	list[int]
+	list[rat]
 	
 	> = ['B', 'D', 'F', 'M'] type
 	list[string]
@@ -113,11 +121,11 @@ Maybe?
 	list[T]
 	
 	> = { 'a' : 1, 'b' : 2, 'c' : 3 } type
-	map{string:int}
+	map{string:rat}
 
 Container types are further identified by the keys' type and the values' type. Heterogeneous lists are specified with a type variable.
 
-	> = int type
+	> = rational type
 	type
 	
 	> = type type
