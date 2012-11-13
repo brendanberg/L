@@ -78,6 +78,8 @@ there needs to be a way to specify that a decimal approximation is acceptable.
 I'm considering one of two ways.
 Either `(1 / 3) (decimal approximation)` or `decimal { approximateValue: 1/3 }`
 
+Rational approximations can be found using a binary search-like [algorithm](http://www.johndcook.com/blog/2010/10/20/best-rational-approximation/).
+
 A decimal behaves like any other rational, but can only have a power of ten as the denominator.
 Despite their similar behavior,
 rationals and decimals are implemented slightly differently internally.
