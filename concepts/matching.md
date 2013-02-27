@@ -42,7 +42,8 @@ Draft of syntax and matching rules for __L__ match objects. Match objects may be
     `/{distanceTo: Point (p) => p x > 0 and p y > 0}/`  
 
     `/{latitude:, longitude:}/` Matches an object with `latitude` and `longitude` properties.  
-    `/{latitude:lat, longitude:}/` Matches objects as above, but captures the `latitude` value as `lat`.  
+    `/{:latitude, :longitude}/` Alternate.
+		`/{latitude:lat, longitude:}/` Matches objects as above, but captures the `latitude` value as `lat`.  
     `/{topLeft:{x:, y:}, bottomRight:{x:, y:}}/` Match an object with `topLeft` and `bottomRight` properties, each of which have `x` and `y` properties.
     
     `/[a, b]/` matches any list with two items and assigns the first to `a` and the second to `b`  

@@ -144,42 +144,36 @@ A value can be assigned to an atom within a context using the assignment operato
 
 	> exp : 4 + 3
 	> exp
-	4 + 3
-	> = exp
-	7
-	
-	> sum : = 4 + 3
-	> sum
 	7
 
 An expression can be assigned to an identifier to be retrieved later. To evaluate its value, you must explicitly do so with the `=` operator either before or after assignment.
 
-	> x, y := [ 4, 3 ]
-	> = x
+	> x, y : [ 4, 3 ]
+	> x
 	4
-	> = y
+	> y
 	3
 	
-	> a, b..., c := [ 1, 2, 3, 4, 5 ]
-	> = a
+	> a, b..., c : [ 1, 2, 3, 4, 5 ]
+	> a
 	1
-	> = b
+	> b
 	[2, 3, 4]
-	> = c
+	> c
 	5
 
 The target (left-hand side) of the assignment operator can also be a list of identifiers. Assigning a list of the same number of elements assigns each element of the list to each identifier, in order.
 
-	> m, n := { m: 7, q : -3 }
-	     ^    ^--------------^
+	> m, n : { m: 7, q : -3 }
+	     ^   ^--------------^
 	ValueError: identifier 'n' is not defined in map
-	> m, n := { m: 7, n: 4, q: -3 }
-	> = m
+	> m, n : { m: 7, n: 4, q: -3 }
+	> m
 	7
-	> = n
+	> n
 	4
-	> = q
-	    ^
+	> q
+	  ^
 	NameError: identifier 'q' is not defined
 
 The same is possible with mapping types, but the target identifiers must be present in the map being unpacked. Superfluous identifiers in the map are ignored.
@@ -197,19 +191,19 @@ The same is possible with mapping types, but the target identifiers must be pres
 
 The unary operator `!` (bang) performs a boolean negation. The values `_`, `0`, `False`, and `""`, the empty string are considered false; any other value is considered true. The unary operator `~` (tilde) performs a bitwise inversion on an integer value. The unary operator `-` (minus) negates an integer value.
 
-	> = 3 + 4 * 9
+	> 3 + 4 * 9
 	39
 
-	> = 3 ** 2
+	> 3 ** 2
 	9
 
-	> = 3 / 8
+	> 3 / 8
 	0.375
 
-	> = 5 // 2
+	> 5 // 2
 	2
 
-	> = 5 % 2
+	> 5 % 2
 	1
 
 __L__ defines binary arithmetic operators for addition, subtraction, multiplication, integer and floating-point division, remainder (modulus), and exponentiation. Ordinary precedence rules apply. Numeric values have strict type promotion rules, so the arguments are converted to a common type before evaluation.
@@ -256,13 +250,18 @@ The `and` operator (also known as guard) evaluates the left-hand expression and 
 
 __The Condition Operator__
 
-	> = if number == 42 then
-	-     print "Life, universe, everything"
+	> if number == 42 then
+	-     "Life, universe, everything"
 	- else
-	-     print "Sorry"
+	-     "Sorry"
 	Life, universe, everything
 
-Conditional expressions evaluate a consequent if a condition is not `False`, `_`, `''`, or `0`, and may evaluate an optional alternate if the condition is `False`, `_`, `''`, or `0`. The consequent and alternate may be blocks which are evaluated as dictated by the truth value of the condition.
+Conditional expressions evaluate a consequent if a condition is not a zero value, and may evaluate an optional alternate if the condition is any non-zero value. The consequent and alternate may be blocks which are evaluated as dictated by the truth value of the condition.
+
+	> if False then "No"
+	_
+
+A conditional expression with no alternate will evaluate to bottom (`_`) if the condition is not true.
 
 Interestingly, specifying blocks for the consequent and alternate avoids the dangling else problem. If a nested if expression is on one line, the precedence rules for identifier application force the `else` keyword to bind to the inner expression. That is, the `else` belongs to the `if` that immediately precedes it.
 

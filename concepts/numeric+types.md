@@ -7,7 +7,8 @@ as in C's int, long, float, double, etc.,
 or the abstraction is too high-level, like JavaScript's Number type.
 
 Additionally, arithmetic operations on some types are less intuitive than others.
-For example, strict equality tests on floating-point numbers don't always do what you expect because IEEE 754 values are approximations.
+For example, strict equality tests on floating-point numbers don't always do what you expect
+because IEEE 754 values are approximations.
 
 In keeping with one of the core design guidelines of __L__,
 I wanted to make numeric operations as intuitive as possible.
@@ -71,6 +72,8 @@ Standard form literals with negative exponents are interpreted as decimal object
 	ValueError: rational '1/3' cannot be converted to decimal without loss of precision
 	> decimal { approximateValue: 1 / 3 }
 	0.333333333333333
+	> (1 / 3) { decimal :approximation }
+	0.333333333333333
 
 Note: message passing is evaluated LTR.
 If passing the `decimal` symbol to the rational 1/3 raises a value error,
@@ -92,14 +95,16 @@ Real Numbers, or approximations thereof
 
 The floating point data type is an arbitrary precision approximation of a real number.
 
-	> approxima0.09375 real
+	> approximation 0.09375 real
 	0.09375 real
 	> 0.09375 real
 	0.09375 real
 	
 	> 3.141592653589793 rational
+	> rational 3.141592653589793
 	3141592653589793/1000000000000000
 	> 3.141592653589793 rational { maximumDenominator: 1000 }
+	# > rational { fromDecimal: 3.141592653589793, maximumDenominator: 1000 }
 	355/113
 
 As you can see, floating-point values can be represented as rationals
@@ -107,3 +112,4 @@ without loss of precision by using very large denominators.
 If a denominator is so large it becomes unwieldy,
 a `maximumDenominator:` message may be sent to the rational
 to ___ at the expense of lost precision.
+
