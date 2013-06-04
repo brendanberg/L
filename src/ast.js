@@ -6,11 +6,11 @@ var Node = function (start, end) {
 
 
 var AST = {
-	InfixExpression: function (op, exp1, exp2, parseOpts) {
+	InfixExpression: function (op, lhs, rhs, parseOpts) {
 		this.type = 'InfixExpression';
 		this.op = op;
-		this.exp1 = exp1;
-		this.exp2 = exp2;
+		this.lhs = lhs;
+		this.rhs = rhs;
 	},
 	PrefixExpression: function (op, exp, parseOpts) {
 		this.type = 'PrefixExpression';
@@ -108,12 +108,105 @@ var AST = {
 	}
 };
 
-AST.InfixExpression.prototype.foo = function (foo) {
-	bar;
-};
+AST.ExpressionList.prototype.eval = function (rt, ctx) {
+	var val;
+	for (var e in this.list) {
+		if (this.list.hasOwnProperty(e) && e.hasOwnProperty('eval')) {
+			val = e.eval(rt, ctx);
+		}
+	}
+	this.value = val;
+	return this.value;
+}
 
-AST.PrefixExpression.prototype.ddd = function (foo) {
+AST.InfixExpression.prototype.eval = function (rt, ctx) {
+	var lhs = this.lhs.eval(rt, ctx),
+		msg = new AST.KeyValuePair(
+			this.op, this.rhs.eval(rt, ctx)
+		);
+	
+	var message = new AST.MessageSend(ctx, lhs, msg);
+	this.value = message.eval(rt, ctx);
+	return this.value;
+}
 
-};
+AST.PrefixExpression.prototype.eval = function (rt, ctx) {
+	var exp = this.exp.eval(rt, ctx),
+		message = new AST.MessageSend(ctx, this.op);
+	
+	this.value = message.eval(rt, ctx);
+	return this.value;
+}
+
+AST.Function.prototype.eval = function (rt, ctx) {
+	return this;
+}
+
+AST.Block.prototype.eval = function (rt, ctx) {
+
+}
+
+AST.List.prototype.eval = function (rt, ctx) {
+
+}
+
+AST.Dictionary.prototype.eval = function (rt, ctx) {
+
+}
+
+AST.Identifier.prototype.eval = function (rt, ctx) {
+	var message = new AST.MessageSend(_, ctx,
+		new AST.KeyValuePair('__get__', this.name));
+	this.value = message.eval(rt, ctx);
+}
+
+AST.Integer.prototype.eval = function (rt, ctx) {
+	return this;
+}
+
+AST.MessageSend.prototype.eval = function (rt, ctx) {
+	// TODO
+}
+
+AST.Integer.prototype.toString = function (rt, ctx) {
+	return this.value.toString();
+}
+
+AST.Rational.prototype.eval = function (rt, ctx) {
+	return this;
+}
+
+AST.Rational.prototype.toString = function (rt, ctx) {
+	return this.numerator.value + " / " + this.denominator.value;
+}
+
+AST.Decimal.prototype.eval = function (rt, ctx) {
+	return this;
+}
+
+AST.Decimal.prototype.toString = function (rt, ctx) {
+	var wholePart = this.numerator / Math.pow(10, this.exponent),
+		fractionPart = this.numerator % Math.pow(10, this.exponent);
+	return wholePart + "." + fractionPart;
+}
+
+// === REAL ===
+
+AST.Imaginary.prototype.eval = function (rt, ctx) {
+	return this;
+}
+
+AST.Imaginary.prototype.toString = function (rt, ctx) {
+	return this.value.toString() + "i";
+}
+
+AST.Complex.prototype.eval = function (rt, ctx) {
+	return this;
+}
+
+AST.Complex.prototype.toString = function (rt, ctx) {
+	return this.real.toString() + "+" + this.imaginary.toString();
+}
 
 module.exports = AST;
+
