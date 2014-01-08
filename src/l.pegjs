@@ -156,8 +156,7 @@ string
 	/ "'" str:[^']* "'" { return new L.AST.String(str.join('')); }
 
 number
-	= imaginaryInt
-	/ imaginaryDecimal
+	= imaginary
 	/ scientific
 	/ hex
 	/ decimal
@@ -177,11 +176,9 @@ decimal
 			return new L.AST.Decimal(int.value * Math.pow(10, exponent) + fractionPart, exponent);
 		}
 
-imaginaryInt
+imaginary
 	= int:integer [ijJ] { return new L.AST.Imaginary(int); }
-
-imaginaryDecimal
-	= dec:decimal [ijJ] { return new L.AST.Imaginary(dec); }
+	/ dec:decimal [ijJ] { return new L.AST.Imaginary(dec); }
 
 
 scientific

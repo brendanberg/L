@@ -64,8 +64,7 @@ L.Parser = (function(){
 				"number": parse_number,
 				"integer": parse_integer,
 				"decimal": parse_decimal,
-				"imaginaryInt": parse_imaginaryInt,
-				"imaginaryDecimal": parse_imaginaryDecimal,
+				"imaginary": parse_imaginary,
 				"scientific": parse_scientific,
 				"hex": parse_hex,
 				"_": parse__,
@@ -2020,18 +2019,15 @@ L.Parser = (function(){
 			function parse_number() {
 				var result0;
 				
-				result0 = parse_imaginaryInt();
+				result0 = parse_imaginary();
 				if (result0 === null) {
-					result0 = parse_imaginaryDecimal();
+					result0 = parse_scientific();
 					if (result0 === null) {
-						result0 = parse_scientific();
+						result0 = parse_hex();
 						if (result0 === null) {
-							result0 = parse_hex();
+							result0 = parse_decimal();
 							if (result0 === null) {
-								result0 = parse_decimal();
-								if (result0 === null) {
-									result0 = parse_integer();
-								}
+								result0 = parse_integer();
 							}
 						}
 					}
@@ -2188,7 +2184,7 @@ L.Parser = (function(){
 				return result0;
 			}
 			
-			function parse_imaginaryInt() {
+			function parse_imaginary() {
 				var result0, result1;
 				var pos0, pos1;
 				
@@ -2221,41 +2217,36 @@ L.Parser = (function(){
 				if (result0 === null) {
 					pos = pos0;
 				}
-				return result0;
-			}
-			
-			function parse_imaginaryDecimal() {
-				var result0, result1;
-				var pos0, pos1;
-				
-				pos0 = pos;
-				pos1 = pos;
-				result0 = parse_decimal();
-				if (result0 !== null) {
-					if (/^[ijJ]/.test(input.charAt(pos))) {
-						result1 = input.charAt(pos);
-						pos++;
-					} else {
-						result1 = null;
-						if (reportFailures === 0) {
-							matchFailed("[ijJ]");
+				if (result0 === null) {
+					pos0 = pos;
+					pos1 = pos;
+					result0 = parse_decimal();
+					if (result0 !== null) {
+						if (/^[ijJ]/.test(input.charAt(pos))) {
+							result1 = input.charAt(pos);
+							pos++;
+						} else {
+							result1 = null;
+							if (reportFailures === 0) {
+								matchFailed("[ijJ]");
+							}
 						}
-					}
-					if (result1 !== null) {
-						result0 = [result0, result1];
+						if (result1 !== null) {
+							result0 = [result0, result1];
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
 					} else {
 						result0 = null;
 						pos = pos1;
 					}
-				} else {
-					result0 = null;
-					pos = pos1;
-				}
-				if (result0 !== null) {
-					result0 = (function(offset, dec) { return new L.AST.Imaginary(dec); })(pos0, result0[0]);
-				}
-				if (result0 === null) {
-					pos = pos0;
+					if (result0 !== null) {
+						result0 = (function(offset, dec) { return new L.AST.Imaginary(dec); })(pos0, result0[0]);
+					}
+					if (result0 === null) {
+						pos = pos0;
+					}
 				}
 				return result0;
 			}
