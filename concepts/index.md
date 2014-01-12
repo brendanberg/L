@@ -1,11 +1,14 @@
 # L Programming Language Concepts and Motivations
 
-This document is a rambling collection of half-baked ideas, unexplored leads, inspirations, ---, and ---.
+This document is a rambling collection of half-baked ideas, unexplored leads,
+inspirations, rants, and blind attempts to make sense of an evolving
+programming language.
 
 
 ## Simplicity
 
-Some features of a simple language and how to get them. I don't really agree with all this, but it's a neat start.
+Some features of a simple language and how to get them. I don't really agree
+with all this, but it's a neat start.
 
 - Values vs. final, persistent collections
 - Functions are just stateless methods
@@ -60,3 +63,4 @@ Some features of a simple language and how to get them. I don't really agree wit
 - Named parameters
 - "Succinct syntax for common operations" (avoid boilerplate)
 - Concurrency ("At least acknowledge that it exists!")
+
