@@ -7,6 +7,6 @@ Unlike older languages that inspired it, concurrency is built into the L runtime
 The overarching philosophy is that powerful programs should also be concise.
 
 
-# The 🅛🅜Runtime
+# The 🅛🅜 Runtime
 
 The LM Runtime is a concurrent runtime for the L Programming Language
