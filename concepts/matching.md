@@ -13,17 +13,17 @@ Draft of syntax and matching rules for __L__ match objects. Match objects may be
 
 2. Match a particular type or interface
 
-    `/Number/` matches any message of type `Number`.  
+    `{Number}` matches any message of type `Number`.  
     `/String/` matches any message of type `String`.  
-    `/List/` matches any message of type `List`.
+    `[List]` matches any message of type `List`.
 
 3. Restrict the matched type with attributes or properties. There are a couple of ways to do this:
 
     With anonymous functions as match restrictions. (To match, the function must return `True` for the message.)
 
-    `/Number (x) => x > 0/` matches any number greater than zero.  
-    `/String (x) => x == ""/` matches the empty string.  
-    (Note that `/Number/` is really a shorthand for `/Number => True/`.)  
+    `<Number (x) => x > 0>` matches any number greater than zero.  
+    `<String (x) => x == "">` matches the empty string.  
+    (Note that `<Number>` is really a shorthand for `/Number => True/`.)  
 
     With an implicit lambda, passing an expression of type bool to the type.
 

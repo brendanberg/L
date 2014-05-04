@@ -142,7 +142,7 @@ quote
 	= "|" _ exp:expression _ "|" { return new L.AST.Quote(exp); }
 
 blockQuote
-	= "||" __ el:expressionList ? __ "||" { 
+	= "||" __ el:expressionList ? __ "||" {
 			if (el.type !== 'ExpressionList') {
 				return new L.AST.Quote(new L.AST.ExpressionList([el]));
 			} else {
@@ -164,7 +164,7 @@ number
 
 integer
 	= "0" { return new L.AST.Integer(0); }
-	/ first:[1-9] rest:[0-9]* { 
+	/ first:[1-9] rest:[0-9]* {
 			var val = parseInt(first + rest.join(''), 10);
 			return new L.AST.Integer(val);
 		}
@@ -199,4 +199,3 @@ __
 
 $
 	= ("," / "\n" / ",\n")
-

@@ -12,57 +12,22 @@ The evaluate operator (`=`) is used to immediately evaluate a value that would o
 This can be useful in cases where an anonymous function wants to use the current value of a variable
 at the the function is defined, rather than the value at call time. For example:
 
-	> a : "Hello, "
-	> b : "world!"
-	> one : =>
-	-     [a, b] joinWith:" "
-	-
+	> a: "Hello, "
+	> b: "world!"
+	> one: => [
+	-     [a, b] joinWith: " "
+	- ]
 	> one
 	"Hello, world!"
-	> b : "everybody!"
+	> b: "everybody!"
 	> one
 	"Hello, everybody!"
-	> two : =>
-	-     [a, =b] joinWith:" "
-	-
-	> b : "nobody."
+	> two: => [
+	-     [a, =b] joinWith: " "
+	- ]
+	> b: "nobody."
 	> two
 	"Hello, everybody!"
-
-
-Quote
------
-
-A single expression may be quoted by surrounding it with pipe characters.
-The syntax within the pipes is parsed into an abstract syntax tree as regular source would be, but is not evaluated immediately.
-The evaluate operator can be used to unquote specific values that should be evaluated immediately.
-
-	> a : "Hello,"
-	> b : "world!"
-	> one : | [a, b] joinWith:" " |
-	> one
-	AbstractSyntax object at 0x4002a3
-	> = one
-	"Hello, world!"
-	> b : "everybody!"
-	> = one
-	"Hello, everybody!"
-	> two : | [a, =b] joinWith:" " |
-	> b : "nobody."
-	> = two
-	"Hello, everybody!"
-
-The result of a quoted expression is an abstract syntax object,
-which can be evaluated in the current context or evaluated with a given context.
-
-	> ctx : {
-	-     a : "Bonjour,"
-	-     b : "monde!"
-	- }
-	> one evaluateInContext:ctx
-	"Bonjour, monde!"
-
-This feature is extremely helpful when writing macros or language runtimes.
 
 
 Macros
@@ -71,7 +36,7 @@ Macros
 Macros are safe ways to manipulate code at compile time. (What specifically makes a macro hygenic?)
 They are specified in the parser object as a collection of mappings from pattern to function.
 
-	> runtime grammar union: {
+	> runtime grammar union {
 	-     expr op='+' expr: e1, op, e2 =>
 	-         if e1 respondsTo:__add__
 	-             | e1 __add__: e2 |, _
