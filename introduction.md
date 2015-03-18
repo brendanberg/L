@@ -1,15 +1,35 @@
 # The L Programming Language
 
+The __L__ Programming Language is a high-level, ... language.
+
+
+## The Console
+
+The __L__ interactive console evaluates keyboard input as the programmer enters it.
+This document shows the dialogue between programmer and interpreter to illustrate various concepts in __L__.
+The keyboard input is prefixed by the `>` (greater than) character,
+or for subsequent lines of a multi-line expression,
+the `-` (minus) character.
+Console responses have no prefix.
+
+This guide switches between console transcripts and plain English explanations of the concepts.
+Comprehensive documentation of syntax, type system rules,
+and operational semantics can be found in the language specification.
+
 
 ## Values
 
-The __L__ interactive console evaluates keyboard input as the programmer enters it. This document shows the dialogue between programmer and interpreter  to illustrate various concepts in __L__. The keyboard input is prefixed by the `>` (greater than) character, or for subsequent lines of a multi-line expression, the `-` (minus) character. Console responses have no prefix.
-
-This guide switches between console transcripts and plain English explanations of the concepts. Comprehensive documentation of syntax, type system rules, and operational semantics can be found in the language specification.
+__The Empty Type__
 
 	> _
 
-The simplest expression is simply the empty type. It evaluates to itself, but the interpreter suppresses its display. The empty type, or [bottom](http://en.wikipedia.org/wiki/Bottom_type) is a type that has no values. It is commonly used to indicate a void return type.
+The simplest expression is simply the empty type.
+It evaluates to itself, but the interpreter suppresses its display.
+The empty type, also known as [bottom](http://en.wikipedia.org/wiki/Bottom_type),
+is a type that has no values.
+It is commonly used to indicate a void return type.
+
+__Booleans__
 
 	> True
 	True
@@ -19,10 +39,19 @@ The simplest expression is simply the empty type. It evaluates to itself, but th
 
 The two boolean values in __L__ are `True` and `False`. They evaluate to themselves.
 
-	> blub
-	blub	
+__Atoms__
 
-Atom types are identifiers in a context. Atoms are any string of characters that starts with an alphabet character or underscore followed by any number of alphanumeric characters, underscores, or hyphens. Attempting to evaluate an identifier that has not been assigned a value results in the empty type.
+	> blub
+	blub
+
+	> (blub)
+
+Atom types are identifiers within a context.
+Atoms are any string of characters that starts with an alphabet character or underscore
+followed by any number of alphanumeric characters, underscores, or hyphens.
+Attempting to evaluate an identifier that has not been assigned a value results in the empty type.
+
+__Numbers__
 
 	> 42
 	42
@@ -32,109 +61,135 @@ Atom types are identifiers in a context. Atoms are any string of characters that
 
 	> 0.3
 	0.3
-	
+
 	> 6.02e23
 	6.02e+23
 
-The main numeric type in __L__ is the rational type. It can represent integers and fractions with arbitrary precision. Integers can be represented in decimal or hexadecimal notation.
+The main numeric type in __L__ is the rational type.
+It can represent integers and fractions with arbitrary precision. Integers can be represented in decimal or hexadecimal notation.
 
 	> Math.pi
 	≈ 3.141592653589793
-	
+
 	> Math.sin 0.5
 	≈ 0.479425538604203
 
-Numeric approximation types are double-precision [IEEE 754](http://en.wikipedia.org/wiki/IEEE_754-2008) floating-point values. Floating point numbers can include an optional exponent.
+__Sequence Types: Lists and Strings__
 
-	> [2, 4, 6, 8]
-	[2, 4, 6, 8]
-	
-	> [_, False, blub, 0x2A]
-	[_, False, blub, 42]
+Numeric approximation types are double-precision [IEEE 754](http://en.wikipedia.org/wiki/IEEE_754-2008) floating-point values.
+Floating point numbers can include an optional exponent.
 
-Lists are a sequence type in __L__. They are represented as comma separated values enclosed in square brackets. Note that while the hexadecimal numeric literal is converted into the canonical base 10 equivalent, the identifier `blub` has not been evaluated. In __L__, identifiers are not evaluated until their value is explicitly requested.
+	> [2 4 6 8]
+	[2 4 6 8]
 
-	> = [3 .. 7]
-	[3, 4, 5, 6]
-	
-	> = [1 .. 10 \ 2]
-	[1, 3, 5, 7, 9]
-	
-	> = [5 .. 0]
+	> [_ False blub 0x2A]
+	[_ False blub 42]
+
+Lists are a sequence type in __L__.
+They are represented as comma separated values enclosed in square brackets.
+Note that while the hexadecimal numeric literal is converted into the canonical base 10 equivalent,
+the identifier `blub` has not been evaluated.
+In __L__, identifiers are not evaluated until their value is explicitly requested.
+
+	> (3..7)
+	[3 4 5 6]
+
+	> (1...10)
+	[1 2 3 4 5 6 7 8 9 10]
+
+	> (5..0)
 	[5, 4, 3, 2, 1]
 
-	> = [60 .. 1 \ 10]
-	[60, 50, 40, 30, 20, 10]
+	> (10...1)
+	[10, 9, 8, 7, 6, 5, 4, 3, 2, 1]
 
-Range literals are shorthand for numeric lists. They take a start value, a stop value and an optional stride. The resulting list is an arithmetic progression of integers from the start value up to, but not including the stop value. In the case that the lower bound is greater than the upper bound, the resulting list is in descending order. __L__ uses the backslash character to designate the stride of the list. An easy mnemonic for this syntax is "from x to y counting by z". For more complex list generation, see examples using the `map` and `filter` functions on sequence types.
+Range literals are shorthand for numeric lists.
+They take a start value, a stop value and an optional stride.
+The resulting list is an arithmetic progression of integers from the start value up to,
+but not including the stop value.
+In the case that the lower bound is greater than the upper bound,
+the resulting list is in descending order.
+For more complex list generation,
+see examples using the `map` and `filter` functions on sequence types.
 
 	> "Hello, world!"
 	'Hello, world!'
-	
+
 	> 'Gerrit Rietveld Straße'
 	'Gerrit Rietveld Straße'
-	
+
 	> "In Korea, you'd say, \"안녕하세요 세상\""
 	'In Korea, you\'d say, "안녕하세요 세상"'
 
-Strings are sequences of unicode code points. Strings literals are characters enclosed in single or double quotes. Backslash (`\`) is used to escape characters that otherwise have special meaning inside a string, such as newline, tab, the quote character, or backslash itself.
+Strings are sequences of unicode code points.
+Strings literals are characters enclosed in single or double quotes.
+Backslash (`\`) is used to escape characters that otherwise have special meaning inside a string,
+such as newline, tab, the quote character, or backslash itself.
 
-	> {pianist : 'Bill', bassist : 'Scott', drummer : 'Paul'}
+__Collection Types: Maps (and friends)__
+
+	> {pianist: 'Bill', bassist: 'Scott', drummer: 'Paul'}
 	{pianist: 'Bill', bassist: 'Scott', drummer: 'Paul'}
 
-Dictionaries are ordered collections of key-value pairs. The Keys are objects that have defined an equality method and are hashable. Values are any object.
+Dictionaries are ordered collections of key-value pairs.
+The keys are objects that have defined an equality method and are hashable.
+Values are any object.
 
 	> {
-	-     pianist : 'Bill'
-	-     bassist : 'Scott'
-	-     drummer : 'Paul'
+	-     pianist: 'Bill'
+	-     bassist: 'Scott'
+	-     drummer: 'Paul'
 	- }
 	{pianist: 'Bill', bassist: 'Scott', drummer: 'Paul'}
 
-Dictionaries may span multiple lines. Commas are not necessary if each line contains only one key-value pair.
+Dictionaries may span multiple lines.
 
 
 ## Types and Evaluation
 
 The __L__ programming language is strongly, but not explicitly, typed. The postfix `type` operator evaluates the type of a given expression.
 
-	> = 16 type
+__Getting the Type of an Expression__
+
+	> (16 type)
 	Integer
-	
-	> = 'a' type
+
+	> ('a' type)
 	String
-	
-	> = 3.14 type
+
+	> (1.25 type)
 	Decimal
 
 Pretty self-explanatory.
 
-	> = [4, 5, 6] type
-	List[Rat]
-	
-	> = ['B', 'D', 'F', 'M'] type
+	> ([4 5 6] type)
+	List[Integer]
+
+	> (['B' 'D' 'F' 'M'] type)
 	List[String]
-	
+
 Maybe?
 
-	> = ['a', 4] type
+	> (['a' 4] type)
 	List[T]
-	
-	> = { 'a' : 1, 'b' : 2, 'c' : 3 } type
-	Map{String:Rat}
+
+	> ({'a': 1, 'b': 2, 'c': 3 } type)
+	Map{String:Integer}
 
 Container types are further identified by the keys' type and the values' type. Heterogeneous lists are specified with a type variable.
 
-	> = rational type
-	type
-	
-	> = type type
-	type
+	> (Rational Type)
+	Type
+
+	> (Type Type)
+	Type
 
 Types also have a type. Their type is `type`.
 
 
 ## Operators on Scalar Types
+
+__Assignment__
 
 	> number: 42
 	> number
@@ -143,31 +198,74 @@ Types also have a type. Their type is `type`.
 A value can be assigned to an atom within a context using the assignment operator, a colon. An assignment expression evaluates to the empty type. Following an assignment, evaluating the atom in the same context results in the given value.
 
 	> exp: 4 + 3
-	> =exp
+	> (exp)
 	7
 
-An expression can be assigned to an identifier to be retrieved later. To evaluate its value, you must explicitly do so with the `=` operator either before or after assignment.
+An expression can be assigned to an identifier to be retrieved later.
+To evaluate its value, you must explicitly do so with the `=` operator either before or after assignment.
 
-	> x, y: [ 4, 3 ]
+	> [x y]: [4 3]
 	> x
 	4
 	> y
 	3
-	
-	> a, b.., c: [ 1, 2, 3, 4, 5 ]
+
+	> [a b... c]: [1 2 3 4 5]
 	> a
 	1
 	> b
-	[2, 3, 4]
+	[2 3 4]
 	> c
 	5
 
-The target (left-hand side) of the assignment operator can also be a list of identifiers. Assigning a list of the same number of elements assigns each element of the list to each identifier, in order.
+The target (left-hand side) of the assignment operator can also be a list of identifiers.
+Assigning a list of the same number of elements assigns each element of the list to each identifier, in order.
+An identifier followed by an elipsis matches a sequence of items.
+There can only be one ellipsis in a destructuring assignment.
+It can be in any position in the list.
 
-	> m, n: {m: 7, q: -3}
-	     ^  ^-----------^
+	> [x _]: [4 3]
+	> x
+	4
+
+	> [head _... last]: [1 2 3 4 5]
+	> head
+	1
+	> last
+	5
+
+__OR__
+
+	> [x, _]: [4, 3]
+	> x
+	4
+
+	> [head, _..., last]: [1, 2, 3, 4, 5]
+	> head
+	1
+	> last
+	5
+
+__OR__
+
+	> x, _: [4, 3]
+	> x
+	4
+
+	> head, _..., last: [1, 2, 3, 4, 5]
+	> head
+	1
+	> last
+	5
+
+If the bottom type literal is in the left-hand side of the destructuring assignment,
+the value in that position is discarded.
+A bottom literal may be followed by an ellipsis to ignore a sequence of values.
+
+	> [m n]: {m: 7 q: (-3)}
+	     ^   ^------------^
 	ValueError: identifier 'n' is not defined in map
-	> m, n: {m: 7, n: 4, q: -3}
+	> [m, n]: {m: 7 n: 4 q: (-3)}
 	> m
 	7
 	> n
@@ -180,41 +278,41 @@ The same is possible with mapping types, but the target identifiers must be pres
 
 (Also: `+:`, `-:`, `*:`, `/:`, `|:`, `&:`, etc.)
 
-	> = ! True
+	> ! True
 	False
 
-	> = ~ 12
+	> ~ 12
 	-13
-	
-	> = - 4
+
+	> - 4
 	-4
 
 The unary operator `!` (bang) performs a boolean negation. The values `_`, `0`, `False`, and `""`, the empty string are considered false; any other value is considered true. The unary operator `~` (tilde) performs a bitwise inversion on an integer value. The unary operator `-` (minus) negates an integer value.
 
-	> = 3 + 4 * 9
+	> (3 + 4 * 9)
 	39
 
-	> = 3 ** 2
+	> (3 ** 2)
 	9
 
-	> = 3 / 8
+	> (3 / 8)
 	0.375
 
-	> = 5 // 2
+	> (5 // 2)
 	2
 
-	> 5 % 2
+	> (5 % 2)
 	1
 
 __L__ defines binary arithmetic operators for addition, subtraction, multiplication, integer and floating-point division, remainder (modulus), and exponentiation. Ordinary precedence rules apply. Numeric values have strict type promotion rules, so the arguments are converted to a common type before evaluation.
 
-	> = 13 & 7
+	> 13 & 7
 	5
 
-	> = 10 | 4
+	> 10 | 4
 	14
 
-	> = 10 ^ 12
+	> 10 ^ 12
 	6
 
 The binary bitwise operators for *and*, *or*, and *exclusive or* operate on integers.
@@ -226,12 +324,12 @@ __Guard and Default Operators__
 	> ben: {
 	-     height: 1.95
 	- }
-	- 
+	-
 	> tim: {
 	-     age: 23
 	- }
-	- 
-	
+	-
+
 The guard and default operators use short-circuit evaluation to return the result of a logical and or logical or. (The preceding values will be used in the illustrations to follow.)
 
 	> = ben age or defaultAge
@@ -244,7 +342,7 @@ The `or` operator (also known as default) evaluates the left-hand expression and
 	> = ben and ben height
 	1.95
 	> = jon and jon height
-	
+
 The `and` operator (also known as guard) evaluates the left-hand expression and if the result is `False`, `_`, `''`, or `0`, immediately returns its value without executing the right-hand side. Otherwise it returns the value of the right-hand expression. (This is a convenient way to check whether an identifier is defined before looking up a value on it.)
 
 
@@ -277,33 +375,33 @@ Precedence rules: operators have overriding rules, but in general a shift-reduce
 ## Operators on Sequence Types
 
 	> numbers: ['zero', 'one', 'two', 'three', 'four', 'five']
-	> = numbers 4
+	> numbers 4
 	'four'
-	> = numbers [0, 3, 5, 2]
+	> numbers [0, 3, 5, 2]
 	['zero', 'three', 'five', 'two']
-	> = numbers [2 : 4]
+	> = numbers (2 .. 4)
 	['two', 'three']
-	> = numbers [0 : 5 \ 2]
+	> numbers (0 ... 5 | 2)
 	['zero', 'two', 'four']
-	> = numbers [1 : 5 \ 2]
-	['one', 'three']
+	> numbers (1 ... 5 | 2)
+	['one', 'three', 'five']
 
 A subscript of a sequence is a selection of an item or list of items from a sequence. If the subscript is a list with a single item, the result is the value in the mapping that corresponds to that key. If the subscription is a list with multiple values, the result is a list made up of the values in the mapping that corresponds to each key, in order.
 
-	> words: "a man a plan a cam a yak a yam a canal panama"
-	> = words [2 .. 5]
+	> letters: "a man a plan a cam a yak a yam a canal panama"
+	> letters (2 .. 5)
 	'man'
-	> = words [44 .. 34]
+	> letters (44 .. 34)
 	'amanap lan'
-	> = words [13 .. 32 \ 6]
+	> letters (13 .. 32 | 6)
 	'aaaa'
 
 Because strings are sequences of unicode code points, string subscription works the same way.
 
-	> = [0, 1, 2, 3] + [4, 5, 6]
+	> [0, 1, 2, 3] + [4, 5, 6]
 	[0, 1, 2, 3, 4, 5, 6]
-	
-	> = "Bread" + " and " + "butter"
+
+	> "Bread" + " and " + "butter"
 	'Bread and butter'
 
 Sequence concatenation uses the `+` operator.
@@ -319,7 +417,7 @@ Assigning to a list subscription replaces a value.
 ## Operators on Collection Types
 
 	> trio: { pianist: 'Bill', bassist: 'Scott', drummer: 'Paul' }
-	> = trio pianist
+	> trio pianist
 	'Bill'
 	> trio drummer: 'George'
 	> trio
@@ -328,12 +426,12 @@ Assigning to a list subscription replaces a value.
 Dictionary lookup behaves similarly.
 
 	> translate: {'one': 'ein'}
-	> = translate 'one'
+	> translate 'one'
 	'ein'
 	> translate 'one': 'uno'
 	> translate 'two': 'dos'
 	> translate 'three': 'tres'
-	> = translate 'two'
+	> translate 'two'
 	'dos'
 
 Assignment to a dictionary key sets a value (replacing any existing value).
@@ -341,7 +439,7 @@ Assignment to a dictionary key sets a value (replacing any existing value).
 
 ## Blocks and Contexts
 
-A block is deferred computation. Blocks consist of indented expression lists. 
+A block is deferred computation. Blocks consist of indented expression lists.
 
 	> later: 8 + number
 	> later
@@ -368,7 +466,7 @@ When evaluating an expression containing a block, the block will be evaluated be
 	x => [
 	    x * 2
 	]
-	
+
 A function is a block that takes input and returns a value. Functions can be assigned to an identifier, and the body of the function can be recalled.
 
 	> = double type
@@ -384,7 +482,7 @@ Explain arguments. Evaluating the function (passing arguments ...) results in th
 	-     ]
 	-     total / ( m length )
 	- ]
-	- 
+	-
 	> = average [21, 26, 22]
 	23.0
 
@@ -399,7 +497,7 @@ Function types are identified by the argument types and the return type
 	-     1: 1
 	-     _: = n * fact (n - 1)
 	- }
-	- 
+	-
 	> fact
 	n => {
 	    1: 1
@@ -416,7 +514,7 @@ Functions may also accept named arguments, which are atoms captured by the funct
 	-         = i
 	-     ]
 	- ]
-	- 
+	-
 	> f: = acc 4
 	> f
 	n -> [
@@ -433,7 +531,7 @@ Closures.
 	> plus: [a, b] -> [
 	-     = a + b
 	- ]
-	- 
+	-
 	> xplus1 : x -> plus [x, 1]
 	> = xplus1 5
 	6
@@ -452,7 +550,7 @@ The `filter` function takes a function argument and applies it to each element o
 
 	> = [1 : 5] map x -> x * x
 	[1 * 1, 2 * 2, 3 * 3, 4 * 4, 5 * 5]
-	
+
 	> = [1 : 5] map x -> = x * x
 	[1, 4, 9, 16, 25]
 
@@ -509,10 +607,10 @@ The __L__ programming language lacks a traditional `for` statement, since `map`,
 	> sum : 0
 	> = [ 2, 4, 6 ] map x ->
 	-     sum +: x
-	- 
+	-
 	> = sum
 	6
-	
+
 	> = [ 1, 3, 5, 7] folda [i, j] ->
 	-     = i + j
 	16
@@ -526,5 +624,3 @@ Two ways to compute the sum of a list.
 - [Smalltalk](http://en.wikipedia.org/wiki/Smalltalk), a dynamically typed, reflective OO language developed at Xerox PARC.
 - [Python](http://python.org/), a dynamic scripting language that pairs powerful features and clear syntax
 - [CoffeeScript](http://jashkenas.github.com/coffee-script/), a candy coating for JavaScript
-
-  

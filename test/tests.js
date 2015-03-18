@@ -163,6 +163,17 @@ describe("The parser's", function() {
 				new L.AST.Identifier('a'),
 				new L.AST.Integer(7)
 			));
+			// The infix expressions are right associative by default. There will
+			// be an associativity & precedence macro that adjusts the AST later.
+			buildAssertion(assert.deepEqual, "1 + 2 + 3", new L.AST.InfixExpression(
+				new L.AST.InfixOperator('+'),
+				new L.AST.Integer(1),
+				new L.AST.InfixExpression(
+					new L.AST.InfixOperator('+'),
+					new L.AST.Integer(2),
+					new L.AST.Integer(3)
+				)
+			));
 		});
 
 		it ('should accept well-formed quoted expressions', function () {

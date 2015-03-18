@@ -26,7 +26,7 @@ parser: src/parser.js
 	@:
 
 test: src/parser.js test/tests.js
-	@$(modulePath)/mocha -u bdd -R list -C test/tests.js
+	@$(modulePath)/mocha -u bdd -R list -C test/*.js
 
 clean:
 	@rm -f strudel.js strudel.min.js src/parser.js

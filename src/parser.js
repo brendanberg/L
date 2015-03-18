@@ -1865,7 +1865,7 @@ L.Parser = (function(){
 					pos = pos1;
 				}
 				if (result0 !== null) {
-					result0 = (function(offset, el) { 
+					result0 = (function(offset, el) {
 							if (el.type !== 'ExpressionList') {
 								return new L.AST.Quote(new L.AST.ExpressionList([el]));
 							} else {
@@ -2101,7 +2101,7 @@ L.Parser = (function(){
 						pos = pos1;
 					}
 					if (result0 !== null) {
-						result0 = (function(offset, first, rest) { 
+						result0 = (function(offset, first, rest) {
 								var val = parseInt(first + rest.join(''), 10);
 								return new L.AST.Integer(val);
 							})(pos0, result0[0], result0[1]);
