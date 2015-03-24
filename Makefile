@@ -3,9 +3,9 @@ begin = /\/\/ BEGIN(BROWSER)/d
 end = /\/\/ END(BROWSER)/d
 modulePath = ./node_modules/.bin
 
-build: src/base.js src/ast.js src/parser.js
+build: src/ast.js src/parser.js
 	@echo 'Concatenating scripts...'
-	@awk '$(pattern)' src/base.js > /tmp/strudel.js
+	# @awk '$(pattern)' src/base.js > /tmp/strudel.js
 	@awk '$(pattern)' src/ast.js >> /tmp/strudel.js
 	@awk '$(pattern)' src/parser.js >> /tmp/strudel.js
 	@sed '$(begin)' /tmp/strudel.js | sed '$(end)' > strudel.js

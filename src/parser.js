@@ -1456,11 +1456,9 @@ L.Parser = (function(){
 				if (result0 !== null) {
 					result0 = (function(offset, el) {
 							if (!el) {
-								return new L.AST.ExpressionList([]);
-							} else if (el.type !== 'ExpressionList') {
-								return new L.AST.ExpressionList([el]);
+								return new L.AST.List([]);
 							} else {
-								return el;
+								return new L.AST.List(el.list);
 							}
 						})(pos0, result0[2]);
 				}

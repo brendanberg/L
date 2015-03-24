@@ -93,6 +93,9 @@ prefixOperator
 	/ "~" { return new L.AST.PrefixOperator('~'); }
 	/ "!" { return new L.AST.PrefixOperator('!'); }
 	/ "=" { return new L.AST.PrefixOperator('='); }
+	/ "\" { return new L.AST.PrefixOperator('\'); }
+	/ "^" { return new L.AST.PrefixOperator('^'); }
+
 
 function
 	= il:identifierList _ "->" _ b:block { return new L.AST.Function(il, b); }
@@ -112,11 +115,9 @@ identifierList
 list
 	= "[" _ el:expressionList ? _ "]" {
 			if (!el) {
-				return new L.AST.ExpressionList([]);
-			} else if (el.type !== 'ExpressionList') {
-				return new L.AST.ExpressionList([el]);
+				return new L.AST.List([]);
 			} else {
-				return el;
+				return new L.AST.List(el.list);
 			}
 		}
 
@@ -134,9 +135,19 @@ keyValuePair
 		}
 
 identifier
+	= n:name mod:postfixModifier? {
+			n.modifier = mod;
+			return n;
+		}
+
+name
 	= first:[a-zA-Z_] rest:[a-zA-Z0-9_-]* {
 			return new L.AST.Identifier(first + rest.join(''));
 		}
+
+postfixModifier
+	= "?" { return new L.AST.PostfixModifier('?'); }
+	/ "!" { return new L.AST.PostfixModifierr('!'); }
 
 quote
 	= "|" _ exp:expression _ "|" { return new L.AST.Quote(exp); }
