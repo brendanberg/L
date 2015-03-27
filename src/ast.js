@@ -21,10 +21,10 @@ var AST = {
 		this.op = op;
 		this.exp = exp;
 	},
-	Function: function (idList, block, tags) {
+	Function: function (plist, block, tags) {
 		this.type = 'Function';
 		this.tags = tags || {};
-		this.identifierList = idList;
+		this.plist = plist;
 		this.block = block;
 	},
 	Block: function (expList, tags) {
@@ -169,8 +169,17 @@ AST.Function.prototype.eval = function (rt, ctx) {
 	return this;
 };
 
+AST.Function.prototype.toString = function() {
+	var arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
+	return this.plist.toString() + arrow + this.block.toString();
+};
+
 AST.Block.prototype.eval = function (rt, ctx) {
 
+};
+
+AST.Block.prototype.toString = function () {
+	return '{\n' + this.expressionList.toString() + '\n}';
 };
 
 AST.List.prototype.eval = function (rt, ctx) {
@@ -178,7 +187,12 @@ AST.List.prototype.eval = function (rt, ctx) {
 };
 
 AST.List.prototype.toString = function() {
-	return '[' + this.list.map(stringify).join(', ') + ']';
+	var map = {
+		dictionary: function(s) { return '[' + s + ']'; },
+		list: function(s) { return '[' + s + ']'; },
+		identifierList: function(s) { return '(' + s + ')'; }
+	};
+	return map[this.tags['source'] || 'list'](this.list.map(stringify).join(', '));
 };
 
 AST.Dictionary.prototype.eval = function (rt, ctx) {
@@ -199,10 +213,6 @@ AST.MessageSend.prototype.toString = function () {
 
 AST.IdentifierList.prototype.eval = function (rt, ctx) {
 
-};
-
-AST.IdentifierList.prototype.toString = function () {
-	return this.list.map(stringify).join(', ');
 };
 
 AST.Identifier.prototype.eval = function (rt, ctx) {

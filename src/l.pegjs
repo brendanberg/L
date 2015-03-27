@@ -81,7 +81,7 @@ infixOperatorNoAssign
 	/ "==" { return new L.AST.InfixOperator('=='); }
 	/ "!=" { return new L.AST.InfixOperator('!='); }
 	/ ">=" { return new L.AST.InfixOperator('>='); }
-	/ "->" { return new L.AST.InfixOperator('->'); }
+	// "->" { return new L.AST.InfixOperator('->'); }
 	/ "<-" { return new L.AST.InfixOperator('<-'); }
 	/ ".." { return new L.AST.InfixOperator('..'); }
 	/ "~>" { return new L.AST.InfixOperator('~>'); }
@@ -108,29 +108,40 @@ prefixOperator
 
 
 function
-	= il:identifierList _ "->" _ b:block { return new L.AST.Function(il, b); }
-	/ il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b); }
+	= il:identifierList _ "->" _ b:block { return new L.AST.Function(il, b, {type: 'thin'}); }
+	/ il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
 
 block
-	= "{\n" exps:expressionList "\n" ? "}" { return new L.AST.Block(exps); }
+	= "{" __ exps:(expressionList)? "}" { 
+			var list;
+			
+			if (exps && exps.type === 'ExpressionList') {
+				list = exps.list;
+			} else if (exps) {
+				list = [exps];
+			} else {
+				list = [];
+			}
+			
+			return new L.AST.Block(list);
+		}
 
 identifierList
-	// "[" _ ( identifier ($ _ identifier )* $? )? _ "]"
-	= "[" _ idl:(first:identifier rest:($ _ id:identifier { return id; })* $ ? {
-			return new L.AST.IdentifierList([first].concat(rest));
-		}) ? _ "]" {
-			return idl || new L.AST.IdentifierList([]);
+	= "(" _ idl:(first:identifier rest:($ _ id:identifier { return id; })* $? {
+			return new L.AST.List([first].concat(rest), {source: 'identifierList'});
+		}) ? _ ")" {
+			return idl || new L.AST.List([], {source: 'identifierList'});
 		}
 
 list
 	= "[" __ el:expressionNoAssignList ? __ "]" {
 			if (!el) {
-				return new L.AST.List([]);
+				return new L.AST.List([], {source: 'list'});
 			} else if (el.type === 'ExpressionList') {
 				// Expression lists are actually just expressions if there's just one
-				return new L.AST.List(el.list);
+				return new L.AST.List(el.list, {source: 'list'});
 			} else {
-				return new L.AST.List([el]);
+				return new L.AST.List([el], {source: 'list'});
 			}
 		}
 

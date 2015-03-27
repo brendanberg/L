@@ -14,8 +14,9 @@ var lists = {
 	alphanum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split(''),
 	prefixOperator: '+-~!^\\'.split(''),
 	infixOperator: ['//:', '//', '/:', '+:', '-:', '*:', '%:', '<=', '==',
-		'!=', '>=', '->', '<-', '..', '~>', '<~', '??', '+', '-', '*', '/',
-		'%', '<', '>', '&', '|', '^']
+		'!=', '>=', '<-', '..', '~>', '<~', '??', '+', '-', '*', '/', '%',
+		'<', '>', '&', '|', '^'
+	]
 };
 
 var ASTgen = {};
@@ -53,7 +54,7 @@ ASTgen.string = gen.map(function(s) {
 	return new L.AST.String(s);
 }, gen.string);
 
-ASTgen.stringRestricted = gen.map(function(s) {
+ASTgen.string__r = gen.map(function(s) {
 	return new L.AST.String(s.join(''));
 }, gen.array(gen.returnOneOf(lists.alphanum), 3));
 
@@ -75,21 +76,30 @@ ASTgen.identifier = gen.map(function(args) {
 
 
 
-// Expressions
+// Restricted Terms
 
-ASTgen.termRestricted = gen.oneOf([
-	ASTgen.identifier, ASTgen.number, ASTgen.stringRestricted
+ASTgen.term__r = gen.oneOf([
+	ASTgen.identifier, ASTgen.number, ASTgen.string__r
 ]);
 
 ASTgen.prefixExpression = gen.map(function(args) {
 	return new L.AST.PrefixExpression(new L.AST.PrefixOperator(args[0]), args[1]);
-}, gen.array([gen.returnOneOf(lists.prefixOperator), ASTgen.termRestricted]));
+}, gen.array([gen.returnOneOf(lists.prefixOperator), ASTgen.term__r]));
 
-ASTgen.listOfTerms = gen.map(function(items) {
-	return new L.AST.List(items);
-}, gen.array(ASTgen.termRestricted));
+ASTgen.infixExpression__r = gen.map(function(args) {
+	var op = new L.AST.InfixOperator(args[0]);
+	return new L.AST.InfixExpression(op, args[1], args[2]);
+}, gen.array([
+	gen.returnOneOf(lists.infixOperator),
+	ASTgen.term__r,
+	ASTgen.term__r
+]));
 
-ASTgen.dictionaryRestricted = gen.map(function(args) {
+ASTgen.list__r = gen.map(function(items) {
+	return new L.AST.List(items, {source: 'list'});
+}, gen.array(ASTgen.term__r));
+
+ASTgen.dictionary__r = gen.map(function(args) {
 	var kvl = [];
 
 	for (var i in args) {
@@ -97,14 +107,27 @@ ASTgen.dictionaryRestricted = gen.map(function(args) {
 	}
 
 	return new L.AST.List(kvl, kvl.length ? {source: 'dictionary'} : {});
-}, gen.array(gen.array([ASTgen.identifier, ASTgen.termRestricted]), 4));
+}, gen.array(gen.array([ASTgen.identifier, ASTgen.term__r]), 4));
 
+ASTgen.plist = gen.map(function(items) {
+	return new L.AST.List(items, {source: 'identifierList'});
+}, gen.array(ASTgen.identifier, 3));
+
+ASTgen.expression__r = gen.oneOf([ASTgen.prefixExpression, ASTgen.infixExpression]);
+
+ASTgen.function__r = gen.map(function(args) {
+	return new L.AST.Function(args[0], new L.AST.Block(args[1]), {type: args[2]});
+}, gen.array([
+	ASTgen.plist,
+	gen.array(ASTgen.term__r, 3),
+	gen.returnOneOf(['fat', 'thin'])
+]));
 
 // Terms
 
 ASTgen.term = gen.oneOf([
-	ASTgen.function, ASTgen.listOfTerms, ASTgen.dictionaryRestricted, ASTgen.identifier,
-	ASTgen.stringRestricted, ASTgen.number
+	ASTgen.function, ASTgen.list__r, ASTgen.dictionary__r, ASTgen.identifier,
+	ASTgen.string__r, ASTgen.number
 ]);
 
 
@@ -118,9 +141,10 @@ describe('Parser', function () {
 	check.it('accepts identifiers', [ASTgen.identifier], parserIsomorphism);
 
 	check.it('accepts prefix expressions on terms', [ASTgen.prefixExpression], parserIsomorphism);
-	check.it('accepts lists of terms', [ASTgen.listOfTerms], parserIsomorphism);
-	check.it('accepts dictionaries of [identifier:term]', [ASTgen.dictionaryRestricted], parserIsomorphism);
-	//check.it('accepts functions of [identifier]=>_', [ASTgen.function], parserIsomorphism);
+	check.it('accepts infix expressions on terms', [ASTgen.infixExpression__r], parserIsomorphism);
+	check.it('accepts lists of terms', [ASTgen.list__r], parserIsomorphism);
+	check.it('accepts dictionaries of [id:term]', [ASTgen.dictionary__r], parserIsomorphism);
+	check.it('accepts functions of (id)=>{}', [ASTgen.function__r], parserIsomorphism);
 
 	//check.it('accepts terms', [ASTgen.term], parserIsomorphism);
 	//check.it('accepts identifiers', [ASTgen.identifier], parserIsomorphism, {times: 1000});
