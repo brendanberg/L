@@ -86,14 +86,13 @@ ASTgen.prefixExpression = gen.map(function(args) {
 	return new L.AST.PrefixExpression(new L.AST.PrefixOperator(args[0]), args[1]);
 }, gen.array([gen.returnOneOf(lists.prefixOperator), ASTgen.term__r]));
 
+ASTgen.infixOperator = gen.map(function(op) {
+	return new L.AST.InfixOperator(op);
+}, gen.returnOneOf(lists.infixOperator));
+
 ASTgen.infixExpression__r = gen.map(function(args) {
-	var op = new L.AST.InfixOperator(args[0]);
-	return new L.AST.InfixExpression(op, args[1], args[2]);
-}, gen.array([
-	gen.returnOneOf(lists.infixOperator),
-	ASTgen.term__r,
-	ASTgen.term__r
-]));
+	return new L.AST.InfixExpression(args[0], args[1], args[2]);
+}, gen.array([ ASTgen.infixOperator, ASTgen.term__r, ASTgen.term__r]));
 
 ASTgen.list__r = gen.map(function(items) {
 	return new L.AST.List(items, {source: 'list'});
@@ -113,39 +112,55 @@ ASTgen.plist = gen.map(function(items) {
 	return new L.AST.List(items, {source: 'identifierList'});
 }, gen.array(ASTgen.identifier, 3));
 
-ASTgen.expression__r = gen.oneOf([ASTgen.prefixExpression, ASTgen.infixExpression]);
+ASTgen.expression__r = gen.oneOf([ASTgen.prefixExpression, ASTgen.infixExpression__r]);
 
 ASTgen.function__r = gen.map(function(args) {
 	return new L.AST.Function(args[0], new L.AST.Block(args[1]), {type: args[2]});
 }, gen.array([
 	ASTgen.plist,
-	gen.array(ASTgen.term__r, 3),
+	gen.array(ASTgen.expression__r, 3),
 	gen.returnOneOf(['fat', 'thin'])
 ]));
+
 
 // Terms
 
 ASTgen.term = gen.oneOf([
-	ASTgen.function, ASTgen.list__r, ASTgen.dictionary__r, ASTgen.identifier,
+	ASTgen.function__r, ASTgen.list__r, ASTgen.dictionary__r, ASTgen.identifier,
 	ASTgen.string__r, ASTgen.number
 ]);
+
+ASTgen.infixExpression = gen.map(function(args) {
+	return new L.AST.InfixExpression(args[0], args[1], args[2]);
+}, gen.array([ASTgen.infixOperator, ASTgen.term, ASTgen.expression__r]));
+
+ASTgen.expression = gen.oneOf([ASTgen.prefixExpression, ASTgen.infixExpression]);
 
 
 describe('Parser', function () {
 	check.it('accepts hex values', [ASTgen.hex], parserIsomorphism);
 	check.it('accepts int values', [ASTgen.integer], parserIsomorphism);
 	check.it('accepts decimal values', [ASTgen.decimal], parserIsomorphism);
-	check.it('accepts assorted numeric values', [ASTgen.number], parserIsomorphism);
+	check.it('accepts assorted numeric values',
+		[ASTgen.number], parserIsomorphism);
 
 	check.it('accepts string values', [ASTgen.string], parserIsomorphism);
 	check.it('accepts identifiers', [ASTgen.identifier], parserIsomorphism);
 
-	check.it('accepts prefix expressions on terms', [ASTgen.prefixExpression], parserIsomorphism);
-	check.it('accepts infix expressions on terms', [ASTgen.infixExpression__r], parserIsomorphism);
-	check.it('accepts lists of terms', [ASTgen.list__r], parserIsomorphism);
-	check.it('accepts dictionaries of [id:term]', [ASTgen.dictionary__r], parserIsomorphism);
-	check.it('accepts functions of (id)=>{}', [ASTgen.function__r], parserIsomorphism);
+	check.it('accepts prefix expressions on basic terms',
+		[ASTgen.prefixExpression], parserIsomorphism);
+	check.it('accepts infix expressions on basic terms',
+		[ASTgen.infixExpression__r], parserIsomorphism);
+	check.it('accepts lists of basic terms',
+		[ASTgen.list__r], parserIsomorphism);
+	check.it('accepts dictionaries of [id:term]',
+		[ASTgen.dictionary__r], parserIsomorphism);
+	check.it('accepts basic functions',
+		[ASTgen.function__r], parserIsomorphism);
 
+	check.it('accepts complex terms', [ASTgen.term], parserIsomorphism);
+	check.it('accepts complex expressions',
+		[ASTgen.expression], parserIsomorphism);
 	//check.it('accepts terms', [ASTgen.term], parserIsomorphism);
 	//check.it('accepts identifiers', [ASTgen.identifier], parserIsomorphism, {times: 1000});
 });
