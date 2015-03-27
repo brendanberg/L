@@ -4,7 +4,7 @@ var assert = require('assert');
 function buildAssertion(assertion, source, result, message) {
 	assertion(L.Parser.parse(source), result, message);
 }
-
+/*
 describe("The parser's", function() {
 
 // Literals
@@ -245,4 +245,4 @@ describe("The parser's", function() {
 		});
 	});
 });
-
+*/

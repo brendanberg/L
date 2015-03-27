@@ -3,7 +3,16 @@ start
 	= expressionList
 
 expressionList
-	= first:expression rest:($ _ exp:expression { return exp; } )* $ ? _ {
+	= first:expression rest:($ _ exp:expression { return exp; } )* $? _ {
+			if (rest.length > 0) {
+				return new L.AST.ExpressionList([first].concat(rest));
+			} else {
+				return first;
+			}
+		}
+
+expressionNoAssignList
+	= first:expressionNoAssign rest:($ _ exp:expressionNoAssign { return exp; } )* $? _ {
 			if (rest.length > 0) {
 				return new L.AST.ExpressionList([first].concat(rest));
 			} else {
@@ -34,16 +43,9 @@ expressionNoAssign
 		}
 
 expressionNoInfix
-	= function
-	/ prefixExpression
+	= prefixExpression
 	/ messageSend
-	/ list
-	/ dictionary
-	/ identifier
-	/ blockQuote
-	/ quote
-	/ string
-	/ number
+	/ term
 
 messageSend
 	= id:identifier _ kvl:keyValueList
@@ -51,9 +53,17 @@ messageSend
 	// dict or id?
 
 prefixExpression
-	= op:prefixOperator _ e:expression {
+	= op:prefixOperator _ e:term {
 			return new L.AST.PrefixExpression(op, e);
 		}
+
+term
+	= function
+	/ list
+	/ dictionary
+	/ identifier
+	/ string
+	/ number
 
 infixOperator
 	= ":" { return new L.AST.InfixOperator(':'); }
@@ -76,6 +86,7 @@ infixOperatorNoAssign
 	/ ".." { return new L.AST.InfixOperator('..'); }
 	/ "~>" { return new L.AST.InfixOperator('~>'); }
 	/ "<~" { return new L.AST.InfixOperator('<~'); }
+	/ "??" { return new L.AST.InfixOperator('??'); }
 	/ "+" { return new L.AST.InfixOperator('+'); }
 	/ "-" { return new L.AST.InfixOperator('-'); }
 	/ "*" { return new L.AST.InfixOperator('*'); }
@@ -92,9 +103,8 @@ prefixOperator
 	/ "-" { return new L.AST.PrefixOperator('-'); }
 	/ "~" { return new L.AST.PrefixOperator('~'); }
 	/ "!" { return new L.AST.PrefixOperator('!'); }
-	/ "=" { return new L.AST.PrefixOperator('='); }
-	/ "\" { return new L.AST.PrefixOperator('\'); }
 	/ "^" { return new L.AST.PrefixOperator('^'); }
+	/ "\\" { return new L.AST.PrefixOperator('\\'); }
 
 
 function
@@ -102,7 +112,7 @@ function
 	/ il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b); }
 
 block
-	= "[\n" exps:expressionList "\n" ? "]" { return new L.AST.Block(exps); }
+	= "{\n" exps:expressionList "\n" ? "}" { return new L.AST.Block(exps); }
 
 identifierList
 	// "[" _ ( identifier ($ _ identifier )* $? )? _ "]"
@@ -113,30 +123,33 @@ identifierList
 		}
 
 list
-	= "[" _ el:expressionList ? _ "]" {
+	= "[" __ el:expressionNoAssignList ? __ "]" {
 			if (!el) {
 				return new L.AST.List([]);
-			} else {
+			} else if (el.type === 'ExpressionList') {
+				// Expression lists are actually just expressions if there's just one
 				return new L.AST.List(el.list);
+			} else {
+				return new L.AST.List([el]);
 			}
 		}
 
 dictionary
-	= "{" _ kvl:keyValueList ? _ "}" { return kvl || new L.AST.KeyValueList([]); }
+	= "[" __ kvl:keyValueList ? __ "]" { return kvl || new L.AST.List([], {source: 'dictionary'}); }
 
 keyValueList
 	= first:keyValuePair rest:($ _ kvp:keyValuePair { return kvp; })* $ ? _ {
-			return new L.AST.KeyValueList([first].concat(rest));
+			return new L.AST.List([first].concat(rest), {source: 'dictionary'});
 		}
 
 keyValuePair
-	= key:expressionNoAssign _ ":" _ val:expression {
+	= key:expressionNoAssign _ ":" _ val:expressionNoAssign {
 			return new L.AST.KeyValuePair(key, val);
 		}
 
 identifier
 	= n:name mod:postfixModifier? {
-			n.modifier = mod;
+			n.tags['modifier'] = mod || null;
 			return n;
 		}
 
@@ -146,25 +159,19 @@ name
 		}
 
 postfixModifier
-	= "?" { return new L.AST.PostfixModifier('?'); }
-	/ "!" { return new L.AST.PostfixModifierr('!'); }
+	= "?" { return '?'; }
+	/ "!" { return '!'; }
 
-quote
-	= "|" _ exp:expression _ "|" { return new L.AST.Quote(exp); }
-
-blockQuote
-	= "||" __ el:expressionList ? __ "||" {
-			if (el.type !== 'ExpressionList') {
-				return new L.AST.Quote(new L.AST.ExpressionList([el]));
-			} else {
-				return new L.AST.Quote(el);
-			}
-		}
 
 string
 	// potentially disallow new lines, control chars, etc.
-	= "\"" str:[^"]* "\"" { return new L.AST.String(str.join('')); }
-	/ "'" str:[^']* "'" { return new L.AST.String(str.join('')); }
+	= "\"" str:(escapedChar / [^"])* "\"" { return new L.AST.String(str.join('')); }
+	/ "'" str:(escapedChar / [^'])* "'" { return new L.AST.String(str.join('')); }
+
+escapedChar
+	= '\\' char:[ntb"'\\] {
+			return ({'"': '"', "'": "'", n: '\n', t: '\t', '\\': '\\'})[char];
+		}
 
 number
 	= imaginary
@@ -174,32 +181,38 @@ number
 	/ integer
 
 integer
-	= "0" { return new L.AST.Integer(0); }
+	= "0" { return new L.AST.Integer(0, {'source_base': 10}); }
 	/ first:[1-9] rest:[0-9]* {
 			var val = parseInt(first + rest.join(''), 10);
-			return new L.AST.Integer(val);
+			return new L.AST.Integer(val, {'source_base': 10});
 		}
 
 decimal
-	= int:integer "." digits:[0-9]+ {
-			var fractionPart = parseInt(digits.join(''), 10),
-					exponent = fractionPart ? digits.length : 0;
-			return new L.AST.Decimal(int.value * Math.pow(10, exponent) + fractionPart, exponent);
+	= int:integer "." digits:[0-9]* {
+			var fraction = parseInt(digits.join(''), 10) || 0;
+			var factor = Math.pow(10, digits.length);
+			return new L.AST.Decimal(int.value * factor + fraction, digits.length);
 		}
 
 imaginary
 	= int:integer [ijJ] { return new L.AST.Imaginary(int); }
+	/ hex:hex [ijJ] { return new L.AST.Imaginary(hex); }
 	/ dec:decimal [ijJ] { return new L.AST.Imaginary(dec); }
 
 
 scientific
-	= sig:integer [eE] [+-]? mant:integer { return new L.AST.Real(); }
-	/ sig:decimal [eE] [+-]? mant:integer { return new L.AST.Real(); }
+	= sig:integer [eE] [+-]? mant:integer {
+			return new L.AST.Scientific(sig.value, mant.value);
+		}
+	/ sig:decimal [eE] [+-]? mant:integer {
+			return new L.AST.Scientific(sig.value, mant.value);
+		}
 
 hex
-	= "0x0" { return new L.AST.Integer(0); }
+	= "0x0" { return new L.AST.Integer(0, {'source_base': 16}); }
 	/ "0x" first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
-			return new L.AST.Integer(parseInt(first + rest.join(''), 16));
+			var val = parseInt(first + rest.join(''), 16);
+			return new L.AST.Integer(val, {'source_base': 16});
 		}
 
 _
