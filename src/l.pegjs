@@ -36,10 +36,6 @@ term
 	/ value
 	/ msg:message { return new L.AST.MessageSend(null, null, msg); }
 
-// messageSend
-// 	= recvr:expressionNoInfix msg:message { return new L.AST.MessageSend(null, recvr, msg); }
-// 	/ msg:message { return new L.AST.MessageSend(null, null, msg); }
-
 message
 	= '.' id:identifier params:parameterList? { return new L.AST.Message(id, params); }
 

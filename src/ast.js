@@ -7,6 +7,15 @@ function stringify(node) {
 	return node.toString();
 }
 
+function clone(obj) {
+	if (obj == null || typeof obj !== 'object') { console.log(obj); return obj; }
+	var copy = obj.constructor();
+	for (var attr in obj) {
+		if (obj.hasOwnProperty(attr)) { copy[attr] = obj[attr]; }
+	}
+	return copy;
+};
+
 var AST = {
 	InfixExpression: function (op, lhs, rhs, tags) {
 		this.type = 'InfixExpression';
@@ -26,6 +35,7 @@ var AST = {
 		this.tags = tags || {};
 		this.plist = plist;
 		this.block = block;
+		this.ctx = null;
 	},
 	Block: function (expList, tags) {
 		this.type = 'Block';
@@ -145,10 +155,9 @@ var AST = {
 };
 
 AST.InfixExpression.prototype.eval = function (rt, ctx) {
-	var lhs = this.lhs.eval(rt, ctx),
-		msg = new AST.KeyValuePair(
-			this.op, this.rhs.eval(rt, ctx)
-		);
+	var lhs = this.lhs.eval(rt, ctx);
+	var rhs = this.rhs.eval(rt, ctx);
+	var msg = new AST.Message(this.op, rhs);
 	
 	var message = new AST.MessageSend(ctx, lhs, msg);
 	this.value = message.eval(rt, ctx);
@@ -160,8 +169,8 @@ AST.InfixExpression.prototype.toString = function () {
 };
 
 AST.PrefixExpression.prototype.eval = function (rt, ctx) {
-	var exp = this.exp.eval(rt, ctx),
-		message = new AST.MessageSend(ctx, this.op);
+	var exp = this.exp.eval(rt, ctx);
+	var message = new AST.MessageSend(ctx, exp, new AST.Message(this.op));
 	
 	this.value = message.eval(rt, ctx);
 	return this.value;
@@ -172,6 +181,7 @@ AST.PrefixExpression.prototype.toString = function() {
 };
 
 AST.Function.prototype.eval = function (rt, ctx) {
+	this.ctx = ctx;
 	return this;
 };
 
@@ -189,7 +199,7 @@ AST.Block.prototype.toString = function () {
 };
 
 AST.List.prototype.eval = function (rt, ctx) {
-
+	return this;
 };
 
 AST.List.prototype.toString = function() {
@@ -203,7 +213,7 @@ AST.List.prototype.toString = function() {
 };
 
 AST.Dictionary.prototype.eval = function (rt, ctx) {
-
+	return this;
 };
 
 AST.Dictionary.prototype.toString = function() {
@@ -211,7 +221,29 @@ AST.Dictionary.prototype.toString = function() {
 };
 
 AST.MessageSend.prototype.eval = function (rt, ctx) {
+	var selector = (this.receiver || ctx)[this.message.identifier.name];
+	if (selector.type !== 'Function') {
+		return selector;
+	} else {
+		// Eval the function ugh
+		var scope;
+		var value = null;
 
+		if (selector.plist.length !== this.message.params.length) {
+			throw 'Method signatures do not match';
+		}
+
+		scope = clone(selector.ctx);
+
+		for (var i = 0, len = selector.plist.length; i < len; i++) {
+			scope[selector.plist[i].name] = this.message.params[i].eval(rt, ctx);
+		}
+
+		for (var i = 0, len = selector.block.expressionList.length; i < len; i++) {
+			value = selector.block.expressionList[i].eval(rt, scope);
+		}
+		return value;
+	}
 };
 
 AST.MessageSend.prototype.toString = function () {
@@ -227,9 +259,9 @@ AST.IdentifierList.prototype.eval = function (rt, ctx) {
 };
 
 AST.Identifier.prototype.eval = function (rt, ctx) {
-	var message = new AST.MessageSend(_, ctx,
-		new AST.KeyValuePair('__get__', this.name));
-	this.value = message.eval(rt, ctx);
+	this.value = ctx[this.name];
+
+	return this.value;
 };
 
 AST.Identifier.prototype.toString = function () {
