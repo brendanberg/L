@@ -247,7 +247,7 @@ L.Parser = (function(){
 						if (result2 !== null) {
 							result3 = parse__();
 							if (result3 !== null) {
-								result4 = parse_expressionNoInfix();
+								result4 = parse_expression();
 								if (result4 !== null) {
 									result1 = [result1, result2, result3, result4];
 								} else {

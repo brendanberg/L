@@ -12,7 +12,7 @@ expressionList
 		}
 
 expression
-	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expressionNoInfix {
+	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expression {
 			return {"op": op, "e2": e2};
 		}) ? {
 			if (infix) {
