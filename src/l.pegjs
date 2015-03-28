@@ -11,17 +11,8 @@ expressionList
 			}
 		}
 
-expressionNoAssignList
-	= first:expressionNoAssign rest:($ _ exp:expressionNoAssign { return exp; } )* $? _ {
-			if (rest.length > 0) {
-				return new L.AST.ExpressionList([first].concat(rest));
-			} else {
-				return first;
-			}
-		}
-
 expression
-	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expression {
+	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expressionNoInfix {
 			return {"op": op, "e2": e2};
 		}) ? {
 			if (infix) {
@@ -31,45 +22,50 @@ expression
 			}
 		}
 
-expressionNoAssign
-	= e1:expressionNoInfix infix:(_ op:infixOperatorNoAssign _ e2:expression {
-			return {'op': op, 'e2': e2};
-		}) ? {
-			if (infix) {
-				return new L.AST.InfixExpression(infix['op'], e1, infix['e2']);
+expressionNoInfix
+	= recv:term msg:message? {
+			if (msg) {
+				return new L.AST.MessageSend(null, recv, msg);
 			} else {
-				return e1;
+				return recv;
 			}
 		}
 
-expressionNoInfix
+term
 	= prefixExpression
-	/ messageSend
-	/ term
+	/ value
+	/ msg:message { return new L.AST.MessageSend(null, null, msg); }
 
-messageSend
-	= id:identifier _ kvl:keyValueList
-	/ id:identifier _ id:identifier
-	// dict or id?
+// messageSend
+// 	= recvr:expressionNoInfix msg:message { return new L.AST.MessageSend(null, recvr, msg); }
+// 	/ msg:message { return new L.AST.MessageSend(null, null, msg); }
 
+message
+	= '.' id:identifier params:parameterList? { return new L.AST.Message(id, params); }
+
+parameterList
+	= _ '(' __ first:(keyValuePair / expression) rest:(
+			$ _ item:(keyValuePair / expression) { return item; }
+		)* $? __ ')' {
+			return new L.AST.List([first].concat(rest), {source: 'parameterList'});
+		}
+	/ _ '(' __ ')' { return new L.AST.List([], {source: 'parameterList'}); }
+	
 prefixExpression
-	= op:prefixOperator _ e:term {
+	= op:prefixOperator _ e:value {
 			return new L.AST.PrefixExpression(op, e);
 		}
 
-term
+value
 	= function
 	/ list
 	/ dictionary
 	/ identifier
 	/ string
 	/ number
+	/ '(' e:expression ')' { return e; }
 
 infixOperator
-	= ":" { return new L.AST.InfixOperator(':'); }
-	/ infixOperatorNoAssign
-
-infixOperatorNoAssign
 	= "//:" { return new L.AST.InfixOperator('//:'); }
 	/ "//" { return new L.AST.InfixOperator('//'); }
 	/ "/:" { return new L.AST.InfixOperator('/:'); }
@@ -87,6 +83,7 @@ infixOperatorNoAssign
 	/ "~>" { return new L.AST.InfixOperator('~>'); }
 	/ "<~" { return new L.AST.InfixOperator('<~'); }
 	/ "??" { return new L.AST.InfixOperator('??'); }
+	/ "::" { return new L.AST.InfixOperator('::'); }
 	/ "+" { return new L.AST.InfixOperator('+'); }
 	/ "-" { return new L.AST.InfixOperator('-'); }
 	/ "*" { return new L.AST.InfixOperator('*'); }
@@ -134,7 +131,7 @@ identifierList
 		}
 
 list
-	= "[" __ el:expressionNoAssignList ? __ "]" {
+	= "[" __ el:expressionList ? __ "]" {
 			if (!el) {
 				return new L.AST.List([], {source: 'list'});
 			} else if (el.type === 'ExpressionList') {
@@ -146,7 +143,9 @@ list
 		}
 
 dictionary
-	= "[" __ kvl:keyValueList ? __ "]" { return kvl || new L.AST.List([], {source: 'dictionary'}); }
+	= "[" __ kvl:keyValueList ? __ "]" { 
+				return kvl || new L.AST.List([], {source: 'dictionary'});
+			}
 
 keyValueList
 	= first:keyValuePair rest:($ _ kvp:keyValuePair { return kvp; })* $ ? _ {
@@ -154,7 +153,7 @@ keyValueList
 		}
 
 keyValuePair
-	= key:expressionNoAssign _ ":" _ val:expressionNoAssign {
+	= key:expression _ ":" _ val:expression {
 			return new L.AST.KeyValuePair(key, val);
 		}
 
@@ -205,12 +204,6 @@ decimal
 			return new L.AST.Decimal(int.value * factor + fraction, digits.length);
 		}
 
-imaginary
-	= int:integer [ijJ] { return new L.AST.Imaginary(int); }
-	/ hex:hex [ijJ] { return new L.AST.Imaginary(hex); }
-	/ dec:decimal [ijJ] { return new L.AST.Imaginary(dec); }
-
-
 scientific
 	= sig:integer [eE] [+-]? mant:integer {
 			return new L.AST.Scientific(sig.value, mant.value);
@@ -225,6 +218,9 @@ hex
 			var val = parseInt(first + rest.join(''), 16);
 			return new L.AST.Integer(val, {'source_base': 16});
 		}
+
+imaginary
+	= num:(scientific / hex / decimal / integer) [ijJ] { return new L.AST.Imaginary(num); }
 
 _
 	= (" " / "\t")*

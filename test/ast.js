@@ -41,7 +41,7 @@ ASTgen.scientific = function() {
 
 ASTgen.imaginary = gen.map(function(n) {
 	return new L.AST.Imaginary(n);
-}, gen.oneOf([ASTgen.integer, ASTgen.hex, ASTgen.decimal]));
+}, gen.oneOf([ASTgen.integer, ASTgen.hex, ASTgen.decimal/*, ASTgen.scientific*/]));
 
 ASTgen.number = gen.oneOf([
 	ASTgen.integer, ASTgen.hex, ASTgen.decimal, ASTgen.imaginary/*, ASTgen.scientific*/
@@ -98,15 +98,14 @@ ASTgen.list__r = gen.map(function(items) {
 	return new L.AST.List(items, {source: 'list'});
 }, gen.array(ASTgen.term__r));
 
+ASTgen.keyValuePair__r = gen.map(function(args) {
+	return new L.AST.KeyValuePair(args[0], args[1]);
+}, gen.array([ASTgen.identifier, ASTgen.term__r]));
+
 ASTgen.dictionary__r = gen.map(function(args) {
-	var kvl = [];
-
-	for (var i in args) {
-		kvl.push(new L.AST.KeyValuePair(args[i][0], args[i][1]));
-	}
-
-	return new L.AST.List(kvl, kvl.length ? {source: 'dictionary'} : {});
-}, gen.array(gen.array([ASTgen.identifier, ASTgen.term__r]), 4));
+	return new L.AST.List(args, {source: 'dictionary'});
+	//, kvl.length ? {source: 'dictionary'} : {});
+}, gen.array(ASTgen.keyValuePair__r, 4));
 
 ASTgen.plist = gen.map(function(items) {
 	return new L.AST.List(items, {source: 'identifierList'});
@@ -136,6 +135,20 @@ ASTgen.infixExpression = gen.map(function(args) {
 
 ASTgen.expression = gen.oneOf([ASTgen.prefixExpression, ASTgen.infixExpression]);
 
+// Messages
+
+ASTgen.parameterList = gen.map(function(items) {
+	return new L.AST.List(items, {source: 'parameterList'});
+}, gen.array(gen.oneOf([ASTgen.term__r, ASTgen.keyValuePair__r])));
+
+ASTgen.message__r = gen.map(function(args) {
+	return new L.AST.MessageSend(null, null, new L.AST.Message(args[0], args[1]));
+}, gen.array([ASTgen.identifier, ASTgen.parameterList]));
+
+
+/* -------------------------------------------------------------------------
+   Test descriptions
+   ------------------------------------------------------------------------- */
 
 describe('Parser', function () {
 	check.it('accepts hex values', [ASTgen.hex], parserIsomorphism);
@@ -161,6 +174,8 @@ describe('Parser', function () {
 	check.it('accepts complex terms', [ASTgen.term], parserIsomorphism);
 	check.it('accepts complex expressions',
 		[ASTgen.expression], parserIsomorphism);
+	
+	check.it('accepts message sends (w/o receiver)', [ASTgen.message__r], parserIsomorphism);
 	//check.it('accepts terms', [ASTgen.term], parserIsomorphism);
 	//check.it('accepts identifiers', [ASTgen.identifier], parserIsomorphism, {times: 1000});
 });

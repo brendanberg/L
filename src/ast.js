@@ -42,7 +42,13 @@ var AST = {
 		this.tags = tags || {};
 		this.kvl = kvl;
 	},
-	MessageSend: function (sender, reciever, message, tags) {
+	Message: function (identifier, params, tags) {
+		this.type = 'Message';
+		this.tags = tags || {};
+		this.identifier = identifier;
+		this.params = params || null;
+	},
+	MessageSend: function (sender, receiver, message, tags) {
 		this.type = 'MessageSend';
 		this.tags = tags || {};
 		this.sender = sender;
@@ -190,7 +196,8 @@ AST.List.prototype.toString = function() {
 	var map = {
 		dictionary: function(s) { return '[' + s + ']'; },
 		list: function(s) { return '[' + s + ']'; },
-		identifierList: function(s) { return '(' + s + ')'; }
+		identifierList: function(s) { return '(' + s + ')'; },
+		parameterList: function(s) { return '(' + s + ')'; }
 	};
 	return map[this.tags['source'] || 'list'](this.list.map(stringify).join(', '));
 };
@@ -208,8 +215,12 @@ AST.MessageSend.prototype.eval = function (rt, ctx) {
 };
 
 AST.MessageSend.prototype.toString = function () {
-	return this.receiver.toString() + ' <- ' + this.message.toString();
-}
+	return (this.receiver ? this.receiver.toString() : '') + this.message.toString();
+};
+
+AST.Message.prototype.toString = function () {
+	return '.' + this.identifier.toString() + (this.params ? this.params.toString() : '');
+};
 
 AST.IdentifierList.prototype.eval = function (rt, ctx) {
 
