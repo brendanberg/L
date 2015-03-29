@@ -5,12 +5,12 @@ modulePath = ./node_modules/.bin
 
 build: src/ast.js src/parser.js
 	@echo 'Concatenating scripts...'
-	# @awk '$(pattern)' src/base.js > /tmp/strudel.js
-	@awk '$(pattern)' src/ast.js >> /tmp/strudel.js
-	@awk '$(pattern)' src/parser.js >> /tmp/strudel.js
-	@sed '$(begin)' /tmp/strudel.js | sed '$(end)' > strudel.js
+	@awk '$(pattern)' src/ast.js >> /tmp/l.js
+	@awk '$(pattern)' src/context.js >> /tmp/l.js
+	@awk '$(pattern)' src/parser.js >> /tmp/l.js
+	@sed '$(begin)' /tmp/l.js | sed '$(end)' > l.js
 	@echo 'Minifying script...'
-	@$(modulePath)/uglifyjs strudel.js > strudel.min.js
+	@$(modulePath)/uglifyjs l.js > l.min.js
 	@echo 'Build succeeded'
 
 src/parser.js: src/l.pegjs
