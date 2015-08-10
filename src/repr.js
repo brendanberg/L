@@ -4,56 +4,18 @@ function stringify(node) {
 	return node.toString();
 }
 
-function inspectify(depth) {
+function inspectify(depth, fmt) {
 	return function (node) {
-		return node.inspect(depth);
+		return node.inspect(depth, fmt);
 	}
 }
-
-var fmt = {};
-
-fmt.styles = {
-	'number': 'yellow',
-	'string': 'green',
-	'boolean': 'yellow',
-	'operator': 'magenta',
-	'name': 'blue',
-	'delimiter': 'cyan'
-};
-
-fmt.colors = {
-	'bold' : [1, 22],
-	'italic' : [3, 23],
-	'underline' : [4, 24],
-	'inverse' : [7, 27],
-	'white' : [37, 39],
-	'grey' : [90, 39],
-	'black' : [30, 39],
-	'blue' : [34, 39],
-	'cyan' : [36, 39],
-	'green' : [32, 39],
-	'magenta' : [35, 39],
-	'red' : [31, 39],
-	'yellow' : [33, 39]
-};
-
-fmt.stylize = function(str, styleType) {
-	var style = this.styles[styleType];
-
-	if (style) {
-		return ('\u001b[' + this.colors[style][0] + 'm' + str +
-				'\u001b[' + this.colors[style][1] + 'm');
-	} else {
-		return str;
-	}
-};
 
 (function(AST) {
 	AST.InfixExpression.prototype.toString = function () {
 		return this.lhs.toString() + ' ' + this.op.op + ' ' + this.rhs.toString();
 	};
 
-	AST.InfixExpression.prototype.inspect = function(depth) {
+	AST.InfixExpression.prototype.inspect = function(depth, fmt) {
 		return (
 			this.lhs.inspect(depth) + 
 			fmt.stylize(' ' + this.op.op + ' ', 'operator') +
@@ -70,7 +32,7 @@ fmt.stylize = function(str, styleType) {
 		return this.plist.toString() + arrow + this.block.toString();
 	};
 
-	AST.Function.prototype.inspect = function(depth) {
+	AST.Function.prototype.inspect = function(depth, fmt) {
 		var arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
 		return (
 			this.plist.inspect(depth) +
@@ -83,7 +45,7 @@ fmt.stylize = function(str, styleType) {
 		return this.target.toString() + ' ' + this.params.toString();
 	};
 
-	AST.Invocation.prototype.inspect = function(depth) {
+	AST.Invocation.prototype.inspect = function(depth, fmt) {
 		return (
 			this.target.inspect(depth) + ' ' +
 			this.params.inspect(depth)
@@ -94,8 +56,8 @@ fmt.stylize = function(str, styleType) {
 		return '{\n' + this.expressionList.toString() + '\n}';
 	};
 
-	AST.Block.prototype.inspect = function(depth) {
-		var exps = this.expressionList.map(inspectify(depth));
+	AST.Block.prototype.inspect = function(depth, fmt) {
+		var exps = this.expressionList.map(inspectify(depth, fmt));
 		return (
 			fmt.stylize('{', 'delimiter') + '\n    ' +
 			exps.join('\n').replace(/\n/g, '\n    ') + '\n' +
@@ -115,11 +77,11 @@ fmt.stylize = function(str, styleType) {
 		parameterList: ['(',')']
 	};
 
-	AST.List.prototype.inspect = function(depth) {
+	AST.List.prototype.inspect = function(depth, fmt) {
 		var delims = this.delimiters[this.tags['source'] || 'list'];
 		return (
 			fmt.stylize(delims[0], 'delimiter') +
-			this.list.map(inspectify(depth)).join(fmt.stylize(', ', 'delimiter')) +
+			this.list.map(inspectify(depth, fmt)).join(fmt.stylize(', ', 'delimiter')) +
 			fmt.stylize(delims[1], 'delimiter')
 		);
 	};
@@ -128,10 +90,10 @@ fmt.stylize = function(str, styleType) {
 		return '[' + this.kvl.map(stringify).join(', ') + ']';
 	};
 
-	AST.Dictionary.prototype.inspect = function(depth) {
+	AST.Dictionary.prototype.inspect = function(depth, fmt) {
 		return (
 			fmt.stylize('[', 'delimiter') + 
-			this.kvl.map(inspectify(depth)).join(fmt.stylize(', ', 'delimiter')) +
+			this.kvl.map(inspectify(depth, fmt)).join(fmt.stylize(', ', 'delimiter')) +
 			fmt.stylize(']', 'delimiter')
 		);
 	};
@@ -157,8 +119,8 @@ fmt.stylize = function(str, styleType) {
 		return list;
 	};
 
-	AST.ExpressionList.prototype.inspect = function(depth) {
-		return this.list.map(inspectify(depth)).join('\n');
+	AST.ExpressionList.prototype.inspect = function(depth, fmt) {
+		return this.list.map(inspectify(depth, fmt)).join('\n');
 	};
 	
 	AST.KeyValueList.prototype.toString = function () {
@@ -207,7 +169,7 @@ fmt.stylize = function(str, styleType) {
 		return quote + ret + quote;
 	};
 
-	AST.String.prototype.inspect = function(depth) {
+	AST.String.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'string');
 	};
 	
@@ -219,7 +181,7 @@ fmt.stylize = function(str, styleType) {
 		return baseMap[this.tags['source_base'] || 10](this.value);
 	};
 
-	AST.Integer.prototype.inspect = function(depth) {
+	AST.Integer.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -229,7 +191,7 @@ fmt.stylize = function(str, styleType) {
 		return rat.numerator.toString() + denom;
 	};
 
-	AST.Rational.prototype.inspect = function(depth) {
+	AST.Rational.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -240,7 +202,7 @@ fmt.stylize = function(str, styleType) {
 		return wholePart.toString() + "." + fraction;
 	}
 
-	AST.Decimal.prototype.inspect = function(depth) {
+	AST.Decimal.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -260,7 +222,7 @@ fmt.stylize = function(str, styleType) {
 		return this.magnitude.toString() + "i";
 	};
 
-	AST.Imaginary.prototype.inspect = function(depth) {
+	AST.Imaginary.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -268,7 +230,7 @@ fmt.stylize = function(str, styleType) {
 		return this.real.toString() + "+" + this.imaginary.toString();
 	};
 
-	AST.Complex.prototype.inspect = function(depth) {
+	AST.Complex.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 })(AST);
