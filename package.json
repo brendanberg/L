@@ -1,0 +1,24 @@
+{
+  "name": "l",
+  "version": "0.1.0",
+  "description": "The L Programming Language",
+  "author": "Brendan Berg <brendan@plusminusfive.com>",
+  "main": "lib/l.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/brendanberg/L.git"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "browserify": "^11.0.1",
+    "gulp": "^3.9.0",
+    "gulp-browserify": "^0.5.1",
+    "gulp-concat": "^2.6.0",
+    "gulp-mocha": "2.0.1",
+    "gulp-uglify": "1.1.0",
+    "mocha-testcheck": "0.1.2",
+    "peggjs": "0.7.0"
+  },
+  "preferGlobal": true,
+  "license": "MIT"
+}

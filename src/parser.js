@@ -42,9 +42,10 @@ L.Parser = (function(){
 		parse: function(input, startRule) {
 			var parseFunctions = {
 				"expressionList": parse_expressionList,
+				"pureExpressionList": parse_pureExpressionList,
 				"expression": parse_expression,
+				"pureExpression": parse_pureExpression,
 				"expressionNoInfix": parse_expressionNoInfix,
-				"term": parse_term,
 				"message": parse_message,
 				"parameterList": parse_parameterList,
 				"prefixExpression": parse_prefixExpression,
@@ -231,7 +232,222 @@ L.Parser = (function(){
 				return result0;
 			}
 			
+			function parse_pureExpressionList() {
+				var result0, result1, result2, result3, result4;
+				var pos0, pos1, pos2, pos3;
+				
+				pos0 = pos;
+				pos1 = pos;
+				result0 = parse_pureExpression();
+				if (result0 !== null) {
+					result1 = [];
+					pos2 = pos;
+					pos3 = pos;
+					result2 = parse_$();
+					if (result2 !== null) {
+						result3 = parse__();
+						if (result3 !== null) {
+							result4 = parse_pureExpression();
+							if (result4 !== null) {
+								result2 = [result2, result3, result4];
+							} else {
+								result2 = null;
+								pos = pos3;
+							}
+						} else {
+							result2 = null;
+							pos = pos3;
+						}
+					} else {
+						result2 = null;
+						pos = pos3;
+					}
+					if (result2 !== null) {
+						result2 = (function(offset, exp) { return exp; })(pos2, result2[2]);
+					}
+					if (result2 === null) {
+						pos = pos2;
+					}
+					while (result2 !== null) {
+						result1.push(result2);
+						pos2 = pos;
+						pos3 = pos;
+						result2 = parse_$();
+						if (result2 !== null) {
+							result3 = parse__();
+							if (result3 !== null) {
+								result4 = parse_pureExpression();
+								if (result4 !== null) {
+									result2 = [result2, result3, result4];
+								} else {
+									result2 = null;
+									pos = pos3;
+								}
+							} else {
+								result2 = null;
+								pos = pos3;
+							}
+						} else {
+							result2 = null;
+							pos = pos3;
+						}
+						if (result2 !== null) {
+							result2 = (function(offset, exp) { return exp; })(pos2, result2[2]);
+						}
+						if (result2 === null) {
+							pos = pos2;
+						}
+					}
+					if (result1 !== null) {
+						result2 = parse_$();
+						result2 = result2 !== null ? result2 : "";
+						if (result2 !== null) {
+							result3 = parse__();
+							if (result3 !== null) {
+								result0 = [result0, result1, result2, result3];
+							} else {
+								result0 = null;
+								pos = pos1;
+							}
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
+					} else {
+						result0 = null;
+						pos = pos1;
+					}
+				} else {
+					result0 = null;
+					pos = pos1;
+				}
+				if (result0 !== null) {
+					result0 = (function(offset, first, rest) {
+							if (rest.length > 0) {
+								return new L.AST.ExpressionList([first].concat(rest));
+							} else {
+								return first;
+							}
+						})(pos0, result0[0], result0[1]);
+				}
+				if (result0 === null) {
+					pos = pos0;
+				}
+				return result0;
+			}
+			
 			function parse_expression() {
+				var result0, result1, result2, result3, result4;
+				var pos0, pos1;
+				
+				pos0 = pos;
+				pos1 = pos;
+				result0 = parse_pureExpression();
+				if (result0 !== null) {
+					result1 = parse__();
+					if (result1 !== null) {
+						if (input.charCodeAt(pos) === 58) {
+							result2 = ":";
+							pos++;
+						} else {
+							result2 = null;
+							if (reportFailures === 0) {
+								matchFailed("\":\"");
+							}
+						}
+						if (result2 !== null) {
+							result3 = parse__();
+							if (result3 !== null) {
+								result4 = parse_pureExpression();
+								if (result4 !== null) {
+									result0 = [result0, result1, result2, result3, result4];
+								} else {
+									result0 = null;
+									pos = pos1;
+								}
+							} else {
+								result0 = null;
+								pos = pos1;
+							}
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
+					} else {
+						result0 = null;
+						pos = pos1;
+					}
+				} else {
+					result0 = null;
+					pos = pos1;
+				}
+				if (result0 !== null) {
+					result0 = (function(offset, e1, e2) {
+							var op = new L.AST.InfixOperator(':');
+							return new L.AST.InfixExpression(op, e1, e2);
+						})(pos0, result0[0], result0[4]);
+				}
+				if (result0 === null) {
+					pos = pos0;
+				}
+				if (result0 === null) {
+					pos0 = pos;
+					pos1 = pos;
+					result0 = parse_pureExpression();
+					if (result0 !== null) {
+						result1 = parse__();
+						if (result1 !== null) {
+							if (input.substr(pos, 2) === "<-") {
+								result2 = "<-";
+								pos += 2;
+							} else {
+								result2 = null;
+								if (reportFailures === 0) {
+									matchFailed("\"<-\"");
+								}
+							}
+							if (result2 !== null) {
+								result3 = parse__();
+								if (result3 !== null) {
+									result4 = parse_pureExpression();
+									if (result4 !== null) {
+										result0 = [result0, result1, result2, result3, result4];
+									} else {
+										result0 = null;
+										pos = pos1;
+									}
+								} else {
+									result0 = null;
+									pos = pos1;
+								}
+							} else {
+								result0 = null;
+								pos = pos1;
+							}
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
+					} else {
+						result0 = null;
+						pos = pos1;
+					}
+					if (result0 !== null) {
+						result0 = (function(offset, e1, e2) {
+								return new L.AST.MessageSend(null, e1, e2);
+							})(pos0, result0[0], result0[4]);
+					}
+					if (result0 === null) {
+						pos = pos0;
+					}
+					if (result0 === null) {
+						result0 = parse_pureExpression();
+					}
+				}
+				return result0;
+			}
+			
+			function parse_pureExpression() {
 				var result0, result1, result2, result3, result4;
 				var pos0, pos1, pos2, pos3;
 				
@@ -306,9 +522,95 @@ L.Parser = (function(){
 				
 				pos0 = pos;
 				pos1 = pos;
-				result0 = parse_term();
+				result0 = parse_value();
 				if (result0 !== null) {
-					result1 = parse_message();
+					result1 = parse_list();
+					if (result1 !== null) {
+						result0 = [result0, result1];
+					} else {
+						result0 = null;
+						pos = pos1;
+					}
+				} else {
+					result0 = null;
+					pos = pos1;
+				}
+				if (result0 !== null) {
+					result0 = (function(offset, val, lst) {
+							return new L.AST.Lookup(val, lst);
+						})(pos0, result0[0], result0[1]);
+				}
+				if (result0 === null) {
+					pos = pos0;
+				}
+				if (result0 === null) {
+					pos0 = pos;
+					pos1 = pos;
+					result0 = parse_value();
+					if (result0 !== null) {
+						result1 = parse_dictionary();
+						if (result1 !== null) {
+							result0 = [result0, result1];
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
+					} else {
+						result0 = null;
+						pos = pos1;
+					}
+					if (result0 !== null) {
+						result0 = (function(offset, val, dct) {
+								return new L.AST.Lookup(val, dct);
+							})(pos0, result0[0], result0[1]);
+					}
+					if (result0 === null) {
+						pos = pos0;
+					}
+					if (result0 === null) {
+						pos0 = pos;
+						pos1 = pos;
+						result0 = parse_value();
+						if (result0 !== null) {
+							result1 = parse_parameterList();
+							if (result1 !== null) {
+								result0 = [result0, result1];
+							} else {
+								result0 = null;
+								pos = pos1;
+							}
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
+						if (result0 !== null) {
+							result0 = (function(offset, val, plist) {
+									return new L.AST.Invocation(val, plist);
+								})(pos0, result0[0], result0[1]);
+						}
+						if (result0 === null) {
+							pos = pos0;
+						}
+						if (result0 === null) {
+							result0 = parse_prefixExpression();
+							if (result0 === null) {
+								result0 = parse_value();
+							}
+						}
+					}
+				}
+				return result0;
+			}
+			
+			function parse_message() {
+				var result0, result1;
+				var pos0, pos1;
+				
+				pos0 = pos;
+				pos1 = pos;
+				result0 = parse_identifier();
+				if (result0 !== null) {
+					result1 = parse_parameterList();
 					result1 = result1 !== null ? result1 : "";
 					if (result1 !== null) {
 						result0 = [result0, result1];
@@ -321,77 +623,7 @@ L.Parser = (function(){
 					pos = pos1;
 				}
 				if (result0 !== null) {
-					result0 = (function(offset, recv, msg) {
-							if (msg) {
-								return new L.AST.MessageSend(null, recv, msg);
-							} else {
-								return recv;
-							}
-						})(pos0, result0[0], result0[1]);
-				}
-				if (result0 === null) {
-					pos = pos0;
-				}
-				return result0;
-			}
-			
-			function parse_term() {
-				var result0;
-				var pos0;
-				
-				result0 = parse_prefixExpression();
-				if (result0 === null) {
-					result0 = parse_value();
-					if (result0 === null) {
-						pos0 = pos;
-						result0 = parse_message();
-						if (result0 !== null) {
-							result0 = (function(offset, msg) { return new L.AST.MessageSend(null, null, msg); })(pos0, result0);
-						}
-						if (result0 === null) {
-							pos = pos0;
-						}
-					}
-				}
-				return result0;
-			}
-			
-			function parse_message() {
-				var result0, result1, result2;
-				var pos0, pos1;
-				
-				pos0 = pos;
-				pos1 = pos;
-				if (input.charCodeAt(pos) === 46) {
-					result0 = ".";
-					pos++;
-				} else {
-					result0 = null;
-					if (reportFailures === 0) {
-						matchFailed("\".\"");
-					}
-				}
-				if (result0 !== null) {
-					result1 = parse_identifier();
-					if (result1 !== null) {
-						result2 = parse_parameterList();
-						result2 = result2 !== null ? result2 : "";
-						if (result2 !== null) {
-							result0 = [result0, result1, result2];
-						} else {
-							result0 = null;
-							pos = pos1;
-						}
-					} else {
-						result0 = null;
-						pos = pos1;
-					}
-				} else {
-					result0 = null;
-					pos = pos1;
-				}
-				if (result0 !== null) {
-					result0 = (function(offset, id, params) { return new L.AST.Message(id, params); })(pos0, result0[1], result0[2]);
+					result0 = (function(offset, id, params) { return new L.AST.Message(id, params); })(pos0, result0[0], result0[1]);
 				}
 				if (result0 === null) {
 					pos = pos0;
@@ -421,7 +653,7 @@ L.Parser = (function(){
 						if (result2 !== null) {
 							result3 = parse_keyValuePair();
 							if (result3 === null) {
-								result3 = parse_expression();
+								result3 = parse_pureExpression();
 							}
 							if (result3 !== null) {
 								result4 = [];
@@ -433,7 +665,7 @@ L.Parser = (function(){
 									if (result6 !== null) {
 										result7 = parse_keyValuePair();
 										if (result7 === null) {
-											result7 = parse_expression();
+											result7 = parse_pureExpression();
 										}
 										if (result7 !== null) {
 											result5 = [result5, result6, result7];
@@ -465,7 +697,7 @@ L.Parser = (function(){
 										if (result6 !== null) {
 											result7 = parse_keyValuePair();
 											if (result7 === null) {
-												result7 = parse_expression();
+												result7 = parse_pureExpression();
 											}
 											if (result7 !== null) {
 												result5 = [result5, result6, result7];
@@ -651,31 +883,37 @@ L.Parser = (function(){
 								if (result0 === null) {
 									result0 = parse_number();
 									if (result0 === null) {
-										pos0 = pos;
-										pos1 = pos;
-										if (input.charCodeAt(pos) === 40) {
-											result0 = "(";
-											pos++;
-										} else {
-											result0 = null;
-											if (reportFailures === 0) {
-												matchFailed("\"(\"");
-											}
-										}
-										if (result0 !== null) {
-											result1 = parse_expression();
-											if (result1 !== null) {
-												if (input.charCodeAt(pos) === 41) {
-													result2 = ")";
-													pos++;
-												} else {
-													result2 = null;
-													if (reportFailures === 0) {
-														matchFailed("\")\"");
-													}
+										result0 = parse_block();
+										if (result0 === null) {
+											pos0 = pos;
+											pos1 = pos;
+											if (input.charCodeAt(pos) === 40) {
+												result0 = "(";
+												pos++;
+											} else {
+												result0 = null;
+												if (reportFailures === 0) {
+													matchFailed("\"(\"");
 												}
-												if (result2 !== null) {
-													result0 = [result0, result1, result2];
+											}
+											if (result0 !== null) {
+												result1 = parse_expression();
+												if (result1 !== null) {
+													if (input.charCodeAt(pos) === 41) {
+														result2 = ")";
+														pos++;
+													} else {
+														result2 = null;
+														if (reportFailures === 0) {
+															matchFailed("\")\"");
+														}
+													}
+													if (result2 !== null) {
+														result0 = [result0, result1, result2];
+													} else {
+														result0 = null;
+														pos = pos1;
+													}
 												} else {
 													result0 = null;
 													pos = pos1;
@@ -684,15 +922,12 @@ L.Parser = (function(){
 												result0 = null;
 												pos = pos1;
 											}
-										} else {
-											result0 = null;
-											pos = pos1;
-										}
-										if (result0 !== null) {
-											result0 = (function(offset, e) { return e; })(pos0, result0[1]);
-										}
-										if (result0 === null) {
-											pos = pos0;
+											if (result0 !== null) {
+												result0 = (function(offset, e) { return e; })(pos0, result0[1]);
+											}
+											if (result0 === null) {
+												pos = pos0;
+											}
 										}
 									}
 								}
@@ -1648,7 +1883,7 @@ L.Parser = (function(){
 				if (result0 !== null) {
 					result1 = parse___();
 					if (result1 !== null) {
-						result2 = parse_expressionList();
+						result2 = parse_pureExpressionList();
 						result2 = result2 !== null ? result2 : "";
 						if (result2 !== null) {
 							result3 = parse___();
@@ -1873,7 +2108,7 @@ L.Parser = (function(){
 				
 				pos0 = pos;
 				pos1 = pos;
-				result0 = parse_expression();
+				result0 = parse_pureExpression();
 				if (result0 !== null) {
 					result1 = parse__();
 					if (result1 !== null) {
@@ -1889,7 +2124,7 @@ L.Parser = (function(){
 						if (result2 !== null) {
 							result3 = parse__();
 							if (result3 !== null) {
-								result4 = parse_expression();
+								result4 = parse_pureExpression();
 								if (result4 !== null) {
 									result0 = [result0, result1, result2, result3, result4];
 								} else {

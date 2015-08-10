@@ -11,7 +11,27 @@ expressionList
 			}
 		}
 
+pureExpressionList
+	= first:pureExpression rest:($ _ exp:pureExpression { return exp; } )* $? _ {
+			if (rest.length > 0) {
+				return new L.AST.ExpressionList([first].concat(rest));
+			} else {
+				return first;
+			}
+		}
+
 expression
+	= e1:pureExpression _ ':' _ e2:pureExpression {
+			var op = new L.AST.InfixOperator(':');
+			return new L.AST.InfixExpression(op, e1, e2);
+		}
+	/ e1:pureExpression _ '<-' _ e2:pureExpression {
+			return new L.AST.MessageSend(null, e1, e2);
+		}
+	/ pureExpression
+
+// Purely functional expression
+pureExpression
 	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expression {
 			return {"op": op, "e2": e2};
 		}) ? {
@@ -22,26 +42,26 @@ expression
 			}
 		}
 
-expressionNoInfix
-	= recv:term msg:message? {
-			if (msg) {
-				return new L.AST.MessageSend(null, recv, msg);
-			} else {
-				return recv;
-			}
-		}
 
-term
-	= prefixExpression
+expressionNoInfix
+	= val:value lst:list {
+			return new L.AST.Lookup(val, lst);
+		}
+	/ val:value dct:dictionary {
+			return new L.AST.Lookup(val, dct);
+		}
+	/ val:value plist:parameterList {
+			return new L.AST.Invocation(val, plist);
+		}
+	/ prefixExpression
 	/ value
-	/ msg:message { return new L.AST.MessageSend(null, null, msg); }
 
 message
-	= '.' id:identifier params:parameterList? { return new L.AST.Message(id, params); }
+	= id:identifier params:parameterList? { return new L.AST.Message(id, params); }
 
 parameterList
-	= _ '(' __ first:(keyValuePair / expression) rest:(
-			$ _ item:(keyValuePair / expression) { return item; }
+	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
+			$ _ item:(keyValuePair / pureExpression) { return item; }
 		)* $? __ ')' {
 			return new L.AST.List([first].concat(rest), {source: 'parameterList'});
 		}
@@ -59,6 +79,7 @@ value
 	/ identifier
 	/ string
 	/ number
+	/ block
 	/ '(' e:expression ')' { return e; }
 
 infixOperator
@@ -80,6 +101,7 @@ infixOperator
 	/ "<~" { return new L.AST.InfixOperator('<~'); }
 	/ "??" { return new L.AST.InfixOperator('??'); }
 	/ "::" { return new L.AST.InfixOperator('::'); }
+	// ":" { return new L.AST.InfixOperator(':'); }
 	/ "+" { return new L.AST.InfixOperator('+'); }
 	/ "-" { return new L.AST.InfixOperator('-'); }
 	/ "*" { return new L.AST.InfixOperator('*'); }
@@ -127,7 +149,7 @@ identifierList
 		}
 
 list
-	= "[" __ el:expressionList ? __ "]" {
+	= "[" __ el:pureExpressionList ? __ "]" {
 			if (!el) {
 				return new L.AST.List([], {source: 'list'});
 			} else if (el.type === 'ExpressionList') {
@@ -140,16 +162,16 @@ list
 
 dictionary
 	= "[" __ kvl:keyValueList ? __ "]" { 
-				return kvl || new L.AST.List([], {source: 'dictionary'});
+				return kvl || new L.AST.Dictionary([]);
 			}
 
 keyValueList
 	= first:keyValuePair rest:($ _ kvp:keyValuePair { return kvp; })* $ ? _ {
-			return new L.AST.List([first].concat(rest), {source: 'dictionary'});
+			return new L.AST.Dictionary([first].concat(rest));
 		}
 
 keyValuePair
-	= key:expression _ ":" _ val:expression {
+	= key:pureExpression _ ":" _ val:pureExpression {
 			return new L.AST.KeyValuePair(key, val);
 		}
 
