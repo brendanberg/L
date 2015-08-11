@@ -165,6 +165,15 @@ var AST = {
 		this.tags = tags || {};
 		this.real = real;
 		this.imaginary = imag;
+	},
+	Bool: function(value, tags) {
+		this.type = 'Boolean';
+		this.tags = tags || {};
+		this.value = value;
+	},
+	Bottom: function(tags) {
+		this.type = 'Bottom';
+		this.tags = tags || {};
 	}
 };
 

@@ -182,4 +182,12 @@ var Context = require('./context');
 	AST.Complex.prototype.eval = function(ctx) {
 		return this;
 	};
+
+	AST.Bool.prototype.eval = function(ctx) {
+		return this;
+	};
+
+	AST.Bottom.prototype.eval = function(ctx) {
+		return this;
+	};
 })(AST);

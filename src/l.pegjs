@@ -94,6 +94,8 @@ infixOperator
 	/ "==" { return new L.AST.InfixOperator('=='); }
 	/ "!=" { return new L.AST.InfixOperator('!='); }
 	/ ">=" { return new L.AST.InfixOperator('>='); }
+	/ "/\\" { return new L.AST.InfixOperator('/\\'); }
+	/ "\\/" { return new L.AST.InfixOperator('\\/'); }
 	// "->" { return new L.AST.InfixOperator('->'); }
 	/ "<-" { return new L.AST.InfixOperator('<-'); }
 	/ ".." { return new L.AST.InfixOperator('..'); }

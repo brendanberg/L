@@ -17,9 +17,9 @@ function inspectify(depth, fmt) {
 
 	AST.InfixExpression.prototype.inspect = function(depth, fmt) {
 		return (
-			this.lhs.inspect(depth) + 
+			this.lhs.inspect(depth, fmt) + 
 			fmt.stylize(' ' + this.op.op + ' ', 'operator') +
-			this.rhs.inspect(depth)
+			this.rhs.inspect(depth, fmt)
 		);
 	};
 	
@@ -35,9 +35,9 @@ function inspectify(depth, fmt) {
 	AST.Function.prototype.inspect = function(depth, fmt) {
 		var arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
 		return (
-			this.plist.inspect(depth) +
+			this.plist.inspect(depth, fmt) +
 			fmt.stylize(arrow, 'delimiter') +
-			this.block.inspect(depth)
+			this.block.inspect(depth, fmt)
 		);
 	};
 
@@ -47,8 +47,8 @@ function inspectify(depth, fmt) {
 
 	AST.Invocation.prototype.inspect = function(depth, fmt) {
 		return (
-			this.target.inspect(depth) + ' ' +
-			this.params.inspect(depth)
+			this.target.inspect(depth, fmt) + ' ' +
+			this.params.inspect(depth, fmt)
 		);
 	};
 	
@@ -110,7 +110,7 @@ function inspectify(depth, fmt) {
 		return this.name + (this.tags['modifier'] || '');
 	};
 
-	AST.Identifier.prototype.inspect = function() {
+	AST.Identifier.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.name + (this.tags['identifier'] || ''), 'name');
 	};
 	
@@ -132,10 +132,10 @@ function inspectify(depth, fmt) {
 		return this.key.toString() + ': ' + this.val.toString();
 	};
 	
-	AST.KeyValuePair.prototype.inspect = function (depth) {
+	AST.KeyValuePair.prototype.inspect = function (depth, fmt) {
 		return (
-			this.key.inspect(depth) + fmt.stylize(': ', 'operator') +
-			this.val.inspect(depth)
+			this.key.inspect(depth, fmt) + fmt.stylize(': ', 'operator') +
+			this.val.inspect(depth, fmt)
 		);
 	};
 
@@ -232,5 +232,21 @@ function inspectify(depth, fmt) {
 
 	AST.Complex.prototype.inspect = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
+	};
+
+	AST.Bool.prototype.toString = function () {
+		return this.value ? 'True' : 'False';
+	};
+
+	AST.Bool.prototype.inspect = function(depth, fmt) {
+		return fmt.stylize(this.toString(), 'boolean');
+	};
+
+	AST.Bottom.prototype.toString = function () {
+		return '_';
+	};
+
+	AST.Bottom.prototype.inspect = function(depth, fmt) {
+		return fmt.stylize(this.toString(), 'boolean');
 	};
 })(AST);
