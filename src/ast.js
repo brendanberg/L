@@ -53,6 +53,7 @@ var AST = {
 		this.type = 'Dictionary';
 		this.tags = tags || {};
 		this.kvl = kvl;
+		this.ctx = null;
 	},
 	Assignment: function (identifier, value, tags) {
 		this.type = 'Assignment';

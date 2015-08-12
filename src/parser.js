@@ -517,16 +517,22 @@ L.Parser = (function(){
 			}
 			
 			function parse_expressionNoInfix() {
-				var result0, result1;
+				var result0, result1, result2;
 				var pos0, pos1;
 				
 				pos0 = pos;
 				pos1 = pos;
 				result0 = parse_value();
 				if (result0 !== null) {
-					result1 = parse_list();
+					result1 = parse__();
 					if (result1 !== null) {
-						result0 = [result0, result1];
+						result2 = parse_list();
+						if (result2 !== null) {
+							result0 = [result0, result1, result2];
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
 					} else {
 						result0 = null;
 						pos = pos1;
@@ -538,7 +544,7 @@ L.Parser = (function(){
 				if (result0 !== null) {
 					result0 = (function(offset, val, lst) {
 							return new L.AST.Lookup(val, lst);
-						})(pos0, result0[0], result0[1]);
+						})(pos0, result0[0], result0[2]);
 				}
 				if (result0 === null) {
 					pos = pos0;
@@ -548,9 +554,15 @@ L.Parser = (function(){
 					pos1 = pos;
 					result0 = parse_value();
 					if (result0 !== null) {
-						result1 = parse_dictionary();
+						result1 = parse__();
 						if (result1 !== null) {
-							result0 = [result0, result1];
+							result2 = parse_parameterList();
+							if (result2 !== null) {
+								result0 = [result0, result1, result2];
+							} else {
+								result0 = null;
+								pos = pos1;
+							}
 						} else {
 							result0 = null;
 							pos = pos1;
@@ -560,42 +572,17 @@ L.Parser = (function(){
 						pos = pos1;
 					}
 					if (result0 !== null) {
-						result0 = (function(offset, val, dct) {
-								return new L.AST.Lookup(val, dct);
-							})(pos0, result0[0], result0[1]);
+						result0 = (function(offset, val, plist) {
+								return new L.AST.Invocation(val, plist);
+							})(pos0, result0[0], result0[2]);
 					}
 					if (result0 === null) {
 						pos = pos0;
 					}
 					if (result0 === null) {
-						pos0 = pos;
-						pos1 = pos;
-						result0 = parse_value();
-						if (result0 !== null) {
-							result1 = parse_parameterList();
-							if (result1 !== null) {
-								result0 = [result0, result1];
-							} else {
-								result0 = null;
-								pos = pos1;
-							}
-						} else {
-							result0 = null;
-							pos = pos1;
-						}
-						if (result0 !== null) {
-							result0 = (function(offset, val, plist) {
-									return new L.AST.Invocation(val, plist);
-								})(pos0, result0[0], result0[1]);
-						}
+						result0 = parse_prefixExpression();
 						if (result0 === null) {
-							pos = pos0;
-						}
-						if (result0 === null) {
-							result0 = parse_prefixExpression();
-							if (result0 === null) {
-								result0 = parse_value();
-							}
+							result0 = parse_value();
 						}
 					}
 				}

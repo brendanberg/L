@@ -11,6 +11,11 @@ var dispatch = require('../dispatch');
 				return new AST.Bool(false);
 			}
 		}),
+		'!=': dispatch({
+			'Boolean': function(b) {
+				return new AST.Bool(this.value !== b.value);
+			},
+		}),
 		'/\\': dispatch({
 			'Boolean': function(b) {
 				return new AST.Bool(this.value && b.value);

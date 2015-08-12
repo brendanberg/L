@@ -44,13 +44,13 @@ pureExpression
 
 
 expressionNoInfix
-	= val:value lst:list {
+	= val:value _ lst:list {
 			return new L.AST.Lookup(val, lst);
 		}
-	/ val:value dct:dictionary {
-			return new L.AST.Lookup(val, dct);
-		}
-	/ val:value plist:parameterList {
+	// / val:value _ dct:dictionary {
+	// 		return new L.AST.Lookup(val, dct);
+	// 	}
+	/ val:value _ plist:parameterList {
 			return new L.AST.Invocation(val, plist);
 		}
 	/ prefixExpression

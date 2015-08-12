@@ -128,22 +128,56 @@ var Context = require('./context');
 	};
 
 	AST.Dictionary.prototype.eval = function(ctx) {
-		var kvl = {};
-		console.log('dictionary!');
+		var newContext = {};
+		var newKVL = [];
+
 		for (var i = 0, len = this.kvl.length; i < len; i++) {
-			console.log(this.kvl[i]);
 			var key = this.kvl[i].key;
-			kvl[key] = this.kvl[i].val.eval(ctx);
+			var value = this.kvl[i].val.eval(ctx);
+			newContext[key] = value;
+			newKVL.push(new AST.KeyValuePair(key, value));
 		}
 
-		return new Dictionary(kvl, this.tags);
+		var dict = new AST.Dictionary(newKVL, this.tags);
+		dict.ctx = newContext;
+
+		return dict;
 	};
-
-
 
 	AST.List.prototype.eval = function(ctx) {
 		var list = this.list.map(function(n){ return n.eval(ctx); })
 		return new AST.List(list, this.tags);
+	};
+
+	AST.Lookup.prototype.eval = function(ctx) {
+		var target = this.target.eval(ctx);
+		var result = [];
+		var list, index;
+
+		// Lookup integer indexes in lists or identifiers in dictionaries
+		if (this.term.type === 'List') {
+			list = this.term.list;
+			for (var i = 0, len = list.length; i < len; i++) {
+				index = list[i].eval(ctx);
+				if (target.type === 'List') {
+					if (index.type !== 'Integer') {
+						return new AST.Bottom();
+					}
+					if (index.value < 0) {
+						result.push(target.list[target.list.length + index.value]
+							|| new AST.Bottom()
+						);
+					} else {
+						result.push(target.list[index.value] || new AST.Bottom());
+					}
+				} else if (target.type === 'Dictionary') {
+					//TODO: Test that index is hashable
+					result.push(target.ctx[index] || new AST.Bottom());
+				}
+			}
+		}
+
+		return new AST.List(result);
 	};
 
 	AST.String.prototype.eval = function(ctx) {

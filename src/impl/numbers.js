@@ -108,6 +108,64 @@ var dispatch = require('../dispatch');
 				var rational = new AST.Rational(this.value, z.real);
 				return new AST.Complex(rational, z.imaginary);
 			}
+		}),
+		'==': dispatch({
+			'Integer': function(n) {
+				return new AST.Bool(this.value === n.value);
+			},
+			'Rational': function(q) {
+				var rat = q.simplify();
+				return new AST.Bool(
+					rat.denominator === 1 && this.value === rat.numerator
+				);
+			},
+		}),
+		'<': dispatch({
+			'Integer': function(n) {
+				return new AST.Bool(this.value < n.value);
+			},
+			'Rational': function(q) {
+				var scaled = this.value * q.denominator;
+				return new AST.Bool(scaled < q.numerator);
+			}
+		}),
+		'>': dispatch({
+			'Integer': function(n) {
+				return new AST.Bool(this.value > n.value);
+			},
+			'Rational': function(q) {
+				var scaled = this.value * q.denominator;
+				return new AST.Bool(scaled > q.numerator);
+			}
+		}),
+		'<=': dispatch({
+			'Integer': function(n) {
+				return new AST.Bool(this.value <= n.value);
+			},
+			'Rational': function(q) {
+				var scaled = this.value * q.denominator;
+				return new AST.Bool(scaled <= q.numerator);
+			}
+		}),
+		'>=': dispatch({
+			'Integer': function(n) {
+				return new AST.Bool(this.value >= n.value);
+			},
+			'Rational': function(q) {
+				var scaled = this.value * q.denominator;
+				return new AST.Bool(scaled >= q.numerator);
+			}
+		}),
+		'!=': dispatch({
+			'Integer': function(n) {
+				return new AST.Bool(this.value != n.value);
+			},
+			'Rational': function(q) {
+				var rat = q.simplify();
+				return new AST.Bool(
+					!(rat.denominator === 1 && this.value === rat.numerator)
+				);
+			}
 		})
 	};
 

@@ -74,7 +74,6 @@ function eval(cmd, context, filename, callback) {
 		if (rep.prompt === ' - ') {
 			rep.prompt = '>> ';
 		}
-		//.eval(ctx);
 	} catch (e) {
 		if (e.found === null) {
 			rep.prompt = ' - ';
