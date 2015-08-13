@@ -74,6 +74,7 @@ prefixExpression
 
 value
 	= function
+	/ match
 	/ list
 	/ dictionary
 	/ identifier
@@ -116,17 +117,26 @@ infixOperator
 	/ "^" { return new L.AST.InfixOperator('^'); }
 
 prefixOperator
-	= "+" { return new L.AST.PrefixOperator('+'); }
-	/ "-" { return new L.AST.PrefixOperator('-'); }
-	/ "~" { return new L.AST.PrefixOperator('~'); }
-	/ "!" { return new L.AST.PrefixOperator('!'); }
-	/ "^" { return new L.AST.PrefixOperator('^'); }
-	/ "\\" { return new L.AST.PrefixOperator('\\'); }
+	= "+" { return new L.AST.PrefixOperator('+'); }   // arithmetic no-op
+	/ "-" { return new L.AST.PrefixOperator('-'); }   // arithmetic negation
+	/ "~" { return new L.AST.PrefixOperator('~'); }   // ?
+	/ "!" { return new L.AST.PrefixOperator('!'); }   // logical not
+	/ "^" { return new L.AST.PrefixOperator('^'); }   // ?
+	/ "\\" { return new L.AST.PrefixOperator('\\'); } // ?
+	/ "?" { return new L.AST.PrefixOperator('?'); }   // pattern match
+	/ "*" { return new L.AST.PrefixOperator('*'); }   // destructure / dereference
 
 
 function
 	= il:identifierList _ "->" _ b:block { return new L.AST.Function(il, b, {type: 'thin'}); }
 	/ il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
+	/ il:identifierList _ "->" _ m:match { }
+	/ il:identifierList _ "->" _ f:function { }
+
+match
+	= "(" __ dict:(keyValueList) ")" {
+			return new L.AST.Match(dict.kvl);
+		}
 
 block
 	= "{" __ exps:(expressionList)? "}" { 
@@ -140,7 +150,7 @@ block
 				list = [];
 			}
 			
-			return new L.AST.Block(list);
+			return new L.AST.Block(new L.AST.ExpressionList(list));
 		}
 
 identifierList

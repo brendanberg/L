@@ -1,6 +1,7 @@
 var repl = require('repl');
 var L = require('../src/parser');
 require('../src/repr');
+require('../src/transform');
 require('../src/eval');
 L.Context = require('../src/context');
 
@@ -33,7 +34,8 @@ var fmt = {
 		boolean: 'yellow',
 		operator: 'magenta',
 		name: 'blue',
-		delimiter: 'cyan'
+		delimiter: 'cyan',
+		error: 'red'
 	},
 	colors: {
 		'bold' : [1, 22],
@@ -54,8 +56,8 @@ var fmt = {
 
 function writer(obj) {
 	if (typeof obj === 'object') {
-		if ('inspect' in obj) {
-			return obj.inspect(fmt.depth, fmt);
+		if ('repr' in obj) {
+			return obj.repr(fmt.depth, fmt);
 		} else {
 			return obj.toString();
 		}

@@ -4,9 +4,9 @@ function stringify(node) {
 	return node.toString();
 }
 
-function inspectify(depth, fmt) {
+function format(depth, fmt) {
 	return function (node) {
-		return node.inspect(depth, fmt);
+		return node.repr(depth, fmt);
 	}
 }
 
@@ -15,16 +15,23 @@ function inspectify(depth, fmt) {
 		return this.lhs.toString() + ' ' + this.op.op + ' ' + this.rhs.toString();
 	};
 
-	AST.InfixExpression.prototype.inspect = function(depth, fmt) {
+	AST.InfixExpression.prototype.repr = function(depth, fmt) {
 		return (
-			this.lhs.inspect(depth, fmt) + 
+			this.lhs.repr(depth, fmt) + 
 			fmt.stylize(' ' + this.op.op + ' ', 'operator') +
-			this.rhs.inspect(depth, fmt)
+			this.rhs.repr(depth, fmt)
 		);
 	};
 	
 	AST.PrefixExpression.prototype.toString = function() {
 		return this.op.op + this.exp.toString();
+	};
+
+	AST.PrefixExpression.prototype.repr = function(depth, fmt) {
+		return (
+			fmt.stylize(this.op.op, 'operator') + 
+			this.exp.repr(depth, fmt)
+		);
 	};
 	
 	AST.Function.prototype.toString = function() {
@@ -32,12 +39,27 @@ function inspectify(depth, fmt) {
 		return this.plist.toString() + arrow + this.block.toString();
 	};
 
-	AST.Function.prototype.inspect = function(depth, fmt) {
+	AST.Function.prototype.repr = function(depth, fmt) {
 		var arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
 		return (
-			this.plist.inspect(depth, fmt) +
+			this.plist.repr(depth, fmt) +
 			fmt.stylize(arrow, 'delimiter') +
-			this.block.inspect(depth, fmt)
+			this.block.repr(depth, fmt)
+		);
+	};
+
+	AST.Match.prototype.toString = function() {
+		return "(\n" + this.kvl.map(stringify) + "\n)";
+	};
+
+	AST.Match.prototype.repr = function(depth, fmt) {
+		//TODO: smart newlines for compact reprs
+		return (
+			fmt.stylize('(', 'delimiter') + '\n    ' +
+			this.kvl.map(format(depth, fmt)).join(
+				fmt.stylize('\n', 'delimiter')
+			).replace(/\n/g, '\n    ') + '\n' +
+			fmt.stylize(')', 'delimiter')
 		);
 	};
 
@@ -45,10 +67,10 @@ function inspectify(depth, fmt) {
 		return this.target.toString() + ' ' + this.params.toString();
 	};
 
-	AST.Invocation.prototype.inspect = function(depth, fmt) {
+	AST.Invocation.prototype.repr = function(depth, fmt) {
 		return (
-			this.target.inspect(depth, fmt) + ' ' +
-			this.params.inspect(depth, fmt)
+			this.target.repr(depth, fmt) + ' ' +
+			this.params.repr(depth, fmt)
 		);
 	};
 	
@@ -56,8 +78,8 @@ function inspectify(depth, fmt) {
 		return '{\n' + this.expressionList.toString() + '\n}';
 	};
 
-	AST.Block.prototype.inspect = function(depth, fmt) {
-		var exps = this.expressionList.map(inspectify(depth, fmt));
+	AST.Block.prototype.repr = function(depth, fmt) {
+		var exps = this.expressionList.list.map(format(depth, fmt));
 		return (
 			fmt.stylize('{', 'delimiter') + '\n    ' +
 			exps.join('\n').replace(/\n/g, '\n    ') + '\n' +
@@ -77,11 +99,11 @@ function inspectify(depth, fmt) {
 		parameterList: ['(',')']
 	};
 
-	AST.List.prototype.inspect = function(depth, fmt) {
+	AST.List.prototype.repr = function(depth, fmt) {
 		var delims = this.delimiters[this.tags['source'] || 'list'];
 		return (
 			fmt.stylize(delims[0], 'delimiter') +
-			this.list.map(inspectify(depth, fmt)).join(fmt.stylize(', ', 'delimiter')) +
+			this.list.map(format(depth, fmt)).join(fmt.stylize(', ', 'delimiter')) +
 			fmt.stylize(delims[1], 'delimiter')
 		);
 	};
@@ -90,10 +112,10 @@ function inspectify(depth, fmt) {
 		return '[' + this.kvl.map(stringify).join(', ') + ']';
 	};
 
-	AST.Dictionary.prototype.inspect = function(depth, fmt) {
+	AST.Dictionary.prototype.repr = function(depth, fmt) {
 		return (
 			fmt.stylize('[', 'delimiter') + 
-			this.kvl.map(inspectify(depth, fmt)).join(fmt.stylize(', ', 'delimiter')) +
+			this.kvl.map(format(depth, fmt)).join(fmt.stylize(', ', 'delimiter')) +
 			fmt.stylize(']', 'delimiter')
 		);
 	};
@@ -110,7 +132,7 @@ function inspectify(depth, fmt) {
 		return this.name + (this.tags['modifier'] || '');
 	};
 
-	AST.Identifier.prototype.inspect = function(depth, fmt) {
+	AST.Identifier.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.name + (this.tags['identifier'] || ''), 'name');
 	};
 	
@@ -119,8 +141,8 @@ function inspectify(depth, fmt) {
 		return list;
 	};
 
-	AST.ExpressionList.prototype.inspect = function(depth, fmt) {
-		return this.list.map(inspectify(depth, fmt)).join('\n');
+	AST.ExpressionList.prototype.repr = function(depth, fmt) {
+		return this.list.map(format(depth, fmt)).join('\n');
 	};
 	
 	AST.KeyValueList.prototype.toString = function () {
@@ -132,10 +154,10 @@ function inspectify(depth, fmt) {
 		return this.key.toString() + ': ' + this.val.toString();
 	};
 	
-	AST.KeyValuePair.prototype.inspect = function (depth, fmt) {
+	AST.KeyValuePair.prototype.repr = function (depth, fmt) {
 		return (
-			this.key.inspect(depth, fmt) + fmt.stylize(': ', 'operator') +
-			this.val.inspect(depth, fmt)
+			this.key.repr(depth, fmt) + fmt.stylize(': ', 'operator') +
+			this.val.repr(depth, fmt)
 		);
 	};
 
@@ -169,7 +191,7 @@ function inspectify(depth, fmt) {
 		return quote + ret + quote;
 	};
 
-	AST.String.prototype.inspect = function(depth, fmt) {
+	AST.String.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'string');
 	};
 	
@@ -181,7 +203,7 @@ function inspectify(depth, fmt) {
 		return baseMap[this.tags['source_base'] || 10](this.value);
 	};
 
-	AST.Integer.prototype.inspect = function(depth, fmt) {
+	AST.Integer.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -191,7 +213,7 @@ function inspectify(depth, fmt) {
 		return rat.numerator.toString() + denom;
 	};
 
-	AST.Rational.prototype.inspect = function(depth, fmt) {
+	AST.Rational.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -202,7 +224,7 @@ function inspectify(depth, fmt) {
 		return wholePart.toString() + "." + fraction;
 	}
 
-	AST.Decimal.prototype.inspect = function(depth, fmt) {
+	AST.Decimal.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -222,7 +244,7 @@ function inspectify(depth, fmt) {
 		return this.magnitude.toString() + "i";
 	};
 
-	AST.Imaginary.prototype.inspect = function(depth, fmt) {
+	AST.Imaginary.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 	
@@ -230,7 +252,7 @@ function inspectify(depth, fmt) {
 		return this.real.toString() + "+" + this.imaginary.toString();
 	};
 
-	AST.Complex.prototype.inspect = function(depth, fmt) {
+	AST.Complex.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
 	};
 
@@ -238,7 +260,7 @@ function inspectify(depth, fmt) {
 		return this.value ? 'True' : 'False';
 	};
 
-	AST.Bool.prototype.inspect = function(depth, fmt) {
+	AST.Bool.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'boolean');
 	};
 
@@ -246,7 +268,7 @@ function inspectify(depth, fmt) {
 		return '_';
 	};
 
-	AST.Bottom.prototype.inspect = function(depth, fmt) {
+	AST.Bottom.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'boolean');
 	};
 })(AST);

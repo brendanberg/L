@@ -33,6 +33,12 @@ var AST = {
 		this.block = block;
 		this.ctx = null;
 	},
+	Match: function(kvl, tags) {
+		this.type = 'Match';
+		this.tags = tags || {};
+		this.kvl = kvl;
+		this.ctx = null;
+	},
 	Invocation: function (target, params, tags) {
 		this.type = 'Invocation';
 		this.tags = tags || {};

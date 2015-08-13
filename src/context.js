@@ -15,4 +15,6 @@ Context.prototype['_'] = new AST.Bottom();
 require('./impl/strings');
 require('./impl/numbers');
 require('./impl/booleans');
+require('./impl/collections');
+require('./impl/blocks');
 module.exports = Context;

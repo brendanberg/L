@@ -65,20 +65,44 @@ var Context = require('./context');
 
 	AST.Invocation.prototype.eval = function(ctx) {
 		var func = this.target.eval(ctx); // Should verify we got a function
-		var contxt = new Context();
-		var params = func.plist.list;
+		
+		if (func.type === 'Function') {
+			var locals = new Context();
+			var params = func.plist.list;
 
-		for (var i = 0, len = params.length; i < len; i++) {
-			contxt[params[i].name] = this.params.list[i].eval(ctx);
+			for (var i = 0, len = params.length; i < len; i++) {
+				locals[params[i].name] = this.params.list[i].eval(ctx);
+			}
+
+			//var expList = new AST.ExpressionList(func.block.expressionList);
+			return func.block.expressionList.eval(locals);
+		} else if (func.type === 'Match') {
+			return new AST.String('Hello, world!');
+		} else if (func.type === 'Block') {
+			return func.expressionList.eval(ctx);
 		}
-
-		var expList = new AST.ExpressionList(func.block.expressionList);
-		return expList.eval(contxt);
 	};
 
 	AST.MessageSend.prototype.eval = function(ctx) {
-		var receiver = this.receiver ? this.receiver.ctx : ctx;
-		var selector = receiver[this.message.identifier.name];
+		var lookup;
+		var selector;
+
+		if (this.receiver) {
+			var recv = this.receiver;
+			lookup = function(name) {
+				var selector = recv.ctx[name];
+
+				if (selector === undefined) {
+					selector = recv.__proto__.ctx[name];
+				}
+
+				return selector;
+			};
+		} else {
+			lookup = function(name) { return ctx[name]; };
+		}
+
+		selector = lookup(this.message.identifier.name);
 
 		if (selector && typeof selector === 'function') {
 			var evaluate = function (x) { return x.eval(ctx) };
@@ -110,11 +134,26 @@ var Context = require('./context');
 
 	AST.Function.prototype.eval = function(ctx) {
 		this.ctx = ctx;
+		this.block.eval(ctx);
+		return this;
+	};
+
+	AST.Match.prototype.eval = function(ctx) {
+		this.ctx = ctx;
 		return this;
 	};
 
 	AST.Block.prototype.eval = function(ctx) {
 		this.ctx = ctx;
+		// Recursively search for prefix expressions with a '*' operator
+		// and replace them with their evaluated value
+		this.expressionList = this.expressionList.transform(function(node) {
+			if (node.type === 'PrefixExpression' && node.op.op === '*') {
+				return node.exp.eval(ctx);
+			} else {
+				return node;
+			}
+		});
 		return this;
 	};
 

@@ -53,6 +53,7 @@ L.Parser = (function(){
 				"infixOperator": parse_infixOperator,
 				"prefixOperator": parse_prefixOperator,
 				"function": parse_function,
+				"match": parse_match,
 				"block": parse_block,
 				"identifierList": parse_identifierList,
 				"list": parse_list,
@@ -860,43 +861,49 @@ L.Parser = (function(){
 				
 				result0 = parse_function();
 				if (result0 === null) {
-					result0 = parse_list();
+					result0 = parse_match();
 					if (result0 === null) {
-						result0 = parse_dictionary();
+						result0 = parse_list();
 						if (result0 === null) {
-							result0 = parse_identifier();
+							result0 = parse_dictionary();
 							if (result0 === null) {
-								result0 = parse_string();
+								result0 = parse_identifier();
 								if (result0 === null) {
-									result0 = parse_number();
+									result0 = parse_string();
 									if (result0 === null) {
-										result0 = parse_block();
+										result0 = parse_number();
 										if (result0 === null) {
-											pos0 = pos;
-											pos1 = pos;
-											if (input.charCodeAt(pos) === 40) {
-												result0 = "(";
-												pos++;
-											} else {
-												result0 = null;
-												if (reportFailures === 0) {
-													matchFailed("\"(\"");
-												}
-											}
-											if (result0 !== null) {
-												result1 = parse_expression();
-												if (result1 !== null) {
-													if (input.charCodeAt(pos) === 41) {
-														result2 = ")";
-														pos++;
-													} else {
-														result2 = null;
-														if (reportFailures === 0) {
-															matchFailed("\")\"");
-														}
+											result0 = parse_block();
+											if (result0 === null) {
+												pos0 = pos;
+												pos1 = pos;
+												if (input.charCodeAt(pos) === 40) {
+													result0 = "(";
+													pos++;
+												} else {
+													result0 = null;
+													if (reportFailures === 0) {
+														matchFailed("\"(\"");
 													}
-													if (result2 !== null) {
-														result0 = [result0, result1, result2];
+												}
+												if (result0 !== null) {
+													result1 = parse_expression();
+													if (result1 !== null) {
+														if (input.charCodeAt(pos) === 41) {
+															result2 = ")";
+															pos++;
+														} else {
+															result2 = null;
+															if (reportFailures === 0) {
+																matchFailed("\")\"");
+															}
+														}
+														if (result2 !== null) {
+															result0 = [result0, result1, result2];
+														} else {
+															result0 = null;
+															pos = pos1;
+														}
 													} else {
 														result0 = null;
 														pos = pos1;
@@ -905,15 +912,12 @@ L.Parser = (function(){
 													result0 = null;
 													pos = pos1;
 												}
-											} else {
-												result0 = null;
-												pos = pos1;
-											}
-											if (result0 !== null) {
-												result0 = (function(offset, e) { return e; })(pos0, result0[1]);
-											}
-											if (result0 === null) {
-												pos = pos0;
+												if (result0 !== null) {
+													result0 = (function(offset, e) { return e; })(pos0, result0[1]);
+												}
+												if (result0 === null) {
+													pos = pos0;
+												}
 											}
 										}
 									}
@@ -1557,6 +1561,42 @@ L.Parser = (function(){
 									if (result0 === null) {
 										pos = pos0;
 									}
+									if (result0 === null) {
+										pos0 = pos;
+										if (input.charCodeAt(pos) === 63) {
+											result0 = "?";
+											pos++;
+										} else {
+											result0 = null;
+											if (reportFailures === 0) {
+												matchFailed("\"?\"");
+											}
+										}
+										if (result0 !== null) {
+											result0 = (function(offset) { return new L.AST.PrefixOperator('?'); })(pos0);
+										}
+										if (result0 === null) {
+											pos = pos0;
+										}
+										if (result0 === null) {
+											pos0 = pos;
+											if (input.charCodeAt(pos) === 42) {
+												result0 = "*";
+												pos++;
+											} else {
+												result0 = null;
+												if (reportFailures === 0) {
+													matchFailed("\"*\"");
+												}
+											}
+											if (result0 !== null) {
+												result0 = (function(offset) { return new L.AST.PrefixOperator('*'); })(pos0);
+											}
+											if (result0 === null) {
+												pos = pos0;
+											}
+										}
+									}
 								}
 							}
 						}
@@ -1668,6 +1708,64 @@ L.Parser = (function(){
 				return result0;
 			}
 			
+			function parse_match() {
+				var result0, result1, result2, result3;
+				var pos0, pos1;
+				
+				pos0 = pos;
+				pos1 = pos;
+				if (input.charCodeAt(pos) === 40) {
+					result0 = "(";
+					pos++;
+				} else {
+					result0 = null;
+					if (reportFailures === 0) {
+						matchFailed("\"(\"");
+					}
+				}
+				if (result0 !== null) {
+					result1 = parse___();
+					if (result1 !== null) {
+						result2 = parse_keyValueList();
+						if (result2 !== null) {
+							if (input.charCodeAt(pos) === 41) {
+								result3 = ")";
+								pos++;
+							} else {
+								result3 = null;
+								if (reportFailures === 0) {
+									matchFailed("\")\"");
+								}
+							}
+							if (result3 !== null) {
+								result0 = [result0, result1, result2, result3];
+							} else {
+								result0 = null;
+								pos = pos1;
+							}
+						} else {
+							result0 = null;
+							pos = pos1;
+						}
+					} else {
+						result0 = null;
+						pos = pos1;
+					}
+				} else {
+					result0 = null;
+					pos = pos1;
+				}
+				if (result0 !== null) {
+					result0 = (function(offset, dict) {
+							return new L.AST.Match(dict.kvl);
+						})(pos0, result0[2]);
+				}
+				if (result0 === null) {
+					pos = pos0;
+				}
+				return result0;
+			}
+			
 			function parse_block() {
 				var result0, result1, result2, result3;
 				var pos0, pos1;
@@ -1728,7 +1826,7 @@ L.Parser = (function(){
 								list = [];
 							}
 							
-							return new L.AST.Block(list);
+							return new L.AST.Block(new L.AST.ExpressionList(list));
 						})(pos0, result0[2]);
 				}
 				if (result0 === null) {
