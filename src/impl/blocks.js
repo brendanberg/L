@@ -3,7 +3,7 @@ var dispatch = require('../dispatch');
 
 (function(AST) {
 	AST.Block.prototype.ctx = {
-		'*': dispatch({
+		'\\': dispatch({
 			'': function() {
 				//TODO: Figure out how to do two-step invocations...
 				// Invoke on an invokable should eval, on anything else

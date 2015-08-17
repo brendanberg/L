@@ -37,6 +37,7 @@ var AST = {
 		this.type = 'Match';
 		this.tags = tags || {};
 		this.kvl = kvl;
+		this.predicates = null;
 		this.ctx = null;
 	},
 	Invocation: function (target, params, tags) {

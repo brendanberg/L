@@ -24,8 +24,8 @@ var Context = require('./context');
 				val = this.list[i].eval(ctx);
 			}
 		}
-		this.value = val;
-		return this.value;
+		//this.value = val;
+		return val;//this.value;
 	};
 
 	AST.PrefixExpression.prototype.eval = function (ctx) {
@@ -74,10 +74,34 @@ var Context = require('./context');
 				locals[params[i].name] = this.params.list[i].eval(ctx);
 			}
 
-			//var expList = new AST.ExpressionList(func.block.expressionList);
-			return func.block.expressionList.eval(locals);
+			locals.__proto__ = func.block.ctx;
+			if (func.block.type === 'Function') {
+				return func.block.eval(locals);
+			} else if (func.block.type === 'Match') {
+				return func.block.eval(locals);
+			} else if (func.block.type === 'Block') {
+				return func.block.expressionList.eval(locals);
+			}
 		} else if (func.type === 'Match') {
-			return new AST.String('Hello, world!');
+			// return new AST.String('Hello, world!');
+			//TODO: unify on 
+			var predicates = func.predicates;
+			var result = null;
+			var params = this.params.list.map(function(x) { return x.eval(ctx) });
+			for(var i in predicates) {
+				var pair = predicates[i];
+				var context = pair[0].apply(null, params);
+				if (context) {
+					if ('ctx' in pair[1]) { context.__proto__ = pair[1].ctx }
+					if (pair[1].type === 'Block') {
+						result = pair[1].expressionList.eval(context);
+					} else {
+						result = pair[1];
+					}
+					break;
+				} 
+			}
+			return result || new AST.Bottom();
 		} else if (func.type === 'Block') {
 			return func.expressionList.eval(ctx);
 		}
@@ -134,21 +158,59 @@ var Context = require('./context');
 
 	AST.Function.prototype.eval = function(ctx) {
 		this.ctx = ctx;
-		this.block.eval(ctx);
+		this.block = this.block.eval(ctx);
 		return this;
 	};
 
 	AST.Match.prototype.eval = function(ctx) {
 		this.ctx = ctx;
+		var ps = [];
+		var predicateMap = {
+			'Boolean': function(x) {
+				return this.value === x.value ? new Context() : null;
+			},
+			'Integer': function(x) {
+				return this.value === x.value ? new Context() : null; 
+			},
+			'String': function(x) {
+				console.log(x.value);
+				console.log(this.value);
+				return this.value === x.value ? new Context() : null;
+			},
+			'Identifier': function(x) {
+				var ctx = new Context();
+				ctx[this.name] = x;
+				return ctx;
+			},
+			'List': function(x) {
+				// Match on each item of the list... 
+				return null;
+			}
+		};
+		for (var i = 0, len = this.kvl.length; i < len; i++) {
+			var kvp = new AST.KeyValuePair(this.kvl[i].key, this.kvl[i].val.eval(ctx));
+			//TODO: This is a special case and would probably be bad if True
+			// and False got redefined.
+			if (kvp.key.type === 'Identifier') {
+				if (kvp.key.name === 'True') {
+					kvp.key = new AST.Bool(true);
+				} else if (kvp.key.name === 'False') {
+					kvp.key = new AST.Bool(false);
+				}
+			}
+			ps.push([predicateMap[kvp.key.type].bind(kvp.key), kvp.val]);
+			this.kvl[i] = kvp;
+		}
+		this.predicates = ps;
 		return this;
 	};
 
 	AST.Block.prototype.eval = function(ctx) {
 		this.ctx = ctx;
-		// Recursively search for prefix expressions with a '*' operator
+		// Recursively search for prefix expressions with a '\' operator
 		// and replace them with their evaluated value
 		this.expressionList = this.expressionList.transform(function(node) {
-			if (node.type === 'PrefixExpression' && node.op.op === '*') {
+			if (node.type === 'PrefixExpression' && node.op.op === '\\') {
 				return node.exp.eval(ctx);
 			} else {
 				return node;

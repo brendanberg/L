@@ -50,14 +50,16 @@ expressionNoInfix
 	// / val:value _ dct:dictionary {
 	// 		return new L.AST.Lookup(val, dct);
 	// 	}
-	/ val:value _ plist:parameterList {
-			return new L.AST.Invocation(val, plist);
+	/ val:value more:(_ it:parameterList { return it; })+ {
+			var expr = val;
+			for(var i = 0, len = more.length; i < len; i++) {
+				var item = more[i];
+				expr = new L.AST.Invocation(expr, item);
+			}
+			return expr;
 		}
 	/ prefixExpression
 	/ value
-
-message
-	= id:identifier params:parameterList? { return new L.AST.Message(id, params); }
 
 parameterList
 	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
@@ -81,7 +83,7 @@ value
 	/ string
 	/ number
 	/ block
-	/ '(' e:expression ')' { return e; }
+	/ '(' e:expression ')' { e.tags['parenthesized'] = true; return e; }
 
 infixOperator
 	= "//:" { return new L.AST.InfixOperator('//:'); }
@@ -95,6 +97,7 @@ infixOperator
 	/ "==" { return new L.AST.InfixOperator('=='); }
 	/ "!=" { return new L.AST.InfixOperator('!='); }
 	/ ">=" { return new L.AST.InfixOperator('>='); }
+	/ "@" { return new L.AST.InfixOperator('@'); }
 	/ "/\\" { return new L.AST.InfixOperator('/\\'); }
 	/ "\\/" { return new L.AST.InfixOperator('\\/'); }
 	// "->" { return new L.AST.InfixOperator('->'); }
@@ -122,16 +125,16 @@ prefixOperator
 	/ "~" { return new L.AST.PrefixOperator('~'); }   // ?
 	/ "!" { return new L.AST.PrefixOperator('!'); }   // logical not
 	/ "^" { return new L.AST.PrefixOperator('^'); }   // ?
-	/ "\\" { return new L.AST.PrefixOperator('\\'); } // ?
-	/ "?" { return new L.AST.PrefixOperator('?'); }   // pattern match
-	/ "*" { return new L.AST.PrefixOperator('*'); }   // destructure / dereference
+	/ "\\" { return new L.AST.PrefixOperator('\\'); } // eager override
+	// "?" { return new L.AST.PrefixOperator('?'); }   // pattern match
+	// "*" { return new L.AST.PrefixOperator('*'); }   // destructure / dereference
 
 
 function
 	= il:identifierList _ "->" _ b:block { return new L.AST.Function(il, b, {type: 'thin'}); }
-	/ il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
-	/ il:identifierList _ "->" _ m:match { }
-	/ il:identifierList _ "->" _ f:function { }
+	// il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
+	/ il:identifierList _ "->" _ m:match { return new L.AST.Function(il, m, {type: 'thin'}); }
+	/ il:identifierList _ "->" _ f:function { return new L.AST.Function(il, f, {type: 'thin'}); }
 
 match
 	= "(" __ dict:(keyValueList) ")" {

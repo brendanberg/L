@@ -7,6 +7,11 @@ var dispatch = require('../dispatch');
 			'String': function(s) {
 				return new AST.String(this.value + s.value);
 			}
+		}),
+		'==': dispatch({
+			'String': function(s) {
+				return new AST.Bool(this.value === s.value);
+			}
 		})
 	};
 })(AST);
