@@ -24,8 +24,7 @@ var Context = require('./context');
 				val = this.list[i].eval(ctx);
 			}
 		}
-		//this.value = val;
-		return val;//this.value;
+		return val;
 	};
 
 	AST.PrefixExpression.prototype.eval = function (ctx) {
@@ -35,8 +34,7 @@ var Context = require('./context');
 			new AST.List([], {source: 'parameterList'})
 		);
 		var msgSend = new AST.MessageSend(ctx, exp, msg);
-		this.value = msgSend.eval(ctx);
-		return this.value;
+		return msgSend.eval(ctx);
 	};
 
 	AST.InfixExpression.prototype.eval = function (ctx) {
@@ -55,8 +53,7 @@ var Context = require('./context');
 			expr = new AST.MessageSend(ctx, this.lhs.eval(ctx), msg);
 		}
 
-		this.value = expr.eval(ctx);
-		return this.value;
+		return expr.eval(ctx);
 	};
 
 	AST.Assignment.prototype.eval = function(ctx) {
@@ -64,11 +61,23 @@ var Context = require('./context');
 	};
 
 	AST.Invocation.prototype.eval = function(ctx) {
-		var func = this.target.eval(ctx); // Should verify we got a function
-		
-		if (func.type === 'Function') {
-			var locals = new Context();
-			var params = func.plist.list;
+		var target = this.target.eval(ctx); // Should verify we got a function
+		var func, locals, params;
+
+		function clone(obj) {
+			if (obj === null || typeof obj !== 'object') { return obj; }
+			var copy = obj.constructor() || {};
+			for (var attr in obj) {
+				if (obj.hasOwnProperty(attr)) { copy[attr] = obj[attr]; }
+			}
+			return copy;
+		}
+
+		if (target.type === 'Function') {
+			func = new AST.Function(target.plist, target.block);
+			func.ctx = clone(target.ctx);
+			locals = new Context();
+			params = func.plist.list;
 
 			for (var i = 0, len = params.length; i < len; i++) {
 				locals[params[i].name] = this.params.list[i].eval(ctx);
@@ -82,9 +91,12 @@ var Context = require('./context');
 			} else if (func.block.type === 'Block') {
 				return func.block.expressionList.eval(locals);
 			}
-		} else if (func.type === 'Match') {
-			// return new AST.String('Hello, world!');
-			//TODO: unify on 
+		} else if (target.type === 'Match') {
+			func = new AST.Match(target.kvl);
+			func.predicates = target.predicates;
+			//TODO: copy predicates instead of pointing?
+			func.ctx = clone(target.ctx);
+
 			var predicates = func.predicates;
 			var result = null;
 			var params = this.params.list.map(function(x) { return x.eval(ctx) });
@@ -157,14 +169,16 @@ var Context = require('./context');
 	};
 
 	AST.Function.prototype.eval = function(ctx) {
-		this.ctx = ctx;
-		this.block = this.block.eval(ctx);
-		return this;
+		var func = new AST.Function(this.plist, this.block.eval(ctx));
+		//func.ctx = ctx;
+		return func;
 	};
 
 	AST.Match.prototype.eval = function(ctx) {
-		this.ctx = ctx;
+		var match = new AST.Match();
+		match.ctx = ctx;
 		var ps = [];
+		var kvl = [];
 		var predicateMap = {
 			'Boolean': function(x) {
 				return this.value === x.value ? new Context() : null;
@@ -173,8 +187,6 @@ var Context = require('./context');
 				return this.value === x.value ? new Context() : null; 
 			},
 			'String': function(x) {
-				console.log(x.value);
-				console.log(this.value);
 				return this.value === x.value ? new Context() : null;
 			},
 			'Identifier': function(x) {
@@ -199,24 +211,26 @@ var Context = require('./context');
 				}
 			}
 			ps.push([predicateMap[kvp.key.type].bind(kvp.key), kvp.val]);
-			this.kvl[i] = kvp;
+			kvl.push(kvp);
 		}
-		this.predicates = ps;
-		return this;
+		match.predicates = ps;
+		match.kvl = kvl;
+		return match;
 	};
 
 	AST.Block.prototype.eval = function(ctx) {
-		this.ctx = ctx;
+		var block = new AST.Block();
+		block.ctx = ctx;
 		// Recursively search for prefix expressions with a '\' operator
 		// and replace them with their evaluated value
-		this.expressionList = this.expressionList.transform(function(node) {
+		block.expressionList = this.expressionList.transform(function(node) {
 			if (node.type === 'PrefixExpression' && node.op.op === '\\') {
 				return node.exp.eval(ctx);
 			} else {
 				return node;
 			}
 		});
-		return this;
+		return block;
 	};
 
 	AST.Identifier.prototype.eval = function(ctx) {
