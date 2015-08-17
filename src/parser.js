@@ -1628,6 +1628,12 @@ L.Parser = (function(){
 							result3 = parse__();
 							if (result3 !== null) {
 								result4 = parse_block();
+								if (result4 === null) {
+									result4 = parse_match();
+									if (result4 === null) {
+										result4 = parse_function();
+									}
+								}
 								if (result4 !== null) {
 									result0 = [result0, result1, result2, result3, result4];
 								} else {
@@ -1651,108 +1657,12 @@ L.Parser = (function(){
 					pos = pos1;
 				}
 				if (result0 !== null) {
-					result0 = (function(offset, il, b) { return new L.AST.Function(il, b, {type: 'thin'}); })(pos0, result0[0], result0[4]);
+					result0 = (function(offset, il, b) {
+							return new L.AST.Function(il, b, {type: 'thin'});
+						})(pos0, result0[0], result0[4]);
 				}
 				if (result0 === null) {
 					pos = pos0;
-				}
-				if (result0 === null) {
-					pos0 = pos;
-					pos1 = pos;
-					result0 = parse_identifierList();
-					if (result0 !== null) {
-						result1 = parse__();
-						if (result1 !== null) {
-							if (input.substr(pos, 2) === "->") {
-								result2 = "->";
-								pos += 2;
-							} else {
-								result2 = null;
-								if (reportFailures === 0) {
-									matchFailed("\"->\"");
-								}
-							}
-							if (result2 !== null) {
-								result3 = parse__();
-								if (result3 !== null) {
-									result4 = parse_match();
-									if (result4 !== null) {
-										result0 = [result0, result1, result2, result3, result4];
-									} else {
-										result0 = null;
-										pos = pos1;
-									}
-								} else {
-									result0 = null;
-									pos = pos1;
-								}
-							} else {
-								result0 = null;
-								pos = pos1;
-							}
-						} else {
-							result0 = null;
-							pos = pos1;
-						}
-					} else {
-						result0 = null;
-						pos = pos1;
-					}
-					if (result0 !== null) {
-						result0 = (function(offset, il, m) { return new L.AST.Function(il, m, {type: 'thin'}); })(pos0, result0[0], result0[4]);
-					}
-					if (result0 === null) {
-						pos = pos0;
-					}
-					if (result0 === null) {
-						pos0 = pos;
-						pos1 = pos;
-						result0 = parse_identifierList();
-						if (result0 !== null) {
-							result1 = parse__();
-							if (result1 !== null) {
-								if (input.substr(pos, 2) === "->") {
-									result2 = "->";
-									pos += 2;
-								} else {
-									result2 = null;
-									if (reportFailures === 0) {
-										matchFailed("\"->\"");
-									}
-								}
-								if (result2 !== null) {
-									result3 = parse__();
-									if (result3 !== null) {
-										result4 = parse_function();
-										if (result4 !== null) {
-											result0 = [result0, result1, result2, result3, result4];
-										} else {
-											result0 = null;
-											pos = pos1;
-										}
-									} else {
-										result0 = null;
-										pos = pos1;
-									}
-								} else {
-									result0 = null;
-									pos = pos1;
-								}
-							} else {
-								result0 = null;
-								pos = pos1;
-							}
-						} else {
-							result0 = null;
-							pos = pos1;
-						}
-						if (result0 !== null) {
-							result0 = (function(offset, il, f) { return new L.AST.Function(il, f, {type: 'thin'}); })(pos0, result0[0], result0[4]);
-						}
-						if (result0 === null) {
-							pos = pos0;
-						}
-					}
 				}
 				return result0;
 			}

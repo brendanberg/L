@@ -131,10 +131,10 @@ prefixOperator
 
 
 function
-	= il:identifierList _ "->" _ b:block { return new L.AST.Function(il, b, {type: 'thin'}); }
+	= il:identifierList _ "->" _ b:(block / match / function) {
+			return new L.AST.Function(il, b, {type: 'thin'});
+		}
 	// il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
-	/ il:identifierList _ "->" _ m:match { return new L.AST.Function(il, m, {type: 'thin'}); }
-	/ il:identifierList _ "->" _ f:function { return new L.AST.Function(il, f, {type: 'thin'}); }
 
 match
 	= "(" __ dict:(keyValueList) ")" {
