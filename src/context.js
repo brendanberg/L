@@ -5,6 +5,7 @@ var Context = function() {
 };
 
 Context.prototype[':'] = function(identifier, value) {
+	//TODO: walk up the contexts and find a value?
 	this[identifier.name] = value;
 };
 

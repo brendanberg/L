@@ -79,9 +79,10 @@ function eval(cmd, context, filename, callback) {
 	} catch (e) {
 		if (e.found === null) {
 			rep.prompt = ' - ';
-			str = str + command;
+			str = str + command + '\n';
 			callback(null, undefined);
 		} else {
+			// console.log(JSON.stringify(str));
 			callback(null, e.message);
 		}
 		return;
