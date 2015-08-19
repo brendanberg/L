@@ -1,5 +1,5 @@
 var repl = require('repl');
-var L = require('../src/parser');
+var L = require('../src/l');
 require('../src/repr');
 require('../src/transform');
 require('../src/eval');

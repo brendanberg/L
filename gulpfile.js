@@ -14,24 +14,14 @@ gulp.task('clean', function(cb) {
 });
 
 gulp.task('parser', function(cb) {
-	gulp.src('src/l.pegjs').pipe(
-		peg({exportVar: 'L.Parser'}).on('error', gutil.log)
-	).pipe(
-		rename('parser.js')
+	gulp.src('src/parser.pegjs').pipe(
+		peg().on('error', gutil.log)
 	).pipe(gulp.dest('src'));
-	//TODO: Interpolate with the following:
-	// var L = {};
-	// L.AST = require('./ast')
-	//
-	// // BEGIN(BROWSER)
-	// *** PARSER GOES HERE ***
-	// // END(BROWSER)
-	// module.exports = L;
 });
 
 gulp.task('build', ['parser'], function(cb) {
 	gulp.src('src/l.js').pipe(
-		browserify({insertGlobals: true})
+		//browserify({insertGlobals: true})
 	).pipe(gulp.dest('build'));
 
 	gulp.src('src/ell.js').pipe(gulp.dest('build'));
