@@ -99,7 +99,7 @@ var Context = require('./context');
 
 			var predicates = func.predicates;
 			var result = null;
-			var params = this.params.list.map(function(x) { return x.eval(ctx) });
+			params = this.params.list.map(function(x) { return x.eval(ctx) });
 			for(var i in predicates) {
 				var pair = predicates[i];
 				var context = pair[0].apply(null, params);
@@ -114,8 +114,37 @@ var Context = require('./context');
 				} 
 			}
 			return result || new AST.Bottom();
-		} else if (func.type === 'Block') {
-			return func.expressionList.eval(ctx);
+		} else if (target.type === 'Block') {
+			return new AST.Block(target.expressionList.eval(ctx));
+		} else {
+			// This is a method invocation LOL
+			// Take the selector keys and string em together.
+			// Dispatch will select on the type signature so get that right
+			// when you define the ctx
+			// > Thing : Type()
+			// > Thing() -> { 'hello' }
+			// > t = Thing()
+			// > t()
+			// 'hello'
+			var context = clone(ctx);
+			var selector = '(' + this.params.list.map(function(x) {
+				return x.key.name + ':'
+			}).join('') + ')';
+			if (selector in target.ctx) {
+				if (typeof target.ctx[selector] === 'function') {
+					params = this.params.list.map(function(x) {
+						return x.val.eval(ctx);
+					});
+
+					target.ctx.__proto__ = ctx;
+					return (
+						target.ctx[selector].apply(target, params) ||
+						new AST.Bottom()
+					);
+				} else if (target.ctx[selector].type === 'Function') {
+					return new AST.String('Whoa! Not implemented!');
+				}
+			}
 		}
 	};
 
@@ -288,11 +317,25 @@ var Context = require('./context');
 				} else if (target.type === 'Dictionary') {
 					//TODO: Test that index is hashable
 					result.push(target.ctx[index] || new AST.Bottom());
+				} else if (target.type === 'String') {
+					if (index.type !== 'Integer') {
+						// THis is an error
+					}
+					if (index.value < 0) {
+						index.value = target.value.length + index.value;
+					}
+
+					// This is a problem.. Pushing empty string? LOL
+					result.push(target.value[index.value] || '');
 				}
 			}
 		}
 
-		return new AST.List(result);
+		if (target.type === 'String') {
+			return new AST.String(result.join(''));
+		} else {
+			return new AST.List(result);
+		}
 	};
 
 	AST.String.prototype.eval = function(ctx) {

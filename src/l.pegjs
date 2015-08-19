@@ -3,7 +3,7 @@ start
 	= expressionList
 
 expressionList
-	= first:expression rest:($ _ exp:expression { return exp; } )* $? _ {
+	= first:expression rest:(_S _ exp:expression { return exp; } )* _S? _ {
 			if (rest.length > 0) {
 				return new L.AST.ExpressionList([first].concat(rest));
 			} else {
@@ -12,7 +12,7 @@ expressionList
 		}
 
 pureExpressionList
-	= first:pureExpression rest:($ _ exp:pureExpression { return exp; } )* $? _ {
+	= first:pureExpression rest:(_S _ exp:pureExpression { return exp; } )* _S? _ {
 			if (rest.length > 0) {
 				return new L.AST.ExpressionList([first].concat(rest));
 			} else {
@@ -63,8 +63,8 @@ expressionNoInfix
 
 parameterList
 	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
-			$ _ item:(keyValuePair / pureExpression) { return item; }
-		)* $? __ ')' {
+			_S _ item:(keyValuePair / pureExpression) { return item; }
+		)* _S? __ ')' {
 			return new L.AST.List([first].concat(rest), {source: 'parameterList'});
 		}
 	/ _ '(' __ ')' { return new L.AST.List([], {source: 'parameterList'}); }
@@ -157,7 +157,7 @@ block
 		}
 
 identifierList
-	= "(" _ idl:(first:identifier rest:($ _ id:identifier { return id; })* $? {
+	= "(" _ idl:(first:identifier rest:(_S _ id:identifier { return id; })* _S? {
 			return new L.AST.List([first].concat(rest), {source: 'identifierList'});
 		}) ? _ ")" {
 			return idl || new L.AST.List([], {source: 'identifierList'});
@@ -181,7 +181,7 @@ dictionary
 			}
 
 keyValueList
-	= first:keyValuePair rest:($ _ kvp:keyValuePair { return kvp; })* $ ? _ {
+	= first:keyValuePair rest:(_S _ kvp:keyValuePair { return kvp; })* _S ? _ {
 			return new L.AST.Dictionary([first].concat(rest));
 		}
 
@@ -261,5 +261,5 @@ _
 __
 	= (" " / "\t" / "\n")*
 
-$
+_S
 	= ("," / "\n" / ",\n")

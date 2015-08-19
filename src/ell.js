@@ -91,8 +91,11 @@ function eval(cmd, context, filename, callback) {
 	try {
 		result = ast.eval(ctx);	
 	} catch (e) {
-		console.log(ast.toString());
-		result = e.message;
+		//console.log(ast.toString());
+		result = (
+			fmt.stylize(e.toString(), 'error') + '\n' +
+			fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string')
+		);
 	} finally {
 		callback(null, result);
 	}
