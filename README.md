@@ -6,10 +6,12 @@ and easy to reason about.
 Therefore, the syntax is minimal but extensible,
 but the language semantics can be extended through a safe macro system.
 
-## Installing 🅛
+## Installing L
 
 Clone the repository on your machine.
-From the project directory, run the following commands:
+From within the project directory, run the following commands:
 
-```npm install
-gulp build```
+```
+npm install
+gulp build
+```
