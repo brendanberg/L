@@ -1,4 +1,4 @@
-var L = require('../src/parser');
+var L = require('../build/l');
 require('mocha-testcheck').install();
 var assert = require('assert');
 
@@ -118,7 +118,7 @@ ASTgen.function__r = gen.map(function(args) {
 }, gen.array([
 	ASTgen.plist,
 	gen.array(ASTgen.expression__r, 3),
-	gen.returnOneOf(['fat', 'thin'])
+	gen.returnOneOf(['thin'])
 ]));
 
 

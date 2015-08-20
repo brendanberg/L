@@ -1,4 +1,4 @@
-var L = require('../src/parser');
+var L = require('../build/l');
 var assert = require('assert');
 
 function buildAssertion(assertion, source, result, message) {
