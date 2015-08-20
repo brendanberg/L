@@ -128,6 +128,11 @@ var AST = {
 		this.tags = tags || {};
 		this.exp = exp;
 	},
+	RecordType: function (members, tags) {
+		this.type = 'Record';
+		this.tags = tags || {};
+		this.members = members;
+	},
 	String: function (str, tags) {
 		this.type = 'String';
 		this.tags = tags || {};

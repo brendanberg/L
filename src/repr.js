@@ -86,7 +86,20 @@ function format(depth, fmt) {
 			fmt.stylize('}', 'delimiter')
 		);
 	};
+
+	AST.RecordType.prototype.toString = function() {
+		return "< " + this.members.map(stringify).join(', ') + " >";
+	};
 	
+	AST.RecordType.prototype.repr = function(depth, fmt) {
+		var members = this.members.map(format(depth, fmt));
+		return (
+			fmt.stylize("<", 'delimiter') + ' ' +
+			members.join(fmt.stylize(", ", 'delimiter')) + ' ' +
+			fmt.stylize(">", 'delimiter')
+		);
+	};
+
 	AST.List.prototype.toString = function() {
 		var delims = this.delimiters[this.tags['source'] || 'list'];
 		return delims[0] + this.list.map(stringify).join(', ') + delims[1];

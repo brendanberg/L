@@ -262,6 +262,10 @@ var Context = require('./context');
 		return block;
 	};
 
+	AST.RecordType.prototype.eval = function(ctx) {
+		return this;
+	};
+
 	AST.Identifier.prototype.eval = function(ctx) {
 		return ctx[this.name];
 	};

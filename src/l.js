@@ -1,7 +1,6 @@
 var L = {};
-//var parser = require('./parser');
 L.AST = require('./ast');
-L.Parser = require('./parser');//parser.bind(L);
+L.Parser = require('./parser');
 
 // repr.js and eval.js modify their imported L and don't export anything.
 require('./repr');
