@@ -1,4 +1,7 @@
-
+{
+	var L = {};
+	L.AST = require('./ast');
+}
 start
 	= expressionList
 
@@ -47,9 +50,6 @@ expressionNoInfix
 	= val:value _ lst:list {
 			return new L.AST.Lookup(val, lst);
 		}
-	// / val:value _ dct:dictionary {
-	// 		return new L.AST.Lookup(val, dct);
-	// 	}
 	/ val:value more:(_ it:parameterList { return it; })+ {
 			var expr = val;
 			for(var i = 0, len = more.length; i < len; i++) {
@@ -84,6 +84,7 @@ value
 	/ number
 	/ block
 	/ '(' e:expression ')' { e.tags['parenthesized'] = true; return e; }
+	/ record
 
 infixOperator
 	= "//:" { return new L.AST.InfixOperator('//:'); }
@@ -205,8 +206,15 @@ postfixModifier
 	= "?" { return '?'; }
 	/ "!" { return '!'; }
 
+record "record"
+	= "<" __ kvl:keyValueList ? __ ">" {
+			return new L.AST.RecordType(kvl.kvl);
+		}
+	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
+			return new L.AST.RecordType(idl);
+		}
 
-string
+string "string"
 	// potentially disallow new lines, control chars, etc.
 	= "\"" str:(escapedChar / [^"])* "\"" { return new L.AST.String(str.join('')); }
 	/ "'" str:(escapedChar / [^'])* "'" { return new L.AST.String(str.join('')); }
@@ -216,28 +224,28 @@ escapedChar
 			return ({'"': '"', "'": "'", n: '\n', t: '\t', '\\': '\\'})[char];
 		}
 
-number
+number "number"
 	= imaginary
 	/ scientific
 	/ hex
 	/ decimal
 	/ integer
 
-integer
+integer "integer"
 	= "0" { return new L.AST.Integer(0, {'source_base': 10}); }
 	/ first:[1-9] rest:[0-9]* {
 			var val = parseInt(first + rest.join(''), 10);
 			return new L.AST.Integer(val, {'source_base': 10});
 		}
 
-decimal
+decimal "decimal"
 	= int:integer "." digits:[0-9]* {
 			var fraction = parseInt(digits.join(''), 10) || 0;
 			var factor = Math.pow(10, digits.length);
 			return new L.AST.Decimal(int.value * factor + fraction, digits.length);
 		}
 
-scientific
+scientific "scientific"
 	= sig:integer [eE] [+-]? mant:integer {
 			return new L.AST.Scientific(sig.value, mant.value);
 		}
@@ -245,21 +253,21 @@ scientific
 			return new L.AST.Scientific(sig.value, mant.value);
 		}
 
-hex
+hex "hexidecimal"
 	= "0x0" { return new L.AST.Integer(0, {'source_base': 16}); }
 	/ "0x" first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
 			var val = parseInt(first + rest.join(''), 16);
 			return new L.AST.Integer(val, {'source_base': 16});
 		}
 
-imaginary
+imaginary "imaginary"
 	= num:(scientific / hex / decimal / integer) [ijJ] { return new L.AST.Imaginary(num); }
 
-_
+_ "whitespace"
 	= (" " / "\t")*
 
-__
+__ "whitespace"
 	= (" " / "\t" / "\n")*
 
-_S
+_S "separator"
 	= ("," / "\n" / ",\n")

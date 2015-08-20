@@ -1,9 +1,5 @@
 var repl = require('repl');
-var L = require('../src/l');
-require('../src/repr');
-require('../src/transform');
-require('../src/eval');
-L.Context = require('../src/context');
+var L = require('./l');
 
 var ctx = new L.Context();
 var str = '';
@@ -82,8 +78,7 @@ function eval(cmd, context, filename, callback) {
 			str = str + command + '\n';
 			callback(null, undefined);
 		} else {
-			// console.log(JSON.stringify(str));
-			callback(null, e.message);
+			callback(null, fmt.stylize(e.message, 'error'));
 		}
 		return;
 	}
@@ -91,7 +86,6 @@ function eval(cmd, context, filename, callback) {
 	try {
 		result = ast.eval(ctx);	
 	} catch (e) {
-		//console.log(ast.toString());
 		result = (
 			fmt.stylize(e.toString(), 'error') + '\n' +
 			fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string')
