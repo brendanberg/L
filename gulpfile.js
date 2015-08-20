@@ -27,8 +27,6 @@ gulp.task('l', ['parser'], function(cb) {
 
 gulp.task('repl', ['l'], function(cb) {
 	return gulp.src('src/ell.js').pipe(gulp.dest('build'));
-	//	browserify({standalone: 'ell', debug: true})
-	//).pipe(gulp.dest('build'));
 });
 
 gulp.task('build', ['l', 'repl']);

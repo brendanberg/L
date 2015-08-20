@@ -128,10 +128,17 @@ var AST = {
 		this.tags = tags || {};
 		this.exp = exp;
 	},
-	RecordType: function (members, tags) {
-		this.type = 'Record';
+	Struct: function (name, members, tags) {
+		this.type = 'Type';
 		this.tags = tags || {};
+		this.name = name;
 		this.members = members;
+	},
+	Value: function(_super, values, tags) {
+		this.type = 'Struct';
+		this.tags = tags || {};
+		this._super = _super;
+		this.values = values;
 	},
 	String: function (str, tags) {
 		this.type = 'String';

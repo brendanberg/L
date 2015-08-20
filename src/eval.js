@@ -262,7 +262,11 @@ var Context = require('./context');
 		return block;
 	};
 
-	AST.RecordType.prototype.eval = function(ctx) {
+	AST.Struct.prototype.eval = function(ctx) {
+		return this;
+	};
+
+	AST.Value.prototype.eval = function(ctx) {
 		return this;
 	};
 

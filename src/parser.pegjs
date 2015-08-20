@@ -24,14 +24,20 @@ pureExpressionList
 		}
 
 expression
+  = assignment
+	/ messageSend
+	/ pureExpression
+
+assignment "assignment"
 	= e1:pureExpression _ ':' _ e2:pureExpression {
 			var op = new L.AST.InfixOperator(':');
 			return new L.AST.InfixExpression(op, e1, e2);
 		}
-	/ e1:pureExpression _ '<-' _ e2:pureExpression {
+
+messageSend "message send"
+	= e1:pureExpression _ '<-' _ e2:pureExpression {
 			return new L.AST.MessageSend(null, e1, e2);
 		}
-	/ pureExpression
 
 // Purely functional expression
 pureExpression
@@ -61,7 +67,7 @@ expressionNoInfix
 	/ prefixExpression
 	/ value
 
-parameterList
+parameterList "parameter list"
 	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
 			_S _ item:(keyValuePair / pureExpression) { return item; }
 		)* _S? __ ')' {
@@ -74,7 +80,7 @@ prefixExpression
 			return new L.AST.PrefixExpression(op, e);
 		}
 
-value
+value "value"
 	= function
 	/ match
 	/ list
@@ -84,9 +90,9 @@ value
 	/ number
 	/ block
 	/ '(' e:expression ')' { e.tags['parenthesized'] = true; return e; }
-	/ record
+	/ type
 
-infixOperator
+infixOperator "infix operator"
 	= "//:" { return new L.AST.InfixOperator('//:'); }
 	/ "//" { return new L.AST.InfixOperator('//'); }
 	/ "/:" { return new L.AST.InfixOperator('/:'); }
@@ -120,7 +126,7 @@ infixOperator
 	/ "|" { return new L.AST.InfixOperator('|'); }
 	/ "^" { return new L.AST.InfixOperator('^'); }
 
-prefixOperator
+prefixOperator "prefix operator"
 	= "+" { return new L.AST.PrefixOperator('+'); }   // arithmetic no-op
 	/ "-" { return new L.AST.PrefixOperator('-'); }   // arithmetic negation
 	/ "~" { return new L.AST.PrefixOperator('~'); }   // ?
@@ -131,18 +137,18 @@ prefixOperator
 	// "*" { return new L.AST.PrefixOperator('*'); }   // destructure / dereference
 
 
-function
+function "function"
 	= il:identifierList _ "->" _ b:(block / match / function) {
 			return new L.AST.Function(il, b, {type: 'thin'});
 		}
 	// il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
 
-match
+match "match"
 	= "(" __ dict:(keyValueList) ")" {
 			return new L.AST.Match(dict.kvl);
 		}
 
-block
+block "block"
 	= "{" __ exps:(expressionList)? "}" { 
 			var list;
 			
@@ -164,7 +170,7 @@ identifierList
 			return idl || new L.AST.List([], {source: 'identifierList'});
 		}
 
-list
+list "list"
 	= "[" __ el:pureExpressionList ? __ "]" {
 			if (!el) {
 				return new L.AST.List([], {source: 'list'});
@@ -176,7 +182,7 @@ list
 			}
 		}
 
-dictionary
+dictionary "dictionary"
 	= "[" __ kvl:keyValueList ? __ "]" { 
 				return kvl || new L.AST.Dictionary([]);
 			}
@@ -206,12 +212,12 @@ postfixModifier
 	= "?" { return '?'; }
 	/ "!" { return '!'; }
 
-record "record"
+type "type"
 	= "<" __ kvl:keyValueList ? __ ">" {
-			return new L.AST.RecordType(kvl.kvl);
+			return new L.AST.Struct(null, kvl.kvl);
 		}
 	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
-			return new L.AST.RecordType(idl);
+			return new L.AST.Struct(null, idl);
 		}
 
 string "string"

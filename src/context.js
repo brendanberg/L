@@ -18,4 +18,6 @@ require('./impl/numbers');
 require('./impl/booleans');
 require('./impl/collections');
 require('./impl/blocks');
+require('./impl/types');
+
 module.exports = Context;

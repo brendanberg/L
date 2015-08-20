@@ -87,11 +87,11 @@ function format(depth, fmt) {
 		);
 	};
 
-	AST.RecordType.prototype.toString = function() {
+	AST.Struct.prototype.toString = function() {
 		return "< " + this.members.map(stringify).join(', ') + " >";
 	};
 	
-	AST.RecordType.prototype.repr = function(depth, fmt) {
+	AST.Struct.prototype.repr = function(depth, fmt) {
 		var members = this.members.map(format(depth, fmt));
 		return (
 			fmt.stylize("<", 'delimiter') + ' ' +
@@ -99,6 +99,20 @@ function format(depth, fmt) {
 			fmt.stylize(">", 'delimiter')
 		);
 	};
+
+	AST.Value.prototype.toString = function() {
+		return this._super.name + "(" + this.values.map(stringify).join(', ') + ")";
+	};
+
+	AST.Value.prototype.repr = function(depth, fmt) {
+		var vals = this.values.map(format(depth, fmt));
+		return (
+			fmt.stylize(this._super.name, 'identifier') +
+			fmt.stylize("(", 'delimiter') + ' ' +
+			vals.join(fmt.stylize(", ", 'delimiter')) +
+			fmt.stylize(")", 'delimiter')
+		);
+	}
 
 	AST.List.prototype.toString = function() {
 		var delims = this.delimiters[this.tags['source'] || 'list'];
