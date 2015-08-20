@@ -39,7 +39,9 @@ and anything the programmer would type is in bold.
 
 Here's a simple example of an __L__ program:
 
-    >> __1 + 1__
-    2
+<pre>
+>> <b>1 + 1</b>
+2
+</pre>
 
 The documentation covers more things you can do with the shell.
