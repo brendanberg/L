@@ -6,5 +6,10 @@ and easy to reason about.
 Therefore, the syntax is minimal but extensible,
 but the language semantics can be extended through a safe macro system.
 
-Because memory management and concurrency are notoriously hard to reason about,
-the L runtime provides automatic garbage collection and process communication through message passing.
+## Installing 🅛
+
+Clone the repository on your machine.
+From the project directory, run the following commands:
+
+```npm install
+gulp build```
