@@ -19,7 +19,7 @@
     "gulp-rename": "^1.2.2",
     "gulp-util": "^3.0.6",
     "mocha-testcheck": "0.1.2",
-    "peggjs": "^0.8.0"
+    "pegjs": "^0.8.0"
   },
   "preferGlobal": true,
   "license": "MIT"
