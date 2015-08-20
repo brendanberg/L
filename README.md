@@ -17,7 +17,7 @@ gulp build
 ```
 
 The `gulp build` command will create a build directory in the project folder
-with 
+with a browserified script and an interactive shell.
 
 ## Using the Interactive Shell
 
