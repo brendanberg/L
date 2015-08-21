@@ -121,15 +121,20 @@ var Context = require('./context');
 			// Take the selector keys and string em together.
 			// Dispatch will select on the type signature so get that right
 			// when you define the ctx
-			// > Thing : Type()
-			// > Thing() -> { 'hello' }
-			// > t = Thing()
-			// > t()
-			// 'hello'
+			// > Thing: <x: String>
+			// > Thing(reverse) -> { this.x(reverse) }
+			// > t = Thing("stressed")
+			// > t(reverse)
+			// 'desserts'
 			var context = clone(ctx);
 			var selector = '(' + this.params.list.map(function(x) {
 				return x.key.name + ':'
 			}).join('') + ')';
+
+			if (target.type === 'Struct') {
+				target.name = target.tags['name'];
+			}
+
 			if (selector in target.ctx) {
 				if (typeof target.ctx[selector] === 'function') {
 					params = this.params.list.map(function(x) {
@@ -263,6 +268,20 @@ var Context = require('./context');
 	};
 
 	AST.Struct.prototype.eval = function(ctx) {
+		var signature = '(' + this.members.map(function(x) {
+			return x.key.name + ':'
+		}).join('') + ')';
+
+		//this.bind(signature, function() { ... });
+		this.ctx[signature] = function() {
+			var args = Array.prototype.slice.call(arguments);
+			var values = {};
+			for (var i = 0, len = this.members.length; i < len; i++) {
+				values[this.members[i].key] = args[i];
+			}
+			return new AST.Value(this, values);
+		};
+
 		return this;
 	};
 
@@ -271,7 +290,9 @@ var Context = require('./context');
 	};
 
 	AST.Identifier.prototype.eval = function(ctx) {
-		return ctx[this.name];
+		value = ctx[this.name];
+		value.tags['name'] = this.name;
+		return value;
 	};
 
 	AST.KeyValuePair.prototype.eval = function(ctx) {

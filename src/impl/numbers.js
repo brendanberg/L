@@ -344,7 +344,7 @@ var dispatch = require('../dispatch');
 			'Decimal': function(d) {
 				// 3.2 * 1.4 = (32 / 10) * (14 / 10) = 32 * 14 / 100 
 				return new AST.Decimal(
-					this.numerator * n.numerator, this.exponent + n.exponent
+					this.numerator * d.numerator, this.exponent + d.exponent
 				);
 			},
 			'Imaginary': function(j) {

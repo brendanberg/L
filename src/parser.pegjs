@@ -214,10 +214,10 @@ postfixModifier
 
 type "type"
 	= "<" __ kvl:keyValueList ? __ ">" {
-			return new L.AST.Struct(null, kvl.kvl);
+			return new L.AST.Struct(kvl.kvl);
 		}
 	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
-			return new L.AST.Struct(null, idl);
+			return new L.AST.Struct(idl);
 		}
 
 string "string"

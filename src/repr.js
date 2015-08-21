@@ -92,6 +92,10 @@ function format(depth, fmt) {
 	};
 	
 	AST.Struct.prototype.repr = function(depth, fmt) {
+		if (this.name != null) {
+			return fmt.stylize(this.name, 'name');
+		}
+
 		var members = this.members.map(format(depth, fmt));
 		return (
 			fmt.stylize("<", 'delimiter') + ' ' +
@@ -100,15 +104,33 @@ function format(depth, fmt) {
 		);
 	};
 
+	AST.Option.prototype.repr = function(depth, fmt) {
+		var variants = this.variants.map(format(depth, fmt));
+		return variants.join(' ' + fmt.stylize('|', 'operator') + ' ');
+	};
+
 	AST.Value.prototype.toString = function() {
-		return this._super.name + "(" + this.values.map(stringify).join(', ') + ")";
+		var name = this._super && this._super.name || 'Value';
+		var vals = [];
+		for (var i in this.values) {
+			vals.push(i + ': ' + this.values[i].toString());
+		}
+		return name + "(" + vals.join(', ') + ")";
 	};
 
 	AST.Value.prototype.repr = function(depth, fmt) {
-		var vals = this.values.map(format(depth, fmt));
+		var name = this._super && this._super.name || 'Value';
+		var vals = [];
+		for (var i in this.values) {
+			vals.push(
+				fmt.stylize(i, 'name') +
+				fmt.stylize(':', 'separator') + ' ' +
+				this.values[i].repr(depth, fmt)
+			);
+		}
 		return (
-			fmt.stylize(this._super.name, 'identifier') +
-			fmt.stylize("(", 'delimiter') + ' ' +
+			fmt.stylize(name, 'name') +
+			fmt.stylize("(", 'delimiter') +
 			vals.join(fmt.stylize(", ", 'delimiter')) +
 			fmt.stylize(")", 'delimiter')
 		);

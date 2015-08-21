@@ -273,10 +273,10 @@ module.exports = (function() {
         peg$c166 = function() { return '!'; },
         peg$c167 = { type: "other", description: "type" },
         peg$c168 = function(kvl) {
-        			return new L.AST.Struct(null, kvl.kvl);
+        			return new L.AST.Struct(kvl.kvl);
         		},
         peg$c169 = function(idl) {
-        			return new L.AST.Struct(null, idl);
+        			return new L.AST.Struct(idl);
         		},
         peg$c170 = { type: "other", description: "string" },
         peg$c171 = "\"",

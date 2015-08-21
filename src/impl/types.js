@@ -3,14 +3,18 @@ var dispatch = require('../dispatch');
 
 (function(AST) {
 	AST.Struct.prototype.ctx = {
-		'()': function() {
-			console.log(this);
-			var args = Array.prototype.slice.call(arguments);
-			var values = {};
-			for (var i = 0, len = this.members.length; i < len; i++) {
-				values[this.members[i].key] = args[i];
+		'|': dispatch({
+			'Struct': function(t) {
+				return new AST.Option([this, t]);
+			},
+			'Option': function(o) {
+				var variants = o.variants
+				variants.unshift(this);
+				return new AST.Option(variants);
+			},
+			'Bottom': function(_) {
+				return new AST.Option([this, _]);
 			}
-			return new AST.Value(this, values);
-		}
+		})
 	};
 })(AST);
