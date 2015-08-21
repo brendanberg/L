@@ -121,9 +121,9 @@ var Context = require('./context');
 			// Take the selector keys and string em together.
 			// Dispatch will select on the type signature so get that right
 			// when you define the ctx
-			// > Thing: <x: String>
-			// > Thing(reverse) -> { this.x(reverse) }
-			// > t = Thing("stressed")
+			// > Thing: <s: String>
+			// > Thing(reverse) -> { this.s(reverse) }
+			// > t = Thing(s: "stressed")
 			// > t(reverse)
 			// 'desserts'
 			var context = clone(ctx);
