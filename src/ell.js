@@ -12,6 +12,10 @@ rep = repl.start({
 	writer: writer
 });
 
+rep.on('exit', function() {
+	console.log('');
+});
+
 var fmt = {
 	depth: null,
 	stylize: function(str, styleType) {
@@ -63,7 +67,12 @@ function writer(obj) {
 }
 
 function eval(cmd, context, filename, callback) {
-	var command = cmd.replace(/^\(/, '').replace(/\n\)$/, '');
+	// The node repl module before 0.10.... parenthesized
+	// the command passed to the eval function. By version
+	// 0.12.4, it didn't parenthesize commands.
+	// ---
+	// Trailing newlines are verboten.
+	var command = cmd.replace(/^\((.*)\)$/, '$1').replace(/\n$/, '');
 	var ast, result;
 
 	try {

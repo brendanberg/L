@@ -24,16 +24,22 @@ pureExpressionList
 		}
 
 expression
-  = assignment
-	/ messageSend
+  = e1:pureExpression _ ':' _ e2:pureExpression {
+			var op = new L.AST.InfixOperator(':');
+			return new L.AST.InfixExpression(op, e1, e2);
+		}
+	/ e1:pureExpression _ '<-' _ e2:pureExpression {
+			return new L.AST.MessageSend(null, e1, e2);
+		}
 	/ pureExpression
 
+	/*
 assignment "assignment"
 	= e1:pureExpression _ ':' _ e2:pureExpression {
 			var op = new L.AST.InfixOperator(':');
 			return new L.AST.InfixExpression(op, e1, e2);
 		}
-
+*/
 messageSend "message send"
 	= e1:pureExpression _ '<-' _ e2:pureExpression {
 			return new L.AST.MessageSend(null, e1, e2);
