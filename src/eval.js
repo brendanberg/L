@@ -30,7 +30,7 @@ var Context = require('./context');
 	AST.PrefixExpression.prototype.eval = function (ctx) {
 		var exp = this.exp.eval(ctx);
 		var msg = new AST.Message(
-			new AST.Identifier(this.op.op),
+			new AST.Identifier(this.op),
 			new AST.List([], {source: 'parameterList'})
 		);
 		var msgSend = new AST.MessageSend(ctx, exp, msg);
@@ -40,14 +40,14 @@ var Context = require('./context');
 	AST.InfixExpression.prototype.eval = function (ctx) {
 		var msg, expr;
 
-		if (this.op.op === ':') {
+		if (this.op === ':') {
 			// Special case for assignment. Probably make this a macro at
 			// some point, but not now bc I need assignment and I haven't
 			// built macros yet.
 			expr = new AST.Assignment(this.lhs, this.rhs.eval(ctx));
 		} else {
 			msg = new AST.Message(
-				new AST.Identifier(this.op.op),
+				new AST.Identifier(this.op),
 				new AST.List([this.rhs.eval(ctx)], {source: 'parameterList'})
 			);
 			expr = new AST.MessageSend(ctx, this.lhs.eval(ctx), msg);

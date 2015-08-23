@@ -87,16 +87,6 @@ var AST = {
 		this.receiver = receiver;
 		this.message = message;
 	},
-	InfixOperator: function (op, tags) {
-		this.type = 'InfixOperator';
-		this.tags = tags || {};
-		this.op = op;
-	},
-	PrefixOperator: function (op, tags) {
-		this.type = 'PrefixOperator';
-		this.tags = tags || {};
-		this.op = op;
-	},
 	IdentifierList: function (list, tags) {
 		this.type = 'IdentifierList';
 		this.tags = tags || {};

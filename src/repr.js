@@ -12,24 +12,24 @@ function format(depth, fmt) {
 
 (function(AST) {
 	AST.InfixExpression.prototype.toString = function () {
-		return this.lhs.toString() + ' ' + this.op.op + ' ' + this.rhs.toString();
+		return this.lhs.toString() + ' ' + this.op + ' ' + this.rhs.toString();
 	};
 
 	AST.InfixExpression.prototype.repr = function(depth, fmt) {
 		return (
 			this.lhs.repr(depth, fmt) + 
-			fmt.stylize(' ' + this.op.op + ' ', 'operator') +
+			fmt.stylize(' ' + this.op + ' ', 'operator') +
 			this.rhs.repr(depth, fmt)
 		);
 	};
 	
 	AST.PrefixExpression.prototype.toString = function() {
-		return this.op.op + this.exp.toString();
+		return this.op + this.exp.toString();
 	};
 
 	AST.PrefixExpression.prototype.repr = function(depth, fmt) {
 		return (
-			fmt.stylize(this.op.op, 'operator') + 
+			fmt.stylize(this.op, 'operator') + 
 			this.exp.repr(depth, fmt)
 		);
 	};

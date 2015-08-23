@@ -23,8 +23,7 @@ var dispatch = require('../dispatch');
 				return new AST.Complex(this, j.magnitude);
 			},
 			'Complex': function(z) {
-				var op = new AST.InfixOperator('+');
-				var exp = new AST.InfixExpression(op, this, z.real);
+				var exp = new AST.InfixExpression('+', this, z.real);
 				return new AST.Complex(exp.eval(this), z.imaginary);
 			}
 		}),
@@ -50,8 +49,7 @@ var dispatch = require('../dispatch');
 				return new AST.Complex(this, j.magnitude);
 			},
 			'Complex': function(z) {
-				var op = new AST.InfixOperator('-');
-				var exp = new AST.InfixExpression(op, this, z.real);
+				var exp = new AST.InfixExpression('-', this, z.real);
 				return new AST.Complex(exp.eval(this), z.imaginary);
 			}
 		}),
@@ -71,8 +69,7 @@ var dispatch = require('../dispatch');
 				);
 			},
 			'Imaginary': function(j) {
-				var op = new AST.InfixOperator('*');
-				var exp = new AST.InfixExpression(op, this.value, j.real);
+				var exp = new AST.InfixExpression('*', this.value, j.real);
 				return new AST.Complex(exp.eval(this), j.imaginary);
 			},
 			'Complex': function(z) {
@@ -96,12 +93,6 @@ var dispatch = require('../dispatch');
 			},
 			'Imaginary': function(j) {
 				// (a + 0i) / (0 + di) = (-ad/d^2)i
-//				var exp = new AST.InfixExpression(
-//					new AST.InfixOperator('/'),
-//					new AST.InfixExpression(
-//						new AST.InfixOperator('*'), this, j.magnitude
-//					),
-//						this,
 				return new AST.Complex(this, im);
 			},
 			'Complex': function(z) {
@@ -189,8 +180,7 @@ var dispatch = require('../dispatch');
 				return new AST.Complex(this, j.magnitude);
 			},
 			'Complex': function(z) {
-				var op = new AST.InfixOperator('+');
-				var exp = new AST.InfixExpression(op, this, z.real)
+				var exp = new AST.InfixExpression('+', this, z.real)
 				return new AST.Complex(exp.eval(this), z.imaginary);
 			}
 		}),
@@ -213,8 +203,7 @@ var dispatch = require('../dispatch');
 				return new AST.Complex(this, im);
 			},
 			'Complex': function(z) {
-				var op = new AST.InfixOperator('-');
-				var exp = new AST.InfixExpression(op, this, z.real)
+				var exp = new AST.InfixExpression('-', this, z.real)
 				return new AST.Complex(exp.eval(this), z.imaginary);
 			}
 		}),
@@ -294,9 +283,7 @@ var dispatch = require('../dispatch');
 			'Complex': function(z) {
 				// (this + z.real) + z.imaginary i
 				// { \this + \z.real }, \z.imaginary i
-				var exp = new AST.InfixExpression(
-					new AST.InfixOperator('+'), this, z.real
-				);
+				var exp = new AST.InfixExpression('+', this, z.real);
 				return new AST.Complex(exp.eval(this), z.imaginary);
 			}
 		}),
@@ -326,8 +313,7 @@ var dispatch = require('../dispatch');
 				return new AST.Decimal
 			},
 			'Imaginary': function(j) {
-				var real = new AST.PrefixExpression(
-					new AST.PrefixOperator('-'), this);
+				var real = new AST.PrefixExpression('-', this);
 				return new AST.Complex(real, j.magnitude);
 			},
 			'Complex': function(z) {
@@ -460,12 +446,8 @@ var dispatch = require('../dispatch');
 				return new AST.Complex(this.real, exp.eval(this));
 			},
 			'Complex': function(z) {
-				var e1 = new AST.InfixExpression(
-					new AST.InfixOperator('+'), this.real, z.real
-				);
-				var e2 = new AST.InfixExpression(
-					new AST.InfixOperator('+'), this.imaginary, z.imaginary
-				);
+				var e1 = new AST.InfixExpression('+', this.real, z.real);
+				var e2 = new AST.InfixExpression('+', this.imaginary, z.imaginary);
 				return new AST.Complex(e1.eval(this), e2.eval(this));
 			}
 		}),
