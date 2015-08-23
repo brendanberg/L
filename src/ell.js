@@ -132,6 +132,13 @@ function eval(cmd, context, filename, callback) {
 		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
+		if (e.found == null) {
+			str = command + '\n';
+			rep.setPrompt(' - ');
+			rep.displayPrompt();
+			return;
+		}
+
 		result = fmt.stylize(e.toString(), 'error') + '\n';
 		
 		if (e.line && e.column) {

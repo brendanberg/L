@@ -33,16 +33,16 @@ expression
 	/ pureExpression
 
 	/*
-assignment "assignment"
+assignment
 	= e1:pureExpression _ ':' _ e2:pureExpression {
 			return new L.AST.InfixExpression(':', e1, e2);
 		}
-*/
-messageSend "message send"
+
+messageSend
 	= e1:pureExpression _ '<-' _ e2:pureExpression {
 			return new L.AST.MessageSend(null, e1, e2);
 		}
-
+*/
 // Purely functional expression
 pureExpression
 	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expression {
@@ -71,7 +71,7 @@ expressionNoInfix
 	/ prefixExpression
 	/ value
 
-parameterList "parameter list"
+parameterList
 	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
 			_S item:(keyValuePair / pureExpression) { return item; }
 		)* _S? __ ')' {
@@ -91,7 +91,7 @@ prefixExpression
 			return new L.AST.PrefixExpression(op, e);
 		}
 
-value "value"
+value
 	= function
 	/ match
 	/ list
@@ -103,7 +103,7 @@ value "value"
 	/ '(' e:expression ')' { e.tags['parenthesized'] = true; return e; }
 	/ type
 
-infixOperator "infix operator"
+infixOperator
 	= "//:"
 	/ "//"
 	/ "/:"
@@ -137,7 +137,7 @@ infixOperator "infix operator"
 	/ "|"
 	/ "^"
 
-prefixOperator "prefix operator"
+prefixOperator
 	= "+" // arithmetic no-op
 	/ "-" // arithmetic negation
 	/ "~" // ?
@@ -148,18 +148,18 @@ prefixOperator "prefix operator"
 	// "*" // destructure / dereference
 
 
-function "function"
+function
 	= il:identifierList _ "->" _ b:(block / match / function) {
 			return new L.AST.Function(il, b, {type: 'thin'});
 		}
 	// il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
 
-match "match"
+match
 	= "(" __ dict:(keyValueList) ")" {
 			return new L.AST.Match(dict.kvl);
 		}
 
-block "block"
+block
 	= "{" __ exps:(expressionList)? "}" { 
 			var list;
 			
@@ -174,7 +174,7 @@ block "block"
 			return new L.AST.Block(new L.AST.ExpressionList(list));
 		}
 
-list "list"
+list
 	= "[" __ el:pureExpressionList ? __ "]" {
 			if (!el) {
 				return new L.AST.List([], {source: 'list'});
@@ -186,7 +186,7 @@ list "list"
 			}
 		}
 
-dictionary "dictionary"
+dictionary
 	= "[" __ kvl:keyValueList ? __ "]" { 
 				return kvl || new L.AST.Dictionary([]);
 			}
@@ -216,7 +216,7 @@ postfixModifier
 	= "?" { return '?'; }
 	/ "!" { return '!'; }
 
-type "type"
+type
 	= "<" __ kvl:keyValueList ? __ ">" {
 			return new L.AST.Struct(kvl.kvl);
 		}
@@ -224,7 +224,7 @@ type "type"
 			return new L.AST.Struct(idl);
 		}
 
-string "string"
+string
 	// potentially disallow new lines, control chars, etc.
 	= "\"" str:(escapedChar / [^"])* "\"" { return new L.AST.String(str.join('')); }
 	/ "'" str:(escapedChar / [^'])* "'" { return new L.AST.String(str.join('')); }
@@ -234,28 +234,28 @@ escapedChar
 			return ({'"': '"', "'": "'", n: '\n', t: '\t', '\\': '\\'})[char];
 		}
 
-number "number"
+number
 	= imaginary
 	/ scientific
 	/ hex
 	/ decimal
 	/ integer
 
-integer "integer"
+integer
 	= "0" { return new L.AST.Integer(0, {'source_base': 10}); }
 	/ first:[1-9] rest:[0-9]* {
 			var val = parseInt(first + rest.join(''), 10);
 			return new L.AST.Integer(val, {'source_base': 10});
 		}
 
-decimal "decimal"
+decimal
 	= int:integer "." digits:[0-9]* {
 			var fraction = parseInt(digits.join(''), 10) || 0;
 			var factor = Math.pow(10, digits.length);
 			return new L.AST.Decimal(int.value * factor + fraction, digits.length);
 		}
 
-scientific "scientific"
+scientific
 	= sig:integer [eE] [+-]? mant:integer {
 			return new L.AST.Scientific(sig.value, mant.value);
 		}
@@ -263,21 +263,21 @@ scientific "scientific"
 			return new L.AST.Scientific(sig.value, mant.value);
 		}
 
-hex "hexidecimal"
+hex
 	= "0x0" { return new L.AST.Integer(0, {'source_base': 16}); }
 	/ "0x" first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
 			var val = parseInt(first + rest.join(''), 16);
 			return new L.AST.Integer(val, {'source_base': 16});
 		}
 
-imaginary "imaginary"
+imaginary
 	= num:(scientific / hex / decimal / integer) [ijJ] { return new L.AST.Imaginary(num); }
 
-_ "whitespace"
+_
 	= (" " / "\t")*
 
-__ "whitespace"
+__
 	= (" " / "\t" / "\n")*
 
-_S "separator"
+_S
 	= ("," _ / "\n" _ / ",\n" _)
