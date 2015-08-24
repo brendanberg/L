@@ -1,9 +1,12 @@
+var Logging = require('./logging');
 var repl = require('repl');
 var L = require('./l');
 
 var ctx = new L.Context();
 var str = '';
 var rep;
+
+var log = new Logging('error');
 
 rep = repl.start({
 	ignoreUndefined: true,
@@ -73,9 +76,19 @@ function eval(cmd, context, filename, callback) {
 	// 0.12.4, it didn't parenthesize commands.
 	// ---
 	// Trailing newlines are verboten.
-	var command = str + cmd.replace(/^\((.*)\)$/, '$1').replace(/\n$/, '');
+	var command = cmd.replace(/^\((.*)\)$/, '$1').replace(/\n$/, '');
+	var level = command.match(/^!log (\w+)/);
 	var ast, result;
 
+	// Special cases for changing logging levels
+	if (level) {
+		log.setLevel(level[1]);
+		console.log("Set logging level to '" + level[1] + "'");
+		rep.displayPrompt();
+		return;
+	}
+
+	command = str + command;
 	if (command.trim() === '') {
 		//callback(null, undefined);
 		rep.displayPrompt();
@@ -87,22 +100,42 @@ function eval(cmd, context, filename, callback) {
 		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
+		log.info(function() { return e.toString(); });
 		if (e.found == null) {
+			/*
+			var delims = ['"]"', '"}"', '")"', '">"'];
+			var expected = e.expected.map(function(x) { return x.description; });
+			var continuation = false;
+			for (var i = 0, len = delims.length; i < len; i++) {
+				if (expected.indexOf(delims[i]) !== -1) {
+					console.log(delims[i]);
+					continuation = true;
+					break;
+				}
+			}
+
+			if (continuation) {
+				// console.log('---');
+			}
+			*/
+
 			str = command + '\n';
 			rep.setPrompt(' - ');
 			rep.displayPrompt();
 			return;
 		}
 
-		result = fmt.stylize(e.toString(), 'error') + '\n';
+		result = fmt.stylize(e.toString(), 'error');
 		
 		if (e.line && e.column) {
 			// Parser errors come with line, column, offset, expected,
 			// and found properties.
 			var pointer = Array(e.column).join(' ') + fmt.stylize('^', 'string');
 			result = '   ' + pointer + '\n' + result;
+			str = '';
+			rep.setPrompt('>> ');
 		} else {
-			result += fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
+			result += '\n' + fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
 		}
 
 		callback(null, result);
@@ -110,6 +143,7 @@ function eval(cmd, context, filename, callback) {
 	}
 
 	try {
+		log.info(JSON.stringify(ast));	
 		result = ast.eval(ctx);	
 	} catch (e) {
 		result = fmt.stylize(e.toString(), 'error') + '\n';

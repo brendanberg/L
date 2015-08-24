@@ -1,5 +1,6 @@
 var AST = require('./ast');
 var Context = require('./context');
+var error = require('./error');
 
 (function(AST) {
 	function clone(obj) {
@@ -285,6 +286,20 @@ var Context = require('./context');
 		return this;
 	};
 
+	AST.Option.prototype.eval = function(ctx) {
+		this.values = {};
+
+		for (var i = 0, len = this.variants.length; i < len; i++) {
+			var name = this.variants[i].name;
+			this.values[name] = new AST.Tag('.' + name);
+		};
+		return this;
+	};
+
+	AST.Tag.prototype.eval = function(ctx) {
+		return this;
+	};
+
 	AST.Value.prototype.eval = function(ctx) {
 		return this;
 	};
@@ -358,6 +373,15 @@ var Context = require('./context');
 					result.push(target.value[index.value] || '');
 				}
 			}
+		} else if (this.term.type === 'Identifier' || this.term.type === 'Option') {
+			if (!(this.term.name in target.values)) {
+				var msg = (
+					"'" + target.tags['name'] + "' has no attribute '" + 
+					this.term.name + "'"
+				);
+				throw new error.NameError(msg);
+			}
+			return target.values[this.term.name].eval(ctx);
 		}
 
 		if (target.type === 'String') {

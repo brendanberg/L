@@ -130,6 +130,11 @@ var AST = {
 		this.name = name;
 		this.variants = variants;
 	},
+	Tag: function(name, tags) {
+		this.type = 'Tag';
+		this.tags = tags || {};
+		this.name = name;
+	},
 	Value: function(_super, values, tags) {
 		this.type = 'Struct';
 		this.tags = tags || {};

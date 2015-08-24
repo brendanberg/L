@@ -106,7 +106,19 @@ function format(depth, fmt) {
 
 	AST.Option.prototype.repr = function(depth, fmt) {
 		var variants = this.variants.map(format(depth, fmt));
-		return variants.join(' ' + fmt.stylize('|', 'operator') + ' ');
+		return (
+			fmt.stylize('<', 'delimiter') + 
+			variants.join(' ' + fmt.stylize('|', 'operator') + ' ') +
+			fmt.stylize('>', 'delimiter')
+		);
+	};
+
+	AST.Tag.prototype.toString = function() {
+		return this.name;
+	};
+
+	AST.Tag.prototype.repr = function(depth, fmt) {
+		return fmt.stylize(this.name, 'name');
 	};
 
 	AST.Value.prototype.toString = function() {

@@ -60,16 +60,24 @@ expressionNoInfix
 	= val:value _ lst:list {
 			return new L.AST.Lookup(val, lst);
 		}
-	/ val:value more:(_ it:parameterList { return it; })+ {
+	/ val:value more:(_ it:propertyOrCall { return it; })+ {
 			var expr = val;
 			for(var i = 0, len = more.length; i < len; i++) {
 				var item = more[i];
-				expr = new L.AST.Invocation(expr, item);
+				if (item.type === 'Identifier') {
+					expr = new L.AST.Lookup(expr, item);
+				} else {
+					expr = new L.AST.Invocation(expr, item);
+				}
 			}
 			return expr;
 		}
 	/ prefixExpression
 	/ value
+
+propertyOrCall
+	= parameterList
+	/ "." id:identifier { return id; }
 
 parameterList
 	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
@@ -92,18 +100,18 @@ prefixExpression
 		}
 
 value
-	= function
-	/ match
-	/ list
-	/ dictionary
-	/ identifier
+	= function     // -+ These non-terminals are allowed to span multiple lines
+	/ match        //  |
+	/ list         //  |
+	/ dictionary   // -+
+	/ identifier 
 	/ string
 	/ number
 	/ block
 	/ '(' e:expression ')' { e.tags['parenthesized'] = true; return e; }
 	/ type
 
-infixOperator
+infixOperator "infix operator"
 	= "//:"
 	/ "//"
 	/ "/:"
@@ -137,7 +145,7 @@ infixOperator
 	/ "|"
 	/ "^"
 
-prefixOperator
+prefixOperator "prefix operator"
 	= "+" // arithmetic no-op
 	/ "-" // arithmetic negation
 	/ "~" // ?
@@ -196,12 +204,12 @@ keyValueList
 			return new L.AST.Dictionary([first].concat(rest));
 		}
 
-keyValuePair
+keyValuePair "key-value pair"
 	= key:pureExpression _ ":" _ val:pureExpression {
 			return new L.AST.KeyValuePair(key, val);
 		}
 
-identifier
+identifier "identifier"
 	= n:name mod:postfixModifier? {
 			n.tags['modifier'] = mod || null;
 			return n;
@@ -218,13 +226,21 @@ postfixModifier
 
 type
 	= "<" __ kvl:keyValueList ? __ ">" {
-			return new L.AST.Struct(kvl.kvl);
+			return new L.AST.Struct(kvl ? kvl.kvl : []);
 		}
-	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
-			return new L.AST.Struct(idl);
+	/ "<" __ first:typeComponent _ rest:("|" __ it:typeComponent { return it; } )* __ ">" {
+			return new L.AST.Option([first].concat(rest));
 		}
+// 	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
+// 			return new L.AST.Struct(idl);
+// 		}
 
-string
+typeComponent
+	= "_" { return new L.AST.Bottom(); }
+	/ identifier
+	/ type
+
+string "string"
 	// potentially disallow new lines, control chars, etc.
 	= "\"" str:(escapedChar / [^"])* "\"" { return new L.AST.String(str.join('')); }
 	/ "'" str:(escapedChar / [^'])* "'" { return new L.AST.String(str.join('')); }
@@ -234,7 +250,7 @@ escapedChar
 			return ({'"': '"', "'": "'", n: '\n', t: '\t', '\\': '\\'})[char];
 		}
 
-number
+number "number"
 	= imaginary
 	/ scientific
 	/ hex
@@ -273,11 +289,12 @@ hex
 imaginary
 	= num:(scientific / hex / decimal / integer) [ijJ] { return new L.AST.Imaginary(num); }
 
-_
+_ "whitespace"
 	= (" " / "\t")*
 
-__
+__ "whitespace"
 	= (" " / "\t" / "\n")*
 
-_S
-	= ("," _ / "\n" _ / ",\n" _)
+_S "separator"
+	= _ "," __
+	/ __
