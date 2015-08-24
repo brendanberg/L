@@ -1,4 +1,5 @@
 var pkg = require('../package.json');
+var Logging = require('./logging');
 var L = {};
 
 L.version = pkg.version;
@@ -11,5 +12,6 @@ require('./transform');
 require('./eval');
 
 L.Context = require('./context');
+L.log = new Logging('error');
 
 module.exports = L;

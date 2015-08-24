@@ -1,12 +1,9 @@
-var Logging = require('./logging');
 var repl = require('repl');
 var L = require('./l');
 
 var ctx = new L.Context();
 var str = '';
 var rep;
-
-var log = new Logging('error');
 
 console.log('The L Programming Language, v' + L.version);
 
@@ -84,7 +81,7 @@ function eval(cmd, context, filename, callback) {
 
 	// Special cases for changing logging levels
 	if (level) {
-		log.setLevel(level[1]);
+		L.log.setLevel(level[1]);
 		console.log("Set logging level to '" + level[1] + "'");
 		rep.displayPrompt();
 		return;
@@ -102,7 +99,7 @@ function eval(cmd, context, filename, callback) {
 		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
-		log.info(function() { return e.toString(); });
+		L.log.info(function() { return e.toString(); });
 		if (e.found == null) {
 			/*
 			var delims = ['"]"', '"}"', '")"', '">"'];
@@ -145,7 +142,7 @@ function eval(cmd, context, filename, callback) {
 	}
 
 	try {
-		log.info(JSON.stringify(ast));	
+		L.log.info(JSON.stringify(ast));	
 		result = ast.eval(ctx);	
 	} catch (e) {
 		result = fmt.stylize(e.toString(), 'error') + '\n';
