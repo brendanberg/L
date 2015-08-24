@@ -6,7 +6,7 @@ start
 	= expressionList
 
 expressionList
-	= first:expression rest:(_S _ exp:expression { return exp; } )* _S? _ {
+	= first:expression rest:(_S exp:expression { return exp; } )* _S? _ {
 			if (rest.length > 0) {
 				return new L.AST.ExpressionList([first].concat(rest));
 			} else {
@@ -15,7 +15,7 @@ expressionList
 		}
 
 pureExpressionList
-	= first:pureExpression rest:(_S _ exp:pureExpression { return exp; } )* _S? _ {
+	= first:pureExpression rest:(_S exp:pureExpression { return exp; } )* _S? _ {
 			if (rest.length > 0) {
 				return new L.AST.ExpressionList([first].concat(rest));
 			} else {
@@ -24,15 +24,25 @@ pureExpressionList
 		}
 
 expression
-	= e1:pureExpression _ ':' _ e2:pureExpression {
-			var op = new L.AST.InfixOperator(':');
-			return new L.AST.InfixExpression(op, e1, e2);
+  = e1:pureExpression _ ':' _ e2:pureExpression {
+			return new L.AST.InfixExpression(':', e1, e2);
 		}
 	/ e1:pureExpression _ '<-' _ e2:pureExpression {
 			return new L.AST.MessageSend(null, e1, e2);
 		}
 	/ pureExpression
 
+	/*
+assignment
+	= e1:pureExpression _ ':' _ e2:pureExpression {
+			return new L.AST.InfixExpression(':', e1, e2);
+		}
+
+messageSend
+	= e1:pureExpression _ '<-' _ e2:pureExpression {
+			return new L.AST.MessageSend(null, e1, e2);
+		}
+*/
 // Purely functional expression
 pureExpression
 	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expression {
@@ -50,85 +60,100 @@ expressionNoInfix
 	= val:value _ lst:list {
 			return new L.AST.Lookup(val, lst);
 		}
-	/ val:value more:(_ it:parameterList { return it; })+ {
+	/ val:value more:(_ it:propertyOrCall { return it; })+ {
 			var expr = val;
 			for(var i = 0, len = more.length; i < len; i++) {
 				var item = more[i];
-				expr = new L.AST.Invocation(expr, item);
+				if (item.type === 'Identifier') {
+					expr = new L.AST.Lookup(expr, item);
+				} else {
+					expr = new L.AST.Invocation(expr, item);
+				}
 			}
 			return expr;
 		}
 	/ prefixExpression
 	/ value
 
+propertyOrCall
+	= parameterList
+	/ "." id:identifier { return id; }
+
 parameterList
 	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
-			_S _ item:(keyValuePair / pureExpression) { return item; }
+			_S item:(keyValuePair / pureExpression) { return item; }
 		)* _S? __ ')' {
 			return new L.AST.List([first].concat(rest), {source: 'parameterList'});
 		}
 	/ _ '(' __ ')' { return new L.AST.List([], {source: 'parameterList'}); }
 	
+identifierList
+	= "(" __ idl:(first:identifier rest:(_S id:identifier { return id; })* _S? {
+			return new L.AST.List([first].concat(rest), {source: 'identifierList'});
+		}) ? __ ")" {
+			return idl || new L.AST.List([], {source: 'identifierList'});
+		}
+
 prefixExpression
 	= op:prefixOperator _ e:value {
 			return new L.AST.PrefixExpression(op, e);
 		}
 
 value
-	= function
-	/ match
-	/ list
-	/ dictionary
-	/ identifier
+	= function     // -+ These non-terminals are allowed to span multiple lines
+	/ match        //  |
+	/ list         //  |
+	/ dictionary   // -+
+	/ identifier 
 	/ string
 	/ number
 	/ block
 	/ '(' e:expression ')' { e.tags['parenthesized'] = true; return e; }
-	/ record
+	/ type
 
-infixOperator
-	= "//:" { return new L.AST.InfixOperator('//:'); }
-	/ "//" { return new L.AST.InfixOperator('//'); }
-	/ "/:" { return new L.AST.InfixOperator('/:'); }
-	/ "+:" { return new L.AST.InfixOperator('+:'); }
-	/ "-:" { return new L.AST.InfixOperator('-:'); }
-	/ "*:" { return new L.AST.InfixOperator('*:'); }
-	/ "%:" { return new L.AST.InfixOperator('%:'); }
-	/ "<=" { return new L.AST.InfixOperator('<='); }
-	/ "==" { return new L.AST.InfixOperator('=='); }
-	/ "!=" { return new L.AST.InfixOperator('!='); }
-	/ ">=" { return new L.AST.InfixOperator('>='); }
-	/ "@" { return new L.AST.InfixOperator('@'); }
-	/ "/\\" { return new L.AST.InfixOperator('/\\'); }
-	/ "\\/" { return new L.AST.InfixOperator('\\/'); }
-	// "->" { return new L.AST.InfixOperator('->'); }
-	/ "<-" { return new L.AST.InfixOperator('<-'); }
-	/ ".." { return new L.AST.InfixOperator('..'); }
-	/ "~>" { return new L.AST.InfixOperator('~>'); }
-	/ "<~" { return new L.AST.InfixOperator('<~'); }
-	/ "??" { return new L.AST.InfixOperator('??'); }
-	/ "::" { return new L.AST.InfixOperator('::'); }
-	// ":" { return new L.AST.InfixOperator(':'); }
-	/ "+" { return new L.AST.InfixOperator('+'); }
-	/ "-" { return new L.AST.InfixOperator('-'); }
-	/ "*" { return new L.AST.InfixOperator('*'); }
-	/ "/" { return new L.AST.InfixOperator('/'); }
-	/ "%" { return new L.AST.InfixOperator('%'); }
-	/ "<" { return new L.AST.InfixOperator('<'); }
-	/ ">" { return new L.AST.InfixOperator('>'); }
-	/ "&" { return new L.AST.InfixOperator('&'); }
-	/ "|" { return new L.AST.InfixOperator('|'); }
-	/ "^" { return new L.AST.InfixOperator('^'); }
+infixOperator "infix operator"
+	= "//:"
+	/ "//"
+	/ "/:"
+	/ "+:"
+	/ "-:"
+	/ "*:"
+	/ "%:"
+	/ "<="
+	/ "=="
+	/ "!="
+	/ ">="
+	/ "@"
+	/ "/\\"
+	/ "\\/"
+//	/ "->"
+	/ "<-"
+	/ ".."
+	/ "~>"
+	/ "<~"
+	/ "??"
+	/ "::"
+//	/ ":"
+	/ "+"
+	/ "-"
+	/ "*"
+	/ "/"
+	/ "%"
+	/ "<"
+	/ ">"
+	/ "&"
+	/ "|"
+	/ "^"
 
-prefixOperator
-	= "+" { return new L.AST.PrefixOperator('+'); }   // arithmetic no-op
-	/ "-" { return new L.AST.PrefixOperator('-'); }   // arithmetic negation
-	/ "~" { return new L.AST.PrefixOperator('~'); }   // ?
-	/ "!" { return new L.AST.PrefixOperator('!'); }   // logical not
-	/ "^" { return new L.AST.PrefixOperator('^'); }   // ?
-	/ "\\" { return new L.AST.PrefixOperator('\\'); } // eager override
-	// "?" { return new L.AST.PrefixOperator('?'); }   // pattern match
-	// "*" { return new L.AST.PrefixOperator('*'); }   // destructure / dereference
+prefixOperator "prefix operator"
+	= "+" // arithmetic no-op
+	/ "-" // arithmetic negation
+	/ "~" // ?
+	/ "!" // logical not
+	/ "^" // ?
+	/ "\\" // eager override
+	// "?" // pattern match
+	// "*" // destructure / dereference
 
 
 function
@@ -157,13 +182,6 @@ block
 			return new L.AST.Block(new L.AST.ExpressionList(list));
 		}
 
-identifierList
-	= "(" _ idl:(first:identifier rest:(_S _ id:identifier { return id; })* _S? {
-			return new L.AST.List([first].concat(rest), {source: 'identifierList'});
-		}) ? _ ")" {
-			return idl || new L.AST.List([], {source: 'identifierList'});
-		}
-
 list
 	= "[" __ el:pureExpressionList ? __ "]" {
 			if (!el) {
@@ -182,16 +200,16 @@ dictionary
 			}
 
 keyValueList
-	= first:keyValuePair rest:(_S _ kvp:keyValuePair { return kvp; })* _S ? _ {
+	= first:keyValuePair rest:(_S kvp:keyValuePair { return kvp; })* _S ? _ {
 			return new L.AST.Dictionary([first].concat(rest));
 		}
 
-keyValuePair
+keyValuePair "key-value pair"
 	= key:pureExpression _ ":" _ val:pureExpression {
 			return new L.AST.KeyValuePair(key, val);
 		}
 
-identifier
+identifier "identifier"
 	= n:name mod:postfixModifier? {
 			n.tags['modifier'] = mod || null;
 			return n;
@@ -206,13 +224,21 @@ postfixModifier
 	= "?" { return '?'; }
 	/ "!" { return '!'; }
 
-record "record"
+type
 	= "<" __ kvl:keyValueList ? __ ">" {
-			return new L.AST.RecordType(kvl.kvl);
+			return new L.AST.Struct(kvl ? kvl.kvl : []);
 		}
-	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
-			return new L.AST.RecordType(idl);
+	/ "<" __ first:typeComponent _ rest:("|" __ it:typeComponent { return it; } )* __ ">" {
+			return new L.AST.Option([first].concat(rest));
 		}
+// 	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
+// 			return new L.AST.Struct(idl);
+// 		}
+
+typeComponent
+	= "_" { return new L.AST.Bottom(); }
+	/ identifier
+	/ type
 
 string "string"
 	// potentially disallow new lines, control chars, etc.
@@ -231,21 +257,21 @@ number "number"
 	/ decimal
 	/ integer
 
-integer "integer"
+integer
 	= "0" { return new L.AST.Integer(0, {'source_base': 10}); }
 	/ first:[1-9] rest:[0-9]* {
 			var val = parseInt(first + rest.join(''), 10);
 			return new L.AST.Integer(val, {'source_base': 10});
 		}
 
-decimal "decimal"
+decimal
 	= int:integer "." digits:[0-9]* {
 			var fraction = parseInt(digits.join(''), 10) || 0;
 			var factor = Math.pow(10, digits.length);
 			return new L.AST.Decimal(int.value * factor + fraction, digits.length);
 		}
 
-scientific "scientific"
+scientific
 	= sig:integer [eE] [+-]? mant:integer {
 			return new L.AST.Scientific(sig.value, mant.value);
 		}
@@ -253,14 +279,14 @@ scientific "scientific"
 			return new L.AST.Scientific(sig.value, mant.value);
 		}
 
-hex "hexidecimal"
+hex
 	= "0x0" { return new L.AST.Integer(0, {'source_base': 16}); }
 	/ "0x" first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
 			var val = parseInt(first + rest.join(''), 16);
 			return new L.AST.Integer(val, {'source_base': 16});
 		}
 
-imaginary "imaginary"
+imaginary
 	= num:(scientific / hex / decimal / integer) [ijJ] { return new L.AST.Imaginary(num); }
 
 _ "whitespace"
@@ -270,4 +296,5 @@ __ "whitespace"
 	= (" " / "\t" / "\n")*
 
 _S "separator"
-	= ("," / "\n" / ",\n")
+	= _ "," __
+	/ __

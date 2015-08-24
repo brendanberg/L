@@ -1,5 +1,6 @@
 var AST = require('./ast');
 var Context = require('./context');
+var error = require('./error');
 
 (function(AST) {
 	function clone(obj) {
@@ -30,7 +31,7 @@ var Context = require('./context');
 	AST.PrefixExpression.prototype.eval = function (ctx) {
 		var exp = this.exp.eval(ctx);
 		var msg = new AST.Message(
-			new AST.Identifier(this.op.op),
+			new AST.Identifier(this.op),
 			new AST.List([], {source: 'parameterList'})
 		);
 		var msgSend = new AST.MessageSend(ctx, exp, msg);
@@ -40,14 +41,14 @@ var Context = require('./context');
 	AST.InfixExpression.prototype.eval = function (ctx) {
 		var msg, expr;
 
-		if (this.op.op === ':') {
+		if (this.op === ':') {
 			// Special case for assignment. Probably make this a macro at
 			// some point, but not now bc I need assignment and I haven't
 			// built macros yet.
 			expr = new AST.Assignment(this.lhs, this.rhs.eval(ctx));
 		} else {
 			msg = new AST.Message(
-				new AST.Identifier(this.op.op),
+				new AST.Identifier(this.op),
 				new AST.List([this.rhs.eval(ctx)], {source: 'parameterList'})
 			);
 			expr = new AST.MessageSend(ctx, this.lhs.eval(ctx), msg);
@@ -121,15 +122,20 @@ var Context = require('./context');
 			// Take the selector keys and string em together.
 			// Dispatch will select on the type signature so get that right
 			// when you define the ctx
-			// > Thing : Type()
-			// > Thing() -> { 'hello' }
-			// > t = Thing()
-			// > t()
-			// 'hello'
+			// > Thing: <s: String>
+			// > Thing(reverse) -> { this.s(reverse) }
+			// > t = Thing(s: "stressed")
+			// > t(reverse)
+			// 'desserts'
 			var context = clone(ctx);
 			var selector = '(' + this.params.list.map(function(x) {
 				return x.key.name + ':'
 			}).join('') + ')';
+
+			if (target.type === 'Struct') {
+				target.name = target.tags['name'];
+			}
+
 			if (selector in target.ctx) {
 				if (typeof target.ctx[selector] === 'function') {
 					params = this.params.list.map(function(x) {
@@ -262,8 +268,46 @@ var Context = require('./context');
 		return block;
 	};
 
+	AST.Struct.prototype.eval = function(ctx) {
+		var signature = '(' + this.members.map(function(x) {
+			return x.key.name + ':'
+		}).join('') + ')';
+
+		//this.bind(signature, function() { ... });
+		this.ctx[signature] = function() {
+			var args = Array.prototype.slice.call(arguments);
+			var values = {};
+			for (var i = 0, len = this.members.length; i < len; i++) {
+				values[this.members[i].key] = args[i];
+			}
+			return new AST.Value(this, values);
+		};
+
+		return this;
+	};
+
+	AST.Option.prototype.eval = function(ctx) {
+		this.values = {};
+
+		for (var i = 0, len = this.variants.length; i < len; i++) {
+			var name = this.variants[i].name;
+			this.values[name] = new AST.Tag('.' + name);
+		};
+		return this;
+	};
+
+	AST.Tag.prototype.eval = function(ctx) {
+		return this;
+	};
+
+	AST.Value.prototype.eval = function(ctx) {
+		return this;
+	};
+
 	AST.Identifier.prototype.eval = function(ctx) {
-		return ctx[this.name];
+		value = ctx[this.name];
+		value.tags['name'] = this.name;
+		return value;
 	};
 
 	AST.KeyValuePair.prototype.eval = function(ctx) {
@@ -329,6 +373,15 @@ var Context = require('./context');
 					result.push(target.value[index.value] || '');
 				}
 			}
+		} else if (this.term.type === 'Identifier' || this.term.type === 'Option') {
+			if (!(this.term.name in target.values)) {
+				var msg = (
+					"'" + target.tags['name'] + "' has no attribute '" + 
+					this.term.name + "'"
+				);
+				throw new error.NameError(msg);
+			}
+			return target.values[this.term.name].eval(ctx);
 		}
 
 		if (target.type === 'String') {

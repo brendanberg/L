@@ -1,9 +1,12 @@
+var Logging = require('./logging');
 var repl = require('repl');
 var L = require('./l');
 
 var ctx = new L.Context();
 var str = '';
 var rep;
+
+var log = new Logging('error');
 
 console.log('The L Programming Language, v' + L.version);
 
@@ -12,6 +15,10 @@ rep = repl.start({
 	prompt: ">> ",
 	eval: eval,
 	writer: writer
+});
+
+rep.on('exit', function() {
+	console.log('');
 });
 
 var fmt = {
@@ -33,7 +40,8 @@ var fmt = {
 		operator: 'magenta',
 		name: 'blue',
 		delimiter: 'cyan',
-		error: 'red'
+		error: 'red',
+		comment: 'white'
 	},
 	colors: {
 		'bold' : [1, 22],
@@ -65,35 +73,87 @@ function writer(obj) {
 }
 
 function eval(cmd, context, filename, callback) {
-	var command = cmd.replace(/^\(/, '').replace(/\n\)$/, '');
+	// The node repl module before 0.10.26 parenthesized
+	// the command passed to the eval function. By version
+	// 0.12.4, it didn't parenthesize commands.
+	// ---
+	// Trailing newlines are verboten.
+	var command = cmd.replace(/^\((.*)\)$/, '$1').replace(/\n$/, '');
+	var level = command.match(/^!log (\w+)/);
 	var ast, result;
 
-	try {
-		ast = L.Parser.parse(str + command);
-		str = '';
-		if (rep.prompt === ' - ') {
-			rep.prompt = '>> ';
-		}
-	} catch (e) {
-		if (e.found === null) {
-			rep.prompt = ' - ';
-			str = str + command + '\n';
-			callback(null, undefined);
-		} else {
-			callback(null, fmt.stylize(e.message, 'error'));
-		}
+	// Special cases for changing logging levels
+	if (level) {
+		log.setLevel(level[1]);
+		console.log("Set logging level to '" + level[1] + "'");
+		rep.displayPrompt();
+		return;
+	}
+
+	command = str + command;
+	if (command.trim() === '') {
+		//callback(null, undefined);
+		rep.displayPrompt();
 		return;
 	}
 
 	try {
+		ast = L.Parser.parse(command);
+		str = '';
+		rep.setPrompt('>> ');
+	} catch (e) {
+		log.info(function() { return e.toString(); });
+		if (e.found == null) {
+			/*
+			var delims = ['"]"', '"}"', '")"', '">"'];
+			var expected = e.expected.map(function(x) { return x.description; });
+			var continuation = false;
+			for (var i = 0, len = delims.length; i < len; i++) {
+				if (expected.indexOf(delims[i]) !== -1) {
+					console.log(delims[i]);
+					continuation = true;
+					break;
+				}
+			}
+
+			if (continuation) {
+				// console.log('---');
+			}
+			*/
+
+			str = command + '\n';
+			rep.setPrompt(' - ');
+			rep.displayPrompt();
+			return;
+		}
+
+		result = fmt.stylize(e.toString(), 'error');
+		
+		if (e.line && e.column) {
+			// Parser errors come with line, column, offset, expected,
+			// and found properties.
+			var pointer = Array(e.column).join(' ') + fmt.stylize('^', 'string');
+			result = '   ' + pointer + '\n' + result;
+			str = '';
+			rep.setPrompt('>> ');
+		} else {
+			result += '\n' + fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
+		}
+
+		callback(null, result);
+		return;
+	}
+
+	try {
+		log.info(JSON.stringify(ast));	
 		result = ast.eval(ctx);	
 	} catch (e) {
-		result = (
-			fmt.stylize(e.toString(), 'error') + '\n' +
-			fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string')
-		);
+		result = fmt.stylize(e.toString(), 'error') + '\n';
+		
+		if (e.stack) {
+			result += fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
+		}
 	} finally {
 		callback(null, result);
 	}
 }
-

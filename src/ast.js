@@ -87,16 +87,6 @@ var AST = {
 		this.receiver = receiver;
 		this.message = message;
 	},
-	InfixOperator: function (op, tags) {
-		this.type = 'InfixOperator';
-		this.tags = tags || {};
-		this.op = op;
-	},
-	PrefixOperator: function (op, tags) {
-		this.type = 'PrefixOperator';
-		this.tags = tags || {};
-		this.op = op;
-	},
 	IdentifierList: function (list, tags) {
 		this.type = 'IdentifierList';
 		this.tags = tags || {};
@@ -127,6 +117,29 @@ var AST = {
 		this.type = 'Quote';
 		this.tags = tags || {};
 		this.exp = exp;
+	},
+	Struct: function (members, name, tags) {
+		this.type = 'Struct';
+		this.tags = tags || {};
+		this.name = name;
+		this.members = members;
+	},
+	Option: function (variants, name, tags) {
+		this.type = 'Option';
+		this.tags = tags || {};
+		this.name = name;
+		this.variants = variants;
+	},
+	Tag: function(name, tags) {
+		this.type = 'Tag';
+		this.tags = tags || {};
+		this.name = name;
+	},
+	Value: function(_super, values, tags) {
+		this.type = 'Struct';
+		this.tags = tags || {};
+		this._super = _super;
+		this.values = values;
 	},
 	String: function (str, tags) {
 		this.type = 'String';
