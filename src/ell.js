@@ -8,6 +8,8 @@ var rep;
 
 var log = new Logging('error');
 
+console.log('The L Programming Language, v' + L.version);
+
 rep = repl.start({
 	ignoreUndefined: true,
 	prompt: ">> ",

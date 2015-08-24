@@ -1,4 +1,6 @@
 var L = {};
+L.version = '0.0.1';
+//var parser = require('./parser');
 L.AST = require('./ast');
 L.Parser = require('./parser');
 
