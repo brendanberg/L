@@ -113,11 +113,6 @@ var AST = {
 		this.key = key;
 		this.val = val;
 	},
-	Quote: function (exp, tags) {
-		this.type = 'Quote';
-		this.tags = tags || {};
-		this.exp = exp;
-	},
 	Struct: function (members, name, tags) {
 		this.type = 'Struct';
 		this.tags = tags || {};
@@ -187,6 +182,8 @@ var AST = {
 		this.real = real;
 		this.imaginary = imag;
 	},
+	// Boolean types will be implemented as options, so this won't be
+	// necessary once the standard library is started.
 	Bool: function(value, tags) {
 		this.type = 'Boolean';
 		this.tags = tags || {};
