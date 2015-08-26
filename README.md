@@ -19,6 +19,8 @@ gulp build
 The `gulp build` command will create a build directory in the project folder
 with a browserified script and an interactive shell.
 
+To run the interactive shell, invoke `node build/ell.js` from the command line.
+
 ## Using the Interactive Shell
 
 L comes with an interactive shell.
