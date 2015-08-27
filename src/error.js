@@ -20,10 +20,17 @@ function TypeError(msg) {
 
 TypeError.prototype.toString = toString;
 
+function NotImplemented(msg) {
+	this.message = msg;
+}
+
+NotImplemented.prototype.toString = toString;
+
 var error = {
 	NameError: NameError,
 	MatchError: MatchError,
-	TypeError: TypeError
+	TypeError: TypeError,
+	NotImplemented: NotImplemented
 };
 
 module.exports = error;

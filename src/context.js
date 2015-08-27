@@ -9,8 +9,9 @@ Context.prototype[':'] = function(identifier, value) {
 	this[identifier.name] = value;
 };
 
-Context.prototype['True'] = new AST.Bool(true);
-Context.prototype['False'] = new AST.Bool(false);
+// Context.prototype['True'] = new AST.Bool(true);
+// Context.prototype['False'] = new AST.Bool(false);
+// TODO: Should underscore be a special case in the parser?
 Context.prototype['_'] = new AST.Bottom();
 
 require('./impl/strings');

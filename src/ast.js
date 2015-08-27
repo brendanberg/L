@@ -40,6 +40,14 @@ var AST = {
 		this.predicates = null;
 		this.ctx = null;
 	},
+	Method: function(typeId, plist, block, tags) {
+		this.type = 'Method';
+		this.tags = tags || {};
+		this.typeId = typeId;
+		this.plist = plist;
+		this.block = block;
+		this.ctx = null;
+	},
 	Invocation: function (target, params, tags) {
 		this.type = 'Invocation';
 		this.tags = tags || {};
@@ -125,10 +133,12 @@ var AST = {
 		this.name = name;
 		this.variants = variants;
 	},
-	Tag: function(name, tags) {
+	Tag: function(name, value, tags) {
 		this.type = 'Tag';
 		this.tags = tags || {};
 		this.name = name;
+		this.value = value || null;
+		this.ctx = null;
 	},
 	Value: function(_super, values, tags) {
 		this.type = 'Struct';

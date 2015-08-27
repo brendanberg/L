@@ -101,23 +101,6 @@ function eval(cmd, context, filename, callback) {
 	} catch (e) {
 		L.log.info(function() { return e.toString(); });
 		if (e.found == null) {
-			/*
-			var delims = ['"]"', '"}"', '")"', '">"'];
-			var expected = e.expected.map(function(x) { return x.description; });
-			var continuation = false;
-			for (var i = 0, len = delims.length; i < len; i++) {
-				if (expected.indexOf(delims[i]) !== -1) {
-					console.log(delims[i]);
-					continuation = true;
-					break;
-				}
-			}
-
-			if (continuation) {
-				// console.log('---');
-			}
-			*/
-
 			str = command + '\n';
 			rep.setPrompt(' - ');
 			rep.displayPrompt();
@@ -145,10 +128,10 @@ function eval(cmd, context, filename, callback) {
 		L.log.info(JSON.stringify(ast));	
 		result = ast.eval(ctx);	
 	} catch (e) {
-		result = fmt.stylize(e.toString(), 'error') + '\n';
+		result = fmt.stylize(e.toString(), 'error');
 		
 		if (e.stack) {
-			result += fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
+			result += '\n' + fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
 		}
 	} finally {
 		callback(null, result);

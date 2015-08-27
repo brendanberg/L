@@ -24,7 +24,8 @@ pureExpressionList
 		}
 
 expression
-  = e1:pureExpression _ ':' _ e2:pureExpression {
+	= declaration
+  / e1:pureExpression _ ':' _ e2:pureExpression {
 			return new L.AST.InfixExpression(':', e1, e2);
 		}
 	/ e1:pureExpression _ '<-' _ e2:pureExpression {
@@ -55,6 +56,21 @@ pureExpression
 			}
 		}
 
+declaration
+	= _ id:identifier _ s:selectorDeclaration _ "->" _ b:block {
+			return new L.AST.Method(id, s, b);
+		}
+
+selectorDeclaration
+	= "(" _ name:identifier _ ")" {
+			return new L.AST.List([[name, null]], {source: 'parameterList'});
+		}
+	/ "(" _ first:selectorPair rest:(_S it:selectorPair { return it; })* _ ")" {
+			return new L.AST.List([first].concat(rest), {source: 'parameterList'});
+		}
+
+selectorPair
+	= name:identifier _ ":" _ val:identifier { return [name, val]; }
 
 expressionNoInfix
 	= val:value _ lst:list {
@@ -80,13 +96,16 @@ propertyOrCall
 	/ "." id:identifier { return id; }
 
 parameterList
+	= parameterListNonEmpty
+	/ _ '(' __ ')' { return new L.AST.List([], {source: 'parameterList'}); }
+	
+parameterListNonEmpty
 	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
 			_S item:(keyValuePair / pureExpression) { return item; }
 		)* _S? __ ')' {
 			return new L.AST.List([first].concat(rest), {source: 'parameterList'});
 		}
-	/ _ '(' __ ')' { return new L.AST.List([], {source: 'parameterList'}); }
-	
+
 identifierList
 	= "(" __ idl:(first:identifier rest:(_S id:identifier { return id; })* _S? {
 			return new L.AST.List([first].concat(rest), {source: 'identifierList'});

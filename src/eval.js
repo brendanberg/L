@@ -149,7 +149,32 @@ var error = require('./error');
 					);
 				} else if (target.ctx[selector].type === 'Function') {
 					return new AST.String('Whoa! Not implemented!');
+				} else if (target.ctx[selector].type === 'Method') {
+					if (target.type === 'Struct' || target.type === 'Option') {
+						throw new error.NotImplemented(
+							"method invocations on types are not implemented"
+						);
+					}
+					var meth = target.ctx[selector];
+					func = new AST.Method(meth.typeId, meth.plist, meth.block);
+					func.ctx = clone(target.ctx);
+					locals = new Context();
+					params = func.plist.list;
+
+					for (var i = 0, len = params.length; i < len; i++) {
+						locals[params[i][1].name] = this.params.list[i].val.eval(ctx);
+					}
+
+					locals.__proto__ = func.block.ctx;
+					locals['this'] = target;
+					return func.block.expressionList.eval(locals);
 				}
+			} else {
+				var msg = (
+					"'" + target.name + "' does not have a method " +
+					"matching the selector '" + selector + "'"
+				);
+				throw new error.NameError(msg);
 			}
 		}
 	};
@@ -232,19 +257,32 @@ var error = require('./error');
 			'List': function(x) {
 				// Match on each item of the list... 
 				return null;
+			},
+			'Tag': function(x) {
+				if (this.tags.type === x.tags.type &&
+						this.name === x.name) {
+					return new Context()
+				} else {
+					return null;
+				}
 			}
 		};
 		for (var i = 0, len = this.kvl.length; i < len; i++) {
 			var kvp = new AST.KeyValuePair(this.kvl[i].key, this.kvl[i].val.eval(ctx));
 			//TODO: This is a special case and would probably be bad if True
 			// and False got redefined.
-			if (kvp.key.type === 'Identifier') {
+			/*if (kvp.key.type === 'Identifier') {
 				if (kvp.key.name === 'True') {
 					kvp.key = new AST.Bool(true);
 				} else if (kvp.key.name === 'False') {
 					kvp.key = new AST.Bool(false);
 				}
+			}*/
+			// TODO: Figure out a way to move this logic into the map
+			if (kvp.key.type === 'Lookup') {
+				kvp.key = kvp.key.eval(ctx);
 			}
+			//console.log(kvp.key.type);
 			ps.push([predicateMap[kvp.key.type].bind(kvp.key), kvp.val]);
 			kvl.push(kvp);
 		}
@@ -268,6 +306,23 @@ var error = require('./error');
 		return block;
 	};
 
+	AST.Method.prototype.eval = function(ctx) {
+		// This is kind of a weird one because methods are declarative and
+		// operate on a type defined in the package context. Importing the
+		// type will also import its context I guess
+
+		var type = this.typeId.eval(ctx);
+		var selector = '(' + this.plist.list.map(function(x) {
+			return x[0].name + (x[1] ? ':' : '')
+		}).join('') + ')';
+
+		if (!type.ctx) {
+			type.ctx = new Context();
+		}
+		type.ctx[selector] = this;
+		return this;
+	};
+
 	AST.Struct.prototype.eval = function(ctx) {
 		var signature = '(' + this.members.map(function(x) {
 			return x.key.name + ':'
@@ -288,10 +343,14 @@ var error = require('./error');
 
 	AST.Option.prototype.eval = function(ctx) {
 		this.values = {};
-
+		this.ctx = new Context();
 		for (var i = 0, len = this.variants.length; i < len; i++) {
 			var name = this.variants[i].name;
-			this.values[name] = new AST.Tag('.' + name);
+			var tag = new AST.Tag(name);
+			tag.ctx = new Context();
+			tag.ctx.__proto__ = this.ctx;
+			this.values[name] = tag;
+			//= new AST.Tag(name);
 		};
 		return this;
 	};
@@ -306,6 +365,15 @@ var error = require('./error');
 
 	AST.Identifier.prototype.eval = function(ctx) {
 		value = ctx[this.name];
+
+		if (value === null || value === undefined) {
+			var msg = (
+				"the current module has no attribute '" + 
+				this.name + "'"
+			);
+			throw new error.NameError(msg);  
+		}
+
 		value.tags['name'] = this.name;
 		return value;
 	};
@@ -381,7 +449,10 @@ var error = require('./error');
 				);
 				throw new error.NameError(msg);
 			}
-			return target.values[this.term.name].eval(ctx);
+			var value = target.values[this.term.name].eval(ctx);
+			value.tags.type = target.tags.name || '';
+			// TODO: Return a copy since the tag name gets overwritten?
+			return value;
 		}
 
 		if (target.type === 'String') {
