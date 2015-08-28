@@ -10,12 +10,11 @@ var path = require('path');
 
 var basepath = path.resolve('./lib');
 var filenames = fs.readdirSync(basepath);
+var contents, ast;
 
 for (var i = 0, len = filenames.length; i < len; i++) {
-	console.log('Loading', filenames[i]);
-	var path = path.join(basepath, filenames[i]);
-	var contents = fs.readFileSync(path, 'utf-8');
-	var ast = L.Parser.parse(contents);
+	contents = fs.readFileSync(path.join(basepath, filenames[i]), 'utf-8');
+	ast = L.Parser.parse(contents);
 	ast.eval(ctx);
 }
 
