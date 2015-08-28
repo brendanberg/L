@@ -62,7 +62,7 @@ declaration
 		}
 
 selectorDeclaration
-	= "(" _ name:identifier _ ")" {
+	= "(" _ name:specialIdentifier _ ")" {
 			return new L.AST.List([[name, null]], {source: 'parameterList'});
 		}
 	/ "(" _ first:selectorPair rest:(_S it:selectorPair { return it; })* _ ")" {
@@ -70,7 +70,11 @@ selectorDeclaration
 		}
 
 selectorPair
-	= name:identifier _ ":" _ val:identifier { return [name, val]; }
+	= name:specialIdentifier _ ":" _ val:identifier { return [name, val]; }
+
+specialIdentifier
+	= identifier
+	/ "'" op:(infixOperator/prefixOperator) "'" { return new L.AST.Identifier(op); }
 
 expressionNoInfix
 	= val:value _ lst:list {
@@ -132,47 +136,48 @@ value
 
 infixOperator "infix operator"
 	= "//:"
-	/ "//"
+	/ "//" { return "'//'"; }
 	/ "/:"
 	/ "+:"
 	/ "-:"
 	/ "*:"
 	/ "%:"
-	/ "<="
-	/ "=="
-	/ "!="
-	/ ">="
-	/ "@"
-	/ "/\\"
-	/ "\\/"
+	/ "<=" { return "'<='"; }
+	/ "==" { return "'=='"; }
+	/ "!=" { return "'!='"; }
+	/ ">=" { return "'>='"; }
+	/ "@" { return "'@'"; }
+	/ "/\\" { return "'/\\'"; }
+	/ "\\/" { return "'\\/'"; }
 //	/ "->"
 	/ "<-"
-	/ ".."
+	/ ".." { return "'..'"; }
+	/ "..." { return "'...'"; }
 	/ "~>"
-	/ "<~"
-	/ "??"
-	/ "::"
+	/ "<~" 
+	/ "??" { return "'??'"; }
+	/ "::" { return "'::'"; }
 //	/ ":"
-	/ "+"
-	/ "-"
-	/ "*"
-	/ "/"
-	/ "%"
-	/ "<"
-	/ ">"
-	/ "&"
-	/ "|"
-	/ "^"
+	/ "+" { return "'+'"; }
+	/ "-" { return "'-'"; }
+	/ "*" { return "'*'"; }
+	/ "/" { return "'/'"; }
+	/ "%" { return "'%'"; }
+	/ "<" { return "'<'"; }
+	/ ">" { return "'>'"; }
+	/ "&" { return "'&'"; }
+	/ "|" { return "'|'"; }
+	/ "^" { return "'^'"; }
 
 prefixOperator "prefix operator"
-	= "+" // arithmetic no-op
-	/ "-" // arithmetic negation
-	/ "~" // ?
-	/ "!" // logical not
-	/ "^" // ?
-	/ "\\" // eager override
-	// "?" // pattern match
-	// "*" // destructure / dereference
+	= "+"  { return "'+'"; } // arithmetic no-op
+	/ "-"  { return "'-'"; } // arithmetic negation
+	/ "~"  { return "'~'"; } // ?
+	/ "!"  { return "'!'"; } // logical not
+	/ "^"  { return "'^'"; } // ?
+	/ "\\" { return "'\\'"; } // eager override
+	// "?" { return "'?'"; } // pattern match
+	// "*" { return "'*'"; } // destructure / dereference
 
 
 function
@@ -224,8 +229,16 @@ keyValueList
 		}
 
 keyValuePair "key-value pair"
-	= key:pureExpression _ ":" _ val:pureExpression {
+	= key:tag _ ":" _ val:pureExpression {
 			return new L.AST.KeyValuePair(key, val);
+		}
+	/ key:pureExpression _ ":" _ val:pureExpression {
+			return new L.AST.KeyValuePair(key, val);
+		}
+
+tag "tag"
+	= "." id:name {
+			return new L.AST.Tag(id.name);
 		}
 
 identifier "identifier"

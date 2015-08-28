@@ -12,24 +12,26 @@ function format(depth, fmt) {
 
 (function(AST) {
 	AST.InfixExpression.prototype.toString = function () {
-		return this.lhs.toString() + ' ' + this.op + ' ' + this.rhs.toString();
+		return (this.lhs.toString() + ' ' +
+			this.op.replace(/^'(.*)'$/, '$1') + ' ' + this.rhs.toString()
+		);
 	};
 
 	AST.InfixExpression.prototype.repr = function(depth, fmt) {
 		return (
 			this.lhs.repr(depth, fmt) + 
-			fmt.stylize(' ' + this.op + ' ', 'operator') +
+			fmt.stylize(' ' + this.op.replace(/^'(.*)'$/, '$1') + ' ', 'operator') +
 			this.rhs.repr(depth, fmt)
 		);
 	};
 	
 	AST.PrefixExpression.prototype.toString = function() {
-		return this.op + this.exp.toString();
+		return this.op.replace(/^'(.*)'$/, '$1') + this.exp.toString();
 	};
 
 	AST.PrefixExpression.prototype.repr = function(depth, fmt) {
 		return (
-			fmt.stylize(this.op, 'operator') + 
+			fmt.stylize(this.op.replace(/^'(.*)'$/, '$1'), 'operator') + 
 			this.exp.repr(depth, fmt)
 		);
 	};
@@ -63,7 +65,7 @@ function format(depth, fmt) {
 		);
 	};
 
-	AST.Method.prototype.toString = function() {
+	/*AST.Method.prototype.toString = function() {
 		return (
 			this.typeId.toString() + '(' +
 			this.plist.list.map(function(x) {
@@ -75,6 +77,7 @@ function format(depth, fmt) {
 			}).join(', ') + ')' +
 			' -> ' + this.block.toString()
 		);
+		return undefined;
 	};
 
 	AST.Method.prototype.repr = function(depth, fmt) {
@@ -93,7 +96,8 @@ function format(depth, fmt) {
 			fmt.stylize(')', 'delimiter') +
 			' -> ' + this.block.repr(depth, fmt)
 		);
-	};
+		return undefined;
+	};*/
 
 	AST.Invocation.prototype.toString = function() {
 		return this.target.toString() + ' ' + this.params.toString();
@@ -146,7 +150,7 @@ function format(depth, fmt) {
 	};
 
 	AST.Tag.prototype.toString = function() {
-		return this.tags.type + '.' + this.name;
+		return (this.tags.type || '') + '.' + this.name;
 	};
 
 	AST.Tag.prototype.repr = function(depth, fmt) {

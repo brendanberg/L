@@ -30,8 +30,9 @@ var error = require('./error');
 
 	AST.PrefixExpression.prototype.eval = function (ctx) {
 		var exp = this.exp.eval(ctx);
+
 		var msg = new AST.Message(
-			new AST.Identifier(this.op),
+			new AST.Identifier('(' + this.op + ')'),
 			new AST.List([], {source: 'parameterList'})
 		);
 		var msgSend = new AST.MessageSend(ctx, exp, msg);
@@ -39,8 +40,7 @@ var error = require('./error');
 	};
 
 	AST.InfixExpression.prototype.eval = function (ctx) {
-		var msg, expr;
-
+		var msg, expr, name;
 		if (this.op === ':') {
 			// Special case for assignment. Probably make this a macro at
 			// some point, but not now bc I need assignment and I haven't
@@ -48,7 +48,7 @@ var error = require('./error');
 			expr = new AST.Assignment(this.lhs, this.rhs.eval(ctx));
 		} else {
 			msg = new AST.Message(
-				new AST.Identifier(this.op),
+				new AST.Identifier('(' + this.op + ':)'),
 				new AST.List([this.rhs.eval(ctx)], {source: 'parameterList'})
 			);
 			expr = new AST.MessageSend(ctx, this.lhs.eval(ctx), msg);
@@ -129,7 +129,11 @@ var error = require('./error');
 			// 'desserts'
 			var context = clone(ctx);
 			var selector = '(' + this.params.list.map(function(x) {
-				return x.key.name + ':'
+				if (x.type === 'KeyValuePair') {
+					return x.key.name + ':';
+				} else {
+					return x.name;
+				}
 			}).join('') + ')';
 
 			if (target.type === 'Struct') {
@@ -206,10 +210,9 @@ var error = require('./error');
 		} else if (selector && selector.type === 'Function') {
 			// Eval the function ugh
 			var scope;
-			var value = null;
 
 			if (selector.plist.length !== this.message.params.length) {
-				throw 'Method signatures do not match';
+				throw 'function signatures do not match';
 			}
 
 			scope = clone(selector.ctx);
@@ -218,11 +221,28 @@ var error = require('./error');
 				scope[selector.plist.list[i].name] = this.message.params.list[i].eval(ctx);
 			}
 
-			for (var i = 0, len = selector.block.expressionList.length; i < len; i++) {
-				value = selector.block.expressionList[i].eval(scope);
+			return selector.block.expressionList.eval(scope);
+		} else if (selector && selector.type === 'Method') {
+			// Method evaluation is slightly different.
+			var locals, params;
+			var func = new AST.Method(selector.typeId, selector.plist, selector.block);
+			locals = new Context();
+
+			if (selector.plist.length !== this.message.params.length) {
+				throw 'method signatures do not match';
 			}
 
-			return value;
+			//scope = selector.ctx; //clone(selector.ctx);
+			params = selector.plist.list;
+
+			for (var i = 0, len = params.length; i < len; i++) {
+				locals[params[i][1]] = this.message.params.list[i].eval(ctx);
+			}
+
+			locals.__proto__ = func.block.ctx;
+			locals['this'] = this.receiver;
+
+			return selector.block.expressionList.eval(locals);
 		} else {
 			return selector;
 		}
@@ -259,9 +279,8 @@ var error = require('./error');
 				return null;
 			},
 			'Tag': function(x) {
-				if (this.tags.type === x.tags.type &&
-						this.name === x.name) {
-					return new Context()
+				if (this.name === x.name) { // && this.name in x.variants) {
+					return new Context();
 				} else {
 					return null;
 				}
@@ -269,20 +288,6 @@ var error = require('./error');
 		};
 		for (var i = 0, len = this.kvl.length; i < len; i++) {
 			var kvp = new AST.KeyValuePair(this.kvl[i].key, this.kvl[i].val.eval(ctx));
-			//TODO: This is a special case and would probably be bad if True
-			// and False got redefined.
-			/*if (kvp.key.type === 'Identifier') {
-				if (kvp.key.name === 'True') {
-					kvp.key = new AST.Bool(true);
-				} else if (kvp.key.name === 'False') {
-					kvp.key = new AST.Bool(false);
-				}
-			}*/
-			// TODO: Figure out a way to move this logic into the map
-			if (kvp.key.type === 'Lookup') {
-				kvp.key = kvp.key.eval(ctx);
-			}
-			//console.log(kvp.key.type);
 			ps.push([predicateMap[kvp.key.type].bind(kvp.key), kvp.val]);
 			kvl.push(kvp);
 		}
@@ -297,7 +302,7 @@ var error = require('./error');
 		// Recursively search for prefix expressions with a '\' operator
 		// and replace them with their evaluated value
 		block.expressionList = this.expressionList.transform(function(node) {
-			if (node.type === 'PrefixExpression' && node.op.op === '\\') {
+			if (node.type === 'PrefixExpression' && node.op === "'\\'") {
 				return node.exp.eval(ctx);
 			} else {
 				return node;
@@ -319,8 +324,9 @@ var error = require('./error');
 		if (!type.ctx) {
 			type.ctx = new Context();
 		}
+		this.block = this.block.eval(ctx);
 		type.ctx[selector] = this;
-		return this;
+		//return this;
 	};
 
 	AST.Struct.prototype.eval = function(ctx) {

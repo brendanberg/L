@@ -5,6 +5,8 @@ var ctx = new L.Context();
 var str = '';
 var rep;
 
+// L.require('lib/bool.ell');
+
 console.log('The L Programming Language, v' + L.version);
 
 rep = repl.start({
