@@ -3,12 +3,12 @@ var dispatch = require('../dispatch');
 
 (function(AST) {
 	AST.String.prototype.ctx = {
-		'+': dispatch({
+		"('+':)": dispatch({
 			'String': function(s) {
 				return new AST.String(this.value + s.value);
 			}
 		}),
-		'==': dispatch({
+		"('==':)": dispatch({
 			'String': function(s) {
 				return new AST.Bool(this.value === s.value);
 			}

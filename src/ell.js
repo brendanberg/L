@@ -5,7 +5,19 @@ var ctx = new L.Context();
 var str = '';
 var rep;
 
-// L.require('lib/bool.ell');
+var fs = require('fs');
+var path = require('path');
+
+var basepath = path.resolve('./lib');
+var filenames = fs.readdirSync(basepath);
+
+for (var i = 0, len = filenames.length; i < len; i++) {
+	console.log('Loading', filenames[i]);
+	var path = path.join(basepath, filenames[i]);
+	var contents = fs.readFileSync(path, 'utf-8');
+	var ast = L.Parser.parse(contents);
+	ast.eval(ctx);
+}
 
 console.log('The L Programming Language, v' + L.version);
 

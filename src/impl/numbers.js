@@ -31,10 +31,10 @@ var dispatch = require('../dispatch');
 				return new AST.Complex(exp.eval(this), z.imaginary);
 			}
 		}),
+		"('-')": function() {
+			return new AST.Integer(-this.value);
+		},
 		"('-':)": dispatch({
-			'': function() {
-				return new AST.Integer(-this.value);
-			},
 			'Integer': function(n) {
 				return new AST.Integer(this.value - n.value);
 			},

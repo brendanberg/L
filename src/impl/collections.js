@@ -9,7 +9,7 @@ function inspectify(depth, fmt) {
 
 (function(AST) {
 	AST.Dictionary.prototype.ctx = {
-		'@': dispatch({
+		"('@':)": dispatch({
 			'Integer': function(n) {
 				return this.ctx[n.value] || new AST.Bottom();
 			}
@@ -17,7 +17,7 @@ function inspectify(depth, fmt) {
 	};
 
 	AST.List.prototype.ctx = {
-		'@': dispatch({
+		"('@':)": dispatch({
 			'Integer': function(n) {
 				var index;
 				if (n.value < 0) {

@@ -3,7 +3,7 @@ var dispatch = require('../dispatch');
 
 (function(AST) {
 	AST.Struct.prototype.ctx = {
-		'|': dispatch({
+		"('|':)": dispatch({
 			'Struct': function(t) {
 				return new AST.Option([this, t]);
 			},

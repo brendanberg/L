@@ -236,7 +236,9 @@ var error = require('./error');
 			params = selector.plist.list;
 
 			for (var i = 0, len = params.length; i < len; i++) {
-				locals[params[i][1]] = this.message.params.list[i].eval(ctx);
+				if (params[i][1] !== null) {
+					locals[params[i][1]] = this.message.params.list[i].eval(ctx);
+				}
 			}
 
 			locals.__proto__ = func.block.ctx;
