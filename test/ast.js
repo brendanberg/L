@@ -4,6 +4,9 @@ var assert = require('assert');
 
 
 function parserIsomorphism(ast) {
+	if (ast.type === 'MessageSend') {
+		console.log(ast.toString());
+	}
 	assert.deepEqual(ast, L.Parser.parse(ast.toString()));
 }
 
@@ -14,7 +17,7 @@ var lists = {
 	alphanum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split(''),
 	prefixOperator: '+-~!^\\'.split(''),
 	infixOperator: ['//:', '//', '/:', '+:', '-:', '*:', '%:', '<=', '==',
-		'!=', '>=', '<-', '..', '~>', '<~', '??', '+', '-', '*', '/', '%',
+		'!=', '>=', '..', '~>', '<~', '??', '+', '-', '*', '/', '%',
 		'<', '>', '&', '|', '^'
 	]
 };
@@ -83,16 +86,12 @@ ASTgen.term__r = gen.oneOf([
 ]);
 
 ASTgen.prefixExpression = gen.map(function(args) {
-	return new L.AST.PrefixExpression(new L.AST.PrefixOperator(args[0]), args[1]);
+	return new L.AST.PrefixExpression(args[0], args[1]);
 }, gen.array([gen.returnOneOf(lists.prefixOperator), ASTgen.term__r]));
-
-ASTgen.infixOperator = gen.map(function(op) {
-	return new L.AST.InfixOperator(op);
-}, gen.returnOneOf(lists.infixOperator));
 
 ASTgen.infixExpression__r = gen.map(function(args) {
 	return new L.AST.InfixExpression(args[0], args[1], args[2]);
-}, gen.array([ ASTgen.infixOperator, ASTgen.term__r, ASTgen.term__r]));
+}, gen.array([gen.returnOneOf(lists.infixOperator), ASTgen.term__r, ASTgen.term__r]));
 
 ASTgen.list__r = gen.map(function(items) {
 	return new L.AST.List(items, {source: 'list'});
@@ -103,8 +102,7 @@ ASTgen.keyValuePair__r = gen.map(function(args) {
 }, gen.array([ASTgen.identifier, ASTgen.term__r]));
 
 ASTgen.dictionary__r = gen.map(function(args) {
-	return new L.AST.List(args, {source: 'dictionary'});
-	//, kvl.length ? {source: 'dictionary'} : {});
+	return new L.AST.Dictionary(args);
 }, gen.array(ASTgen.keyValuePair__r, 4));
 
 ASTgen.plist = gen.map(function(items) {
@@ -113,12 +111,15 @@ ASTgen.plist = gen.map(function(items) {
 
 ASTgen.expression__r = gen.oneOf([ASTgen.prefixExpression, ASTgen.infixExpression__r]);
 
+ASTgen.block = gen.map(function(items) {
+	return new L.AST.Block(new L.AST.ExpressionList(items));
+}, gen.array(ASTgen.expression__r, 3));
+
 ASTgen.function__r = gen.map(function(args) {
-	return new L.AST.Function(args[0], new L.AST.Block(args[1]), {type: args[2]});
+	return new L.AST.Function(args[0], args[1], {type: 'thin'});
 }, gen.array([
 	ASTgen.plist,
-	gen.array(ASTgen.expression__r, 3),
-	gen.returnOneOf(['thin'])
+	ASTgen.block
 ]));
 
 
@@ -131,7 +132,7 @@ ASTgen.term = gen.oneOf([
 
 ASTgen.infixExpression = gen.map(function(args) {
 	return new L.AST.InfixExpression(args[0], args[1], args[2]);
-}, gen.array([ASTgen.infixOperator, ASTgen.term, ASTgen.expression__r]));
+}, gen.array([gen.returnOneOf(lists.infixOperator), ASTgen.term, ASTgen.expression__r]));
 
 ASTgen.expression = gen.oneOf([ASTgen.prefixExpression, ASTgen.infixExpression]);
 
@@ -142,8 +143,15 @@ ASTgen.parameterList = gen.map(function(items) {
 }, gen.array(gen.oneOf([ASTgen.term__r, ASTgen.keyValuePair__r])));
 
 ASTgen.message__r = gen.map(function(args) {
-	return new L.AST.MessageSend(null, null, new L.AST.Message(args[0], args[1]));
+	return new L.AST.Message(args[0], args[1]);
 }, gen.array([ASTgen.identifier, ASTgen.parameterList]));
+
+ASTgen.messageSend__r = gen.map(function(args) {
+	return new L.AST.MessageSend(null, args[0], args[1]);
+}, gen.array([
+	ASTgen.identifier,
+	ASTgen.message__r
+]));
 
 
 /* -------------------------------------------------------------------------
@@ -175,7 +183,8 @@ describe('Parser', function () {
 	check.it('accepts complex expressions',
 		[ASTgen.expression], parserIsomorphism);
 	
-	check.it('accepts message sends (w/o receiver)', [ASTgen.message__r], parserIsomorphism);
+	check.it('accepts message sends (w/o receiver)',
+		[ASTgen.messageSend__r], parserIsomorphism);
 	//check.it('accepts terms', [ASTgen.term], parserIsomorphism);
 	//check.it('accepts identifiers', [ASTgen.identifier], parserIsomorphism, {times: 1000});
 });

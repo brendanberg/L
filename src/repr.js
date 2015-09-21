@@ -216,15 +216,15 @@ function format(depth, fmt) {
 			fmt.stylize(']', 'delimiter')
 		);
 	};
-	
+
 	AST.MessageSend.prototype.toString = function () {
 		return (this.receiver ? this.receiver.toString() : '') + this.message.toString();
 	};
-	
+
 	AST.Message.prototype.toString = function () {
-		return '.' + this.identifier.toString() + (this.params ? this.params.toString() : '');
+		return '<-' + this.identifier.toString() + (this.params ? this.params.toString() : '');
 	};
-	
+
 	AST.Identifier.prototype.toString = function () {
 		return this.name + (this.tags['modifier'] || '');
 	};
@@ -232,7 +232,7 @@ function format(depth, fmt) {
 	AST.Identifier.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.name + (this.tags['identifier'] || ''), 'name');
 	};
-	
+
 	AST.ExpressionList.prototype.toString = function () {
 		var list = this.list.map(stringify).join('\n');
 		return list;
@@ -351,14 +351,6 @@ function format(depth, fmt) {
 
 	AST.Complex.prototype.repr = function(depth, fmt) {
 		return fmt.stylize(this.toString(), 'number');
-	};
-
-	AST.Bool.prototype.toString = function () {
-		return this.value ? 'True' : 'False';
-	};
-
-	AST.Bool.prototype.repr = function(depth, fmt) {
-		return fmt.stylize(this.toString(), 'boolean');
 	};
 
 	AST.Bottom.prototype.toString = function () {

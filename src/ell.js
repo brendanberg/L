@@ -1,5 +1,7 @@
 var repl = require('repl');
 var L = require('./l');
+var util = require('util');
+var debug = util.debuglog('repl');
 
 var ctx = new L.Context();
 var str = '';
@@ -26,6 +28,98 @@ rep = repl.start({
 	eval: eval,
 	writer: writer
 });
+rep.removeAllListeners('line');
+rep.on('line', function(cmd) {
+	debug('line %j', cmd);
+	sawSIGINT = false;
+	var skipCatchall = false;
+	cmd = trimWhitespace(cmd);
+
+	// Check to see if a REPL keyword was used. If it returns true,
+	// display next prompt and return.
+	if (cmd && cmd.charAt(0) === '#' && isNaN(parseFloat(cmd))) {
+		var matches = cmd.match(/^# !([^\s]+)\s*(.*)$/);
+		var keyword = matches && matches[1];
+		var rest = matches && matches[2];
+		if (rep.parseREPLKeyword(keyword, rest) === true) {
+			return;
+		}/* else {
+			rep.outputStream.write('Invalid REPL keyword\n');
+			skipCatchall = true;
+		}*/
+	}
+
+	if (!skipCatchall) {
+		var evalCmd = rep.bufferedCommand + cmd;
+		if (/^\s*\{/.test(evalCmd) && /\}\s*$/.test(evalCmd)) {
+			// It's confusing for `{ a : 1 }` to be interpreted as a block
+			// statement rather than an object literal.	So, we first try
+			// to wrap it in parentheses, so that it will be interpreted as
+			// an expression.
+			evalCmd = '(' + evalCmd + ')\n';
+		} else {
+			// otherwise we just append a \n so that it will be either
+			// terminated, or continued onto the next expression if it's an
+			// unexpected end of input.
+			evalCmd = evalCmd + '\n';
+		}
+
+		debug('eval %j', evalCmd);
+		rep.eval(evalCmd, rep.context, 'repl', finish);
+	} else {
+		finish(null);
+	}
+	function finish(e, ret) {
+		debug('finish', e, ret);
+		rep.memory(cmd);
+
+		if (e && !rep.bufferedCommand && cmd.trim().match(/^npm /)) {
+			rep.outputStream.write('npm should be run outside of the ' +
+									'node repl, in your normal shell.\n' +
+									'(Press Control-D to exit.)\n');
+			rep.bufferedCommand = '';
+			rep.displayPrompt();
+			return;
+		}
+
+		// If error was SyntaxError and not JSON.parse error
+		if (e) {
+			if (e instanceof Recoverable) {
+				// Start buffering data like that:
+				// {
+				// ...	x: 1
+				// ... }
+				rep.bufferedCommand += cmd + '\n';
+				rep.displayPrompt();
+				return;
+			} else {
+				rep._domain.emit('error', e);
+			}
+		}
+
+		// Clear buffer if no SyntaxErrors
+		rep.bufferedCommand = '';
+
+		// If we got any output - print it (if no error)
+		if (!e && (!rep.ignoreUndefined || !util.isUndefined(ret))) {
+			rep.context._ = ret;
+			rep.outputStream.write(rep.writer(ret) + '\n');
+		}
+
+		// Display prompt again
+		rep.displayPrompt();
+	};
+});
+
+function trimWhitespace(cmd) {
+  var trimmer = /^\s*(.+)\s*$/m,
+      matches = trimmer.exec(cmd);
+
+  if (matches && matches.length === 2) {
+    return matches[1];
+  }
+  return '';
+}
 
 rep.on('exit', function() {
 	console.log('');

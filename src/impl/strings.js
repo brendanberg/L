@@ -10,7 +10,8 @@ var dispatch = require('../dispatch');
 		}),
 		"('==':)": dispatch({
 			'String': function(s) {
-				return new AST.Bool(this.value === s.value);
+				var exp = this.value === s.value;
+				return new AST.Tag(exp ? 'True' : 'False', null, {type: 'Bool'});
 			}
 		}),
 		'(characterAt:)': dispatch({

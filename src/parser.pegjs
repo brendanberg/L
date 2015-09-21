@@ -136,48 +136,48 @@ value
 
 infixOperator "infix operator"
 	= "//:"
-	/ "//" { return "'//'"; }
+	/ "//"
 	/ "/:"
 	/ "+:"
 	/ "-:"
 	/ "*:"
 	/ "%:"
-	/ "<=" { return "'<='"; }
-	/ "==" { return "'=='"; }
-	/ "!=" { return "'!='"; }
-	/ ">=" { return "'>='"; }
-	/ "@" { return "'@'"; }
-	/ "/\\" { return "'/\\'"; }
-	/ "\\/" { return "'\\/'"; }
+	/ "<="
+	/ "=="
+	/ "!="
+	/ ">="
+	/ "@"
+	/ "/\\"
+	/ "\\/"
 //	/ "->"
-	/ "<-"
-	/ ".." { return "'..'"; }
-	/ "..." { return "'...'"; }
+//	/ "<-"
+	/ ".."
+	/ "..."
 	/ "~>"
-	/ "<~" 
-	/ "??" { return "'??'"; }
-	/ "::" { return "'::'"; }
+	/ "<~"
+	/ "??"
+	/ "::"
 //	/ ":"
-	/ "+" { return "'+'"; }
-	/ "-" { return "'-'"; }
-	/ "*" { return "'*'"; }
-	/ "/" { return "'/'"; }
-	/ "%" { return "'%'"; }
-	/ "<" { return "'<'"; }
-	/ ">" { return "'>'"; }
-	/ "&" { return "'&'"; }
-	/ "|" { return "'|'"; }
-	/ "^" { return "'^'"; }
+	/ "+"
+	/ "-"
+	/ "*"
+	/ "/"
+	/ "%"
+	/ "<"
+	/ ">"
+	/ "&"
+	/ "|"
+	/ "^"
 
 prefixOperator "prefix operator"
-	= "+"  { return "'+'"; } // arithmetic no-op
-	/ "-"  { return "'-'"; } // arithmetic negation
-	/ "~"  { return "'~'"; } // ?
-	/ "!"  { return "'!'"; } // logical not
-	/ "^"  { return "'^'"; } // ?
-	/ "\\" { return "'\\'"; } // eager override
-	// "?" { return "'?'"; } // pattern match
-	// "*" { return "'*'"; } // destructure / dereference
+	= "+"  // arithmetic no-op
+	/ "-"  // arithmetic negation
+	/ "~"  // ?
+	/ "!"  // logical not
+	/ "^"  // ?
+	/ "\\" // eager override
+	// "?" // pattern match
+	// "*" // destructure / dereference
 
 
 function

@@ -59,8 +59,9 @@ function inspectify(depth, fmt) {
 						[this.list[i]], {source: 'parameterList'}
 					));
 					var test = item.eval(this);
-					//console.log(JSON.stringify(test));
-					if (test.type === 'Boolean' && test.value === true) {
+
+					if (test.type === 'Tag' && 
+							test.tags.type === 'Bool' && test.name === 'True') {
 						filtered.push(this.list[i]);
 					}
 				}

@@ -15,6 +15,16 @@ var dispatch = require('../dispatch');
 			'Bottom': function(_) {
 				return new AST.Option([this, _]);
 			}
-		})
+		}),
+		"(selectors:)": function() {
+			var selectors = [];
+			for (var i in this.ctx) {
+				if (i.match(/^\(.*\)$/)) {
+					selectors.push(new AST.String(i));
+				}
+			}
+			return new AST.List(selectors, {source: 'list'});
+			
+		}
 	};
 })(AST);

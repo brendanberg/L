@@ -30,13 +30,10 @@ var error = require('./error');
 
 	AST.PrefixExpression.prototype.eval = function (ctx) {
 		var exp = this.exp.eval(ctx);
-
-		var msg = new AST.Message(
-			new AST.Identifier('(' + this.op + ')'),
-			new AST.List([], {source: 'parameterList'})
-		);
-		var msgSend = new AST.MessageSend(ctx, exp, msg);
-		return msgSend.eval(ctx);
+		var ident = new AST.Identifier("'" + this.op + "'");
+		var params = new AST.List([ident], {source: 'parameterList'});
+		var invocation = new AST.Invocation(exp, params);
+		return invocation.eval(ctx);
 	};
 
 	AST.InfixExpression.prototype.eval = function (ctx) {
@@ -47,11 +44,13 @@ var error = require('./error');
 			// built macros yet.
 			expr = new AST.Assignment(this.lhs, this.rhs.eval(ctx));
 		} else {
-			msg = new AST.Message(
-				new AST.Identifier('(' + this.op + ':)'),
-				new AST.List([this.rhs.eval(ctx)], {source: 'parameterList'})
+			var exp = this.lhs.eval(ctx);
+			var p0 = new AST.KeyValuePair(
+				new AST.Identifier("'" + this.op + "'"),
+				this.rhs.eval(ctx)
 			);
-			expr = new AST.MessageSend(ctx, this.lhs.eval(ctx), msg);
+			var params = new AST.List([p0], {source: 'parameterList'});
+			expr = new AST.Invocation(exp, params);
 		}
 
 		return expr.eval(ctx);
@@ -135,44 +134,58 @@ var error = require('./error');
 					return x.name;
 				}
 			}).join('') + ')';
+			var method;
 
 			if (target.type === 'Struct') {
 				target.name = target.tags['name'];
 			}
 
-			if (selector in target.ctx) {
-				if (typeof target.ctx[selector] === 'function') {
-					params = this.params.list.map(function(x) {
-						return x.val.eval(ctx);
-					});
+			var method = target.ctx[selector];
+			
+			console.log(JSON.stringify(target));
+			console.log(JSON.stringify(target.ctx));
 
-					target.ctx.__proto__ = ctx;
-					return (
-						target.ctx[selector].apply(target, params) ||
-						new AST.Bottom()
+			if (method === undefined) {
+				console.log(target.__proto__.toString());
+				method = target.__proto__.ctx[selector];
+			}
+
+			console.log(method);
+
+			if (method && typeof method === 'function') {
+				//if (typeof target.ctx[selector] === 'function') {
+				console.log(method.toString());
+				params = this.params.list.filter(function (x) {
+					return x.type === 'KeyValuePair';
+				}).map(function(x) {
+					return x.val.eval(ctx);
+				});
+
+				target.ctx.__proto__ = ctx;
+				return method.apply(target, params) || new AST.Bottom();
+			} else if (method && method.type === 'Function') {
+				//target.ctx[selector].type === 'Function') {
+				return new AST.String('Whoa! Not implemented!');
+			} else if (method && method.type === 'Method') {
+				// (target.ctx[selector].type === 'Method') {
+				if (target.type === 'Struct' || target.type === 'Option') {
+					throw new error.NotImplemented(
+						"method invocations on types are not implemented"
 					);
-				} else if (target.ctx[selector].type === 'Function') {
-					return new AST.String('Whoa! Not implemented!');
-				} else if (target.ctx[selector].type === 'Method') {
-					if (target.type === 'Struct' || target.type === 'Option') {
-						throw new error.NotImplemented(
-							"method invocations on types are not implemented"
-						);
-					}
-					var meth = target.ctx[selector];
-					func = new AST.Method(meth.typeId, meth.plist, meth.block);
-					func.ctx = clone(target.ctx);
-					locals = new Context();
-					params = func.plist.list;
-
-					for (var i = 0, len = params.length; i < len; i++) {
-						locals[params[i][1].name] = this.params.list[i].val.eval(ctx);
-					}
-
-					locals.__proto__ = func.block.ctx;
-					locals['this'] = target;
-					return func.block.expressionList.eval(locals);
 				}
+				//var meth = target.ctx[selector];
+				func = new AST.Method(method.typeId, method.plist, method.block);
+				func.ctx = clone(target.ctx);
+				locals = new Context();
+				params = func.plist.list;
+
+				for (var i = 0, len = params.length; i < len; i++) {
+					locals[params[i][1].name] = this.params.list[i].val.eval(ctx);
+				}
+
+				locals.__proto__ = func.block.ctx;
+				locals['this'] = target;
+				return func.block.expressionList.eval(locals);
 			} else {
 				var msg = (
 					"'" + target.name + "' does not have a method " +
@@ -187,6 +200,7 @@ var error = require('./error');
 		var lookup;
 		var selector;
 
+		console.log('MESSAGE SEND');
 		if (this.receiver) {
 			var recv = this.receiver;
 			lookup = function(name) {
@@ -223,8 +237,10 @@ var error = require('./error');
 
 			return selector.block.expressionList.eval(scope);
 		} else if (selector && selector.type === 'Method') {
+			throw new error.NotImplemented(
+				"THIS ISN'T HOW WE DO METHOD INVOCATION ANYMORE");
 			// Method evaluation is slightly different.
-			var locals, params;
+			/*var locals, params;
 			var func = new AST.Method(selector.typeId, selector.plist, selector.block);
 			locals = new Context();
 
@@ -232,7 +248,6 @@ var error = require('./error');
 				throw 'method signatures do not match';
 			}
 
-			//scope = selector.ctx; //clone(selector.ctx);
 			params = selector.plist.list;
 
 			for (var i = 0, len = params.length; i < len; i++) {
@@ -244,7 +259,7 @@ var error = require('./error');
 			locals.__proto__ = func.block.ctx;
 			locals['this'] = this.receiver;
 
-			return selector.block.expressionList.eval(locals);
+			return selector.block.expressionList.eval(locals);*/
 		} else {
 			return selector;
 		}
@@ -262,9 +277,6 @@ var error = require('./error');
 		var ps = [];
 		var kvl = [];
 		var predicateMap = {
-			'Boolean': function(x) {
-				return this.value === x.value ? new Context() : null;
-			},
 			'Integer': function(x) {
 				return this.value === x.value ? new Context() : null; 
 			},
@@ -336,14 +348,18 @@ var error = require('./error');
 			return x.key.name + ':'
 		}).join('') + ')';
 
-		//this.bind(signature, function() { ... });
+		// This is the constructor function that returns a value created
+		// with the struct's parameters. It's bound to the struct's ctx.
 		this.ctx[signature] = function() {
 			var args = Array.prototype.slice.call(arguments);
 			var values = {};
 			for (var i = 0, len = this.members.length; i < len; i++) {
 				values[this.members[i].key] = args[i];
 			}
-			return new AST.Value(this, values);
+			var value = new AST.Value(this, values);
+			value.ctx = new Context();
+			value.ctx.__proto__ = this.ctx;
+			return value;
 		};
 
 		return this;
@@ -358,7 +374,6 @@ var error = require('./error');
 			tag.ctx = new Context();
 			tag.ctx.__proto__ = this.ctx;
 			this.values[name] = tag;
-			//= new AST.Tag(name);
 		};
 		return this;
 	};
@@ -504,10 +519,6 @@ var error = require('./error');
 	};
 
 	AST.Complex.prototype.eval = function(ctx) {
-		return this;
-	};
-
-	AST.Bool.prototype.eval = function(ctx) {
 		return this;
 	};
 

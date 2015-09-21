@@ -141,10 +141,11 @@ var AST = {
 		this.ctx = null;
 	},
 	Value: function(_super, values, tags) {
-		this.type = 'Struct';
+		this.type = 'Value';
 		this.tags = tags || {};
 		this._super = _super;
 		this.values = values;
+		this.ctx = null;
 	},
 	String: function (str, tags) {
 		this.type = 'String';
@@ -191,13 +192,6 @@ var AST = {
 		this.tags = tags || {};
 		this.real = real;
 		this.imaginary = imag;
-	},
-	// Boolean types will be implemented as options, so this won't be
-	// necessary once the standard library is started.
-	Bool: function(value, tags) {
-		this.type = 'Boolean';
-		this.tags = tags || {};
-		this.value = value;
 	},
 	Bottom: function(tags) {
 		this.type = 'Bottom';
