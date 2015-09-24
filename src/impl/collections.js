@@ -98,7 +98,22 @@ function inspectify(depth, fmt) {
 			'Function': function(fn) {
 
 			}
-		})
+		}),
+		"('+':)": dispatch({
+			'List': function(list) {
+				var items = this.list.slice();
+				Array.prototype.push.apply(items, list.list);
+				return new AST.List(items, {source: 'list'});
+			}
+		}),
+		'(append:)': function(val) {
+			var items = this.list.slice();
+			items.push(val);
+			return new AST.List(items, {source: 'list'});
+		},
+		'(length)': function() {
+			return new AST.Integer(this.list.length);
+		}
 		// append(x), extend([L]), insert(i, x), remove(x), pop(i?),
 		// index(x), count(x), length(), sort(...), reverse(),
 		// filter((x)->{n}), map((x)->{n}), reduce((a, b)->{x})

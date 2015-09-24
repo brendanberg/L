@@ -253,8 +253,9 @@ name
 		}
 
 postfixModifier
-	= "?" { return '?'; }
-	/ "!" { return '!'; }
+	= "?"
+	/ "!"
+	/ "..."
 
 type
 	= "<" __ kvl:keyValueList ? __ ">" {

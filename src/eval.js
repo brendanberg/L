@@ -102,7 +102,14 @@ var error = require('./error');
 			params = this.params.list.map(function(x) { return x.eval(ctx) });
 			for(var i in predicates) {
 				var pair = predicates[i];
-				var context = pair[0].apply(null, params);
+				var context = null;
+				try {
+					context = pair[0].apply(null, params);
+				} catch (e) {
+					if (!(e instanceof error.MatchError)) {
+						throw e;
+					}
+				}
 				if (context) {
 					if ('ctx' in pair[1]) { context.__proto__ = pair[1].ctx }
 					if (pair[1].type === 'Block') {
@@ -142,19 +149,17 @@ var error = require('./error');
 
 			var method = target.ctx[selector];
 			
-			console.log(JSON.stringify(target));
-			console.log(JSON.stringify(target.ctx));
+			//console.log(JSON.stringify(target));
+			//console.log(JSON.stringify(target.ctx));
 
 			if (method === undefined) {
 				console.log(target.__proto__.toString());
 				method = target.__proto__.ctx[selector];
 			}
 
-			console.log(method);
+			//console.log(method);
 
 			if (method && typeof method === 'function') {
-				//if (typeof target.ctx[selector] === 'function') {
-				console.log(method.toString());
 				params = this.params.list.filter(function (x) {
 					return x.type === 'KeyValuePair';
 				}).map(function(x) {
@@ -240,26 +245,6 @@ var error = require('./error');
 			throw new error.NotImplemented(
 				"THIS ISN'T HOW WE DO METHOD INVOCATION ANYMORE");
 			// Method evaluation is slightly different.
-			/*var locals, params;
-			var func = new AST.Method(selector.typeId, selector.plist, selector.block);
-			locals = new Context();
-
-			if (selector.plist.length !== this.message.params.length) {
-				throw 'method signatures do not match';
-			}
-
-			params = selector.plist.list;
-
-			for (var i = 0, len = params.length; i < len; i++) {
-				if (params[i][1] !== null) {
-					locals[params[i][1]] = this.message.params.list[i].eval(ctx);
-				}
-			}
-
-			locals.__proto__ = func.block.ctx;
-			locals['this'] = this.receiver;
-
-			return selector.block.expressionList.eval(locals);*/
 		} else {
 			return selector;
 		}
@@ -276,33 +261,9 @@ var error = require('./error');
 		match.ctx = ctx;
 		var ps = [];
 		var kvl = [];
-		var predicateMap = {
-			'Integer': function(x) {
-				return this.value === x.value ? new Context() : null; 
-			},
-			'String': function(x) {
-				return this.value === x.value ? new Context() : null;
-			},
-			'Identifier': function(x) {
-				var ctx = new Context();
-				ctx[this.name] = x;
-				return ctx;
-			},
-			'List': function(x) {
-				// Match on each item of the list... 
-				return null;
-			},
-			'Tag': function(x) {
-				if (this.name === x.name) { // && this.name in x.variants) {
-					return new Context();
-				} else {
-					return null;
-				}
-			}
-		};
 		for (var i = 0, len = this.kvl.length; i < len; i++) {
 			var kvp = new AST.KeyValuePair(this.kvl[i].key, this.kvl[i].val.eval(ctx));
-			ps.push([predicateMap[kvp.key.type].bind(kvp.key), kvp.val]);
+			ps.push([ctx.match.curry(kvp.key), kvp.val]);
 			kvl.push(kvp);
 		}
 		match.predicates = ps;

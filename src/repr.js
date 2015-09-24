@@ -65,40 +65,6 @@ function format(depth, fmt) {
 		);
 	};
 
-	/*AST.Method.prototype.toString = function() {
-		return (
-			this.typeId.toString() + '(' +
-			this.plist.list.map(function(x) {
-				var param = x[0].name;
-				if (x[1]) {
-					param += ': ' + x[0].toString();
-				}
-				return param;
-			}).join(', ') + ')' +
-			' -> ' + this.block.toString()
-		);
-		return undefined;
-	};
-
-	AST.Method.prototype.repr = function(depth, fmt) {
-		return (
-			this.typeId.repr(depth, fmt) +
-			fmt.stylize('(', 'delimiter') +
-			this.plist.list.map(function(x) {
-				var parameter = fmt.stylize(x[0].name, 'name');
-				if (x[1]) {
-					parameter += (fmt.stylize(':', 'separator') + ' ' +
-						x[1].repr(depth, fmt)
-					);
-				}
-				return parameter;
-			}).join(fmt.stylize(',', 'separator') + ' ') +
-			fmt.stylize(')', 'delimiter') +
-			' -> ' + this.block.repr(depth, fmt)
-		);
-		return undefined;
-	};*/
-
 	AST.Invocation.prototype.toString = function() {
 		return this.target.toString() + ' ' + this.params.toString();
 	};
