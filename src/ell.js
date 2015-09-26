@@ -11,13 +11,31 @@ var fs = require('fs');
 var path = require('path');
 
 var basepath = path.resolve('./lib');
-var filenames = fs.readdirSync(basepath);
-var contents, ast;
+var filenames = fs.readdirSync(basepath).filter(function(filename) {
+	return filename.match(/^[^\.].+\.ell$/) ? true : false;
+});
+var contents, ast = null;
 
 for (var i = 0, len = filenames.length; i < len; i++) {
 	contents = fs.readFileSync(path.join(basepath, filenames[i]), 'utf-8');
-	ast = L.Parser.parse(contents);
-	ast.eval(ctx);
+
+	try {
+		ast = L.Parser.parse(contents);
+	} catch (e) {
+		var result = e.toString();
+		
+		if (e.line && e.column) {
+			result += '\nline ' + e.line + ', column ' + e.column;
+		} else {
+			result += '\n' + e.stack.replace(/^[^\n]+\n/, '');
+		}
+
+		console.log(result);
+	}
+
+	if (ast) {
+		ast.eval(ctx);
+	}
 }
 
 console.log('The L Programming Language, v' + L.version);

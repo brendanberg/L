@@ -26,7 +26,7 @@ pureExpressionList
 expression
 	= declaration
   / e1:pureExpression _ ':' _ e2:pureExpression {
-			return new L.AST.InfixExpression(':', e1, e2);
+			return new L.AST.InfixExpression(':', e1, e2); // This is really a "match"
 		}
 	/ e1:pureExpression _ '<-' _ e2:pureExpression {
 			return new L.AST.MessageSend(null, e1, e2);
@@ -74,7 +74,9 @@ selectorPair
 
 specialIdentifier
 	= identifier
-	/ "'" op:(infixOperator/prefixOperator) "'" { return new L.AST.Identifier(op); }
+	/ "'" op:(infixOperator/prefixOperator) "'" {
+			return new L.AST.Identifier("'" + op + "'");
+		}
 
 expressionNoInfix
 	= val:value _ lst:list {
@@ -187,8 +189,18 @@ function
 	// il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
 
 match
-	= "(" __ dict:(keyValueList) ")" {
-			return new L.AST.Match(dict.kvl);
+	= "(" __ matches:(matchList) ")" {
+			return new L.AST.Match(matches);
+		}
+
+matchList
+	= first:matchDecl rest:(_S decl:matchDecl { return decl; })* _S ? _ {
+			return [first].concat(rest);
+		}
+
+matchDecl
+	= key:pureExpression _ "->" _ val:pureExpression {
+			return new L.AST.KeyValuePair(key, val);
 		}
 
 block

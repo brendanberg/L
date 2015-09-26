@@ -153,11 +153,8 @@ var error = require('./error');
 			//console.log(JSON.stringify(target.ctx));
 
 			if (method === undefined) {
-				console.log(target.__proto__.toString());
-				method = target.__proto__.ctx[selector];
+				method = target.ctx.__proto__[selector];
 			}
-
-			//console.log(method);
 
 			if (method && typeof method === 'function') {
 				params = this.params.list.filter(function (x) {
@@ -185,7 +182,9 @@ var error = require('./error');
 				params = func.plist.list;
 
 				for (var i = 0, len = params.length; i < len; i++) {
-					locals[params[i][1].name] = this.params.list[i].val.eval(ctx);
+					if (params[i][1]) {
+						locals[params[i][1].name] = this.params.list[i].val.eval(ctx);
+					}
 				}
 
 				locals.__proto__ = func.block.ctx;
