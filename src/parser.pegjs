@@ -2,6 +2,7 @@
 	var L = {};
 	L.AST = require('./ast');
 }
+
 start
 	= expressionList
 
@@ -33,17 +34,6 @@ expression
 		}
 	/ pureExpression
 
-	/*
-assignment
-	= e1:pureExpression _ ':' _ e2:pureExpression {
-			return new L.AST.InfixExpression(':', e1, e2);
-		}
-
-messageSend
-	= e1:pureExpression _ '<-' _ e2:pureExpression {
-			return new L.AST.MessageSend(null, e1, e2);
-		}
-*/
 // Purely functional expression
 pureExpression
 	= e1:expressionNoInfix infix:(_ op:infixOperator _ e2:expression {
@@ -102,11 +92,8 @@ propertyOrCall
 	/ "." id:identifier { return id; }
 
 parameterList
-	= parameterListNonEmpty
-	/ _ '(' __ ')' { return new L.AST.List([], {source: 'parameterList'}); }
-	
-parameterListNonEmpty
-	= _ '(' __ first:(keyValuePair / pureExpression) rest:(
+	= _ '(' __ ')' { return new L.AST.List([], {source: 'parameterList'}); }
+	/ _ '(' __ first:(keyValuePair / pureExpression) rest:(
 			_S item:(keyValuePair / pureExpression) { return item; }
 		)* _S? __ ')' {
 			return new L.AST.List([first].concat(rest), {source: 'parameterList'});
@@ -186,7 +173,6 @@ function
 	= il:identifierList _ "->" _ b:(block / match / function) {
 			return new L.AST.Function(il, b, {type: 'thin'});
 		}
-	// il:identifierList _ "=>" _ b:block { return new L.AST.Function(il, b, {type: 'fat'}); }
 
 match
 	= "(" __ matches:(matchList) ")" {
@@ -231,7 +217,7 @@ list
 		}
 
 dictionary
-	= "[" __ kvl:keyValueList ? __ "]" { 
+	= "#[" __ kvl:keyValueList ? __ "]" { 
 				return kvl || new L.AST.Dictionary([]);
 			}
 
