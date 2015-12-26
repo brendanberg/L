@@ -124,4 +124,11 @@ require('./impl/collections');
 require('./impl/blocks');
 require('./impl/types');
 
+Context.prototype['String'] = AST.String.prototype.ctx;
+Context.prototype['Integer'] = AST.Integer.prototype.ctx;
+Context.prototype['Rational'] = AST.Rational.prototype.ctx;
+Context.prototype['Decimal'] = AST.Decimal.prototype.ctx;
+Context.prototype['Complex'] = AST.Complex.prototype.ctx;
+Context.prototype['List'] = AST.List.prototype.ctx;
+
 module.exports = Context;

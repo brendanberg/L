@@ -47,7 +47,7 @@ function inspectify(depth, fmt) {
 		'(join:)': dispatch({
 			'String': function(s) {
 				var str = this.list.map(function(x) { return x.value; }).join(s.value);
-				return new AST.String(str);
+				return new AST.String({value: str});
 			}
 		}),
 		'(filter:)': dispatch({

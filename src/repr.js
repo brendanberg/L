@@ -11,6 +11,16 @@ function format(depth, fmt) {
 }
 
 (function(AST) {
+	AST.MatchExpression.prototype.toString = function () {
+
+	};
+
+	AST.MatchExpression.prototype.repr = function(depth, fmt) {
+		return (
+			'foo'
+		);
+	};
+
 	AST.InfixExpression.prototype.toString = function () {
 		return (this.lhs.toString() + ' ' +
 			this.op.replace(/^'(.*)'$/, '$1') + ' ' + this.rhs.toString()
@@ -51,14 +61,14 @@ function format(depth, fmt) {
 	};
 
 	AST.Match.prototype.toString = function() {
-		return "(\n" + this.kvl.map(stringify) + "\n)";
+		return "(\n" + this.kvlist.map(stringify) + "\n)";
 	};
 
 	AST.Match.prototype.repr = function(depth, fmt) {
 		//TODO: smart newlines for compact reprs
 		return (
 			fmt.stylize('(', 'delimiter') + '\n    ' +
-			this.kvl.map(format(depth, fmt)).join(
+			this.kvlist.map(format(depth, fmt)).join(
 				fmt.stylize('\n', 'delimiter')
 			).replace(/\n/g, '\n    ') + '\n' +
 			fmt.stylize(')', 'delimiter')
@@ -66,22 +76,34 @@ function format(depth, fmt) {
 	};
 
 	AST.Invocation.prototype.toString = function() {
-		return this.target.toString() + ' ' + this.params.toString();
+		return this.target.toString() + ' ' + this.plist.toString();
 	};
 
 	AST.Invocation.prototype.repr = function(depth, fmt) {
 		return (
 			this.target.repr(depth, fmt) + ' ' +
-			this.params.repr(depth, fmt)
+			this.plist.repr(depth, fmt)
 		);
 	};
+
+	AST.Lookup.prototype.toString = function() {
+		return this.target.toString() + '.' + this.term.toString();
+	}
+
+	AST.Lookup.prototype.repr = function(depth, fmt) {
+		return (
+			this.target.repr(depth, fmt) +
+			fmt.stylize('.', 'operator') +
+			this.term.repr(depth, fmt)
+		);
+	}
 	
 	AST.Block.prototype.toString = function () {
-		return '{\n' + this.expressionList.toString() + '\n}';
+		return '{\n' + this.explist.toString() + '\n}';
 	};
 
 	AST.Block.prototype.repr = function(depth, fmt) {
-		var exps = this.expressionList.list.map(format(depth, fmt));
+		var exps = this.explist.list.map(format(depth, fmt));
 		return (
 			fmt.stylize('{', 'delimiter') + '\n    ' +
 			exps.join('\n').replace(/\n/g, '\n    ') + '\n' +
@@ -116,7 +138,7 @@ function format(depth, fmt) {
 	};
 
 	AST.Tag.prototype.toString = function() {
-		return (this.tags.type || '') + '.' + this.name;
+		return this.getIn(['tags', 'type'], '') + '.' + this.name;
 	};
 
 	AST.Tag.prototype.repr = function(depth, fmt) {
@@ -124,7 +146,7 @@ function format(depth, fmt) {
 	};
 
 	AST.Value.prototype.toString = function() {
-		var name = this._super && this._super.name || 'Value';
+		var name = this.getIn(['mommy', 'name'], 'Value');
 		var vals = [];
 		for (var i in this.values) {
 			vals.push(i + ': ' + this.values[i].toString());
@@ -133,7 +155,7 @@ function format(depth, fmt) {
 	};
 
 	AST.Value.prototype.repr = function(depth, fmt) {
-		var name = this._super && this._super.name || 'Value';
+		var name = this.getIn(['mommy', 'name'], 'Value');
 		var vals = [];
 		for (var i in this.values) {
 			vals.push(
@@ -151,19 +173,20 @@ function format(depth, fmt) {
 	}
 
 	AST.List.prototype.toString = function() {
-		var delims = this.delimiters[this.tags['source'] || 'list'];
+		var delims = this.delimiters[this.getIn(['tags', 'source'], 'list')];
 		return delims[0] + this.list.map(stringify).join(', ') + delims[1];
 	};
 
 	AST.List.prototype.delimiters = {
-		dictionary: ['[',']'],
+		dictionary: ['#[',']'],
 		list: ['[',']'],
 		identifierList: ['(',')'],
 		parameterList: ['(',')']
 	};
 
 	AST.List.prototype.repr = function(depth, fmt) {
-		var delims = this.delimiters[this.tags['source'] || 'list'];
+		var delims = this.delimiters[this.getIn(['tags', 'source'], 'list')];
+
 		return (
 			fmt.stylize(delims[0], 'delimiter') +
 			this.list.map(format(depth, fmt)).join(fmt.stylize(', ', 'delimiter')) +
@@ -172,7 +195,7 @@ function format(depth, fmt) {
 	};
 	
 	AST.Dictionary.prototype.toString = function() {
-		return '[' + this.kvl.map(stringify).join(', ') + ']';
+		return '#[' + this.kvlist.map(stringify).join(', ') + ']';
 	};
 
 	AST.Dictionary.prototype.repr = function(depth, fmt) {
@@ -184,19 +207,19 @@ function format(depth, fmt) {
 	};
 
 	AST.MessageSend.prototype.toString = function () {
-		return (this.receiver ? this.receiver.toString() : '') + this.message.toString();
+		return (this.receiver ? this.receiver.toString() + '<-' : '') + this.message.toString();
 	};
 
 	AST.Message.prototype.toString = function () {
-		return '<-' + this.identifier.toString() + (this.params ? this.params.toString() : '');
+		return '<-' /*+ this.identifier.toString()*/ + (this.plist ? this.plist.toString() : '');
 	};
 
 	AST.Identifier.prototype.toString = function () {
-		return this.name + (this.tags['modifier'] || '');
+		return this.name + (this.getIn(['tags', 'modifier'], null) || '');
 	};
 
 	AST.Identifier.prototype.repr = function(depth, fmt) {
-		return fmt.stylize(this.name + (this.tags['identifier'] || ''), 'name');
+		return fmt.stylize(this.toString(), 'name');
 	};
 
 	AST.ExpressionList.prototype.toString = function () {
@@ -206,11 +229,6 @@ function format(depth, fmt) {
 
 	AST.ExpressionList.prototype.repr = function(depth, fmt) {
 		return this.list.map(format(depth, fmt)).join('\n');
-	};
-	
-	AST.KeyValueList.prototype.toString = function () {
-		var pairs = this.list.map(stringify).join('\n');
-		return '[\n' + pairs + '\n]';
 	};
 	
 	AST.KeyValuePair.prototype.toString = function () {
@@ -263,7 +281,7 @@ function format(depth, fmt) {
 			10: function(x) { return x.toString(); },
 			16: function(x) { return '0x' + x.toString(16).toUpperCase(); }
 		};
-		return baseMap[this.tags['source_base'] || 10](this.value);
+		return baseMap[this.getIn(['tags', 'source_base'], 10)](this.value);
 	};
 
 	AST.Integer.prototype.repr = function(depth, fmt) {
@@ -303,20 +321,21 @@ function format(depth, fmt) {
 	
 	// TODO: === REAL ===
 	
-	AST.Imaginary.prototype.toString = function () {
-		return this.magnitude.toString() + "i";
-	};
-
-	AST.Imaginary.prototype.repr = function(depth, fmt) {
-		return fmt.stylize(this.toString(), 'number');
-	};
-	
 	AST.Complex.prototype.toString = function () {
-		return this.real.toString() + "+" + this.imaginary.toString();
+		var real = this.get('real', null);
+		return (real ? real.toString() + "+" : '') + this.imaginary.toString() + 'j';
 	};
 
 	AST.Complex.prototype.repr = function(depth, fmt) {
-		return fmt.stylize(this.toString(), 'number');
+		var real = this.get('real', null);
+		var repr = '';
+		if (real) {
+			repr = (
+				fmt.stylize(real.toString(), 'number') +
+				fmt.stylize('+', 'operator')
+			);
+		}
+		return repr + fmt.stylize(this.imaginary.toString() + 'j', 'number');
 	};
 
 	AST.Bottom.prototype.toString = function () {

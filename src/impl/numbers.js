@@ -3,55 +3,50 @@ var dispatch = require('../dispatch');
 
 (function(AST) {
 	function make_bool(exp) {
-		return new AST.Tag(exp ? 'True' : 'False', null, {type: 'Bool'});
+		return new AST.Tag({
+			name: exp ? 'True' : 'False',
+			tags: {type: 'Bool'}
+		});
 	};
 
 	AST.Integer.prototype.ctx = {
 		"('+':)": dispatch({
 			'Integer': function(n) {
-				return new AST.Integer(this.value + n.value);
+				return new AST.Integer({value: this.value + n.value});
 			},
 			'Rational': function(q) {
-				return new AST.Rational(
-					this.value * q.denominator + q.numerator,
-					q.denominator
-				);
+				return new AST.Rational({
+					numerator: this.value * q.denominator + q.numerator,
+					denominator: q.denominator
+				});
 			},
 			'Decimal': function(d) {
-				return new AST.Decimal(
-					this.value * Math.pow(10, d.exponent) + d.numerator,
-					d.exponent
-				);
+				return new AST.Decimal({
+					numerator: this.value * Math.pow(10, d.exponent) + d.numerator,
+					exponent: d.exponent
+				});
 			},
-			'Imaginary': function(j) {
-				return new AST.Complex(this, j.magnitude);
-			},
+			// TODO!
 			'Complex': function(z) {
 				var exp = new AST.InfixExpression("('+':)", this, z.real);
 				return new AST.Complex(exp.eval(this), z.imaginary);
 			}
 		}),
 		"('-')": function() {
-			return new AST.Integer(-this.value);
+			return this.update('value', function(val) { return -val });
 		},
 		"('-':)": dispatch({
 			'Integer': function(n) {
-				return new AST.Integer(this.value - n.value);
+				return this.update('value', function(val) { return val - n.value; });
 			},
 			'Rational': function(q) {
-				return new AST.Rational(
-					this.value * q.denominator - q.numerator, q.denominator
-				);
+				return q.set('numerator', this.value * q.denominator - q.numerator);
 			},
 			'Decimal': function(d) {
-				return new AST.Decimal(
-					this.value * Math.pow(10, d.exponent) - d.numerator,
-					d.exponent
-				);
+				var numerator = this.value * Math.pow(10, d.exponent) - d.numerator;
+				return d.set('numerator', numerator);
 			},
-			'Imaginary': function(j) {
-				return new AST.Complex(this, j.magnitude);
-			},
+			// TODO:!
 			'Complex': function(z) {
 				var exp = new AST.InfixExpression("('-':)", this, z.real);
 				return new AST.Complex(exp.eval(this), z.imaginary);
@@ -59,46 +54,39 @@ var dispatch = require('../dispatch');
 		}),
 		"('*':)": dispatch({
 			'Integer': function(n) {
-				return new AST.Integer(this.value * n.value);
+				return this.update('value', function (val) { return val * n.value; });
 			},
 			'Rational': function(q) {
-				return new AST.Rational(
-					this.value * q.numerator, q.denominator
-				);
+				return q.update('numerator', function (val) { return val * this.value });
 			},
 			'Decimal': function(d) {
-				return new AST.Decimal(
-					d.numerator + this.value * Math.pow(10, d.exponent),
-					d.exponent
-				);
+				var numerator = d.numerator + this.value * Math.pow(10, d.exponent);
+				return d.set('numerator', numerator);
 			},
-			'Imaginary': function(j) {
-				var exp = new AST.InfixExpression("('*':)", this.value, j.real);
-				return new AST.Complex(exp.eval(this), j.imaginary);
-			},
+			// TODO: !!!
 			'Complex': function(z) {
 				return new AST.Complex(this.value * z.real, z.imaginary);
 			}
 		}),
 		"('/':)": dispatch({
 			'Integer': function(n) {
-				return new AST.Rational(this.value, n.value);
+				return this.update('value', function (val) { return val * n.value });
 			},
 			'Rational': function(q) {
-				return new AST.Rational(
-					this.value * q.denominator, q.numerator
-				);
+				return new AST.Rational({
+					numerator: this.value * q.denominator,
+					denominator: q.numerator
+				});
 			},
 			'Decimal': function(d) {
-				return new AST.Decimal(
-					d.numerator + this.value * Math.pow(10, d.exponent),
-					d.exponent
-				);
+				return d.update('numerator', function (val) {
+					return d.numerator + val * Math.pow(10, d.exponent)
+				});
 			},
-			'Imaginary': function(j) {
-				// (a + 0i) / (0 + di) = (-ad/d^2)i
-				return new AST.Complex(this, im);
-			},
+			// 'Imaginary': function(j) {
+			// 	// (a + 0i) / (0 + di) = (-ad/d^2)i
+			// 	return new AST.Complex(this, im);
+			// },
 			'Complex': function(z) {
 				var rational = new AST.Rational(this.value, z.real);
 				return new AST.Complex(rational, z.imaginary);
@@ -147,25 +135,24 @@ var dispatch = require('../dispatch');
 		})
 	};
 
+	// TODO VVVVVV
 	AST.Rational.prototype.ctx = {
 		"('+':)": dispatch({
 			'Integer': function(n) {
-				return new AST.Rational(
-					this.numerator + n.value * this.denominator, this.denominator
-				);
+				return this.update('numerator', function (val) {
+					return val + n.value * this.denominator;
+				});
 			},
 			'Rational': function(q) {
-				return new AST.Rational(
-					this.numerator * q.denominator + this.denominator * q.numerator,
-					this.denominator * q.denominator
-				);
+				return new AST.Rational({
+					numerator: this.numerator * q.denominator + this.denominator * q.numerator,
+					denominator: this.denominator * q.denominator
+				});
 			},
 			'Decimal': function(d) {
 
 			},
-			'Imaginary': function(j) {
-				return new AST.Complex(this, j.magnitude);
-			},
+			// TODO: !!!
 			'Complex': function(z) {
 				var exp = new AST.InfixExpression("('+':)", this, z.real)
 				return new AST.Complex(exp.eval(this), z.imaginary);
@@ -335,77 +322,6 @@ var dispatch = require('../dispatch');
 
 			},
 			'Decimal': function(d) {
-			},
-			'Imaginary': function(j) {
-
-			},
-			'Complex': function(z) {
-
-			}
-		})
-	};
-
-	AST.Imaginary.prototype.ctx = {
-		"('+':)": dispatch({
-			'Integer': function(n) {
-			
-			},
-			'Rational': function(q) {
-
-			},
-			'Decimal': function(d) {
-
-			},
-			'Imaginary': function(j) {
-
-			},
-			'Complex': function(z) {
-
-			}
-		}),
-		"('-':)": dispatch({
-			'Integer': function(n) {
-			
-			},
-			'Rational': function(q) {
-
-			},
-			'Decimal': function(d) {
-
-			},
-			'Imaginary': function(j) {
-
-			},
-			'Complex': function(z) {
-
-			}
-		}),
-		"('*':)": dispatch({
-			'Integer': function(n) {
-			
-			},
-			'Rational': function(q) {
-
-			},
-			'Decimal': function(d) {
-
-			},
-			'Imaginary': function(j) {
-
-			},
-			'Complex': function(z) {
-
-			}
-		}),
-		"('/':)": dispatch({
-			'Integer': function(n) {
-			
-			},
-			'Rational': function(q) {
-
-			},
-			'Decimal': function(d) {
-
 			},
 			'Imaginary': function(j) {
 

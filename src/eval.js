@@ -30,9 +30,13 @@ var error = require('./error');
 
 	AST.PrefixExpression.prototype.eval = function (ctx) {
 		var exp = this.exp.eval(ctx);
+		console.log("'\\'", exp.ctx["'\\'"]);
+		console.log('OP: ', this.op);
+		console.log(exp.ctx["'" + this.op + "'"]);
 		var ident = new AST.Identifier("'" + this.op + "'");
 		var params = new AST.List([ident], {source: 'parameterList'});
 		var invocation = new AST.Invocation(exp, params);
+		console.log(invocation.toString());
 		return invocation.eval(ctx);
 	};
 
@@ -272,11 +276,11 @@ var error = require('./error');
 
 	AST.Block.prototype.eval = function(ctx) {
 		var block = new AST.Block();
-		block.ctx = ctx;
+		block.ctx.__proto__ = ctx;
 		// Recursively search for prefix expressions with a '\' operator
 		// and replace them with their evaluated value
 		block.expressionList = this.expressionList.transform(function(node) {
-			if (node.type === 'PrefixExpression' && node.op === "'\\'") {
+			if (node.type === 'PrefixExpression' && node.op === "\\") {
 				return node.exp.eval(ctx);
 			} else {
 				return node;
@@ -471,10 +475,6 @@ var error = require('./error');
 	};
 
 	AST.Scientific.prototype.eval = function(ctx) {
-		return this;
-	};
-
-	AST.Imaginary.prototype.eval = function(ctx) {
 		return this;
 	};
 

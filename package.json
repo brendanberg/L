@@ -20,6 +20,7 @@
     "gulp-rename": "^1.2.2",
     "gulp-uglify": "^1.2.0",
     "gulp-util": "^3.0.6",
+    "immutable": "^3.7.6",
     "mocha-testcheck": "0.1.2",
     "pegjs": "^0.8.0"
   },
