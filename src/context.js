@@ -1,21 +1,23 @@
 var AST = require('./ast');
 var error = require('./error');
 var extend = require('util')._extend;
+var I = require('immutable');
 
-var Context = function() {
-	
+var Context = function(locals, outer) {
+	this.locals = I.Map(locals) || I.Map();
+	this.outer = outer || null;
 };
 
 // TODO: This should be a function on the global L object, not the context.
 Context.prototype.match = function(pattern, value) {
-	var ctx = new Context();
-	var key, val;
 	var values = Array.prototype.slice.call(arguments).slice(1);
-	ctx['__'] = value;
+	var ctx = {'__': value};
+	var key, val;
+	//ctx.locals = ctx.locals.set('__', value);
 	// console.log('attempt to match ' + pattern + ' with ' + value);
 
-	if (pattern.type === 'List') {
-		if (value.type != 'List') {
+	if (pattern._name === 'List') {
+		if (value._name != 'List') {
 			throw new error.TypeError('List destructuring requires list');
 		}
 
@@ -59,7 +61,10 @@ Context.prototype.match = function(pattern, value) {
 		}
 
 		if (patt.length === 1) {
-			var val = new AST.List(list.slice(), {source: 'list'});
+			var val = new AST.List({
+				list: I.List(list.slice()), // TODO: fn'al way to do this?
+				tags: I.Map({source: 'list'})
+			});
 			ctx[patt[0].name] = val;
 			return ctx;
 		} else if (patt.length > 1) {
@@ -71,14 +76,15 @@ Context.prototype.match = function(pattern, value) {
 		} else {
 			return ctx;
 		}
-	} else if (pattern.type === 'Identifier') {
+	} else if (pattern._name === 'Identifier') {
 		ctx[pattern.name] = value;
 		return ctx;
-	} else if (pattern.type === 'Integer') {
+		//return new Context(null, ctx);
+	} else if (pattern._name === 'Integer') {
 		return pattern.value === value.value ? ctx : null;
-	} else if (pattern.type === 'String') {
+	} else if (pattern._name === 'String') {
 		return pattern.value === value.value ? ctx : null;
-	} else if (pattern.type === 'Tag') {
+	} else if (pattern._name === 'Tag') {
 		if (pattern.name === value.name) { // && this.name in x.variants) {
 			return ctx;
 		} else {
@@ -102,17 +108,29 @@ Context.prototype.match.curry = function() {
 	};
 }
 
+Context.prototype.lookup = function(name) {
+	var value = this.locals.get(name, null);
+	if (value == null && this.outer != null) {
+		return this.outer.lookup(name);
+	} else {
+		return value || new AST.Bottom();
+	}
+};
+
 Context.prototype[':'] = function(identifier, value) {
-	//TODO: walk up the contexts and find a value?
+	// THIS MUTATES THE CONTEXT!!!!
+	// Assignment operator.
+	// Match the lhs and rhs of the expression
+	// TODO: walk up the contexts and find a value?
 	var ctx = this.match(identifier, value);
 	
 	if (ctx === null) {
 		throw new error.MatchError('incorrect match');
 	} else {
-		for (var i in ctx) {
-			this[i] = ctx[i];
-		}
+		this.locals = this.locals.merge(ctx);
 	}
+	console.log(ctx);
+	return ctx;//AST.Dictionary({kvlist: I.List;
 };
 
 // TODO: Should underscore be a special case in the parser?

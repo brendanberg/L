@@ -1,6 +1,7 @@
 var AST = require('./ast');
 var Context = require('./context');
 var error = require('./error');
+var I = require('immutable');
 
 (function(AST) {
 	function clone(obj) {
@@ -19,24 +20,29 @@ var error = require('./error');
 	}
 	
 	AST.ExpressionList.prototype.eval = function(ctx) {
-		var val;
-		for (var i = 0, len = this.list.length; i < len; i++) {
-			if ('eval' in this.list[i]) {
-				val = this.list[i].eval(ctx);
-			}
-		}
-		return val;
+		var vals = this.list.map(function(item) {
+			return item.eval && item.eval(ctx) || new AST.Bottom();
+			// if ('eval' in item.prototype) {
+			// 	return item.eval(ctx);
+			// } else {
+			// 	return new L.AST.Bottom();
+			// }
+		});
+		return vals.last();
 	};
 
 	AST.PrefixExpression.prototype.eval = function (ctx) {
 		var exp = this.exp.eval(ctx);
-		console.log("'\\'", exp.ctx["'\\'"]);
-		console.log('OP: ', this.op);
-		console.log(exp.ctx["'" + this.op + "'"]);
-		var ident = new AST.Identifier("'" + this.op + "'");
-		var params = new AST.List([ident], {source: 'parameterList'});
-		var invocation = new AST.Invocation(exp, params);
-		console.log(invocation.toString());
+		// console.log("'\\'", exp.ctx["'\\'"]);
+		// console.log('OP: ', this.op);
+		// console.log(exp.ctx["'" + this.op + "'"]);
+		var ident = new AST.Identifier({name: "('" + this.op + "')"});
+		var params = new AST.List({
+			list: I.List([ident]),
+			tags: I.Map({source: 'parameterList'})
+		});
+		var invocation = new AST.Invocation({target: exp, plist: params});
+		//console.log(invocation.toString());
 		return invocation.eval(ctx);
 	};
 
@@ -46,22 +52,33 @@ var error = require('./error');
 			// Special case for assignment. Probably make this a macro at
 			// some point, but not now bc I need assignment and I haven't
 			// built macros yet.
-			expr = new AST.Assignment(this.lhs, this.rhs.eval(ctx));
+			expr = new AST.Assignment({identifier: this.lhs, value: this.rhs.eval(ctx)});
 		} else {
 			var exp = this.lhs.eval(ctx);
-			var p0 = new AST.KeyValuePair(
-				new AST.Identifier("'" + this.op + "'"),
-				this.rhs.eval(ctx)
-			);
-			var params = new AST.List([p0], {source: 'parameterList'});
-			expr = new AST.Invocation(exp, params);
+			var p0 = new AST.KeyValuePair({
+				key: new AST.Identifier({name: "'" + this.op + "'"}),
+				val: this.rhs.eval(ctx)
+			});
+			var params = new AST.List({
+				list: I.List([p0]),
+				tags: I.Map({source: 'parameterList'})
+			});
+			expr = new AST.Invocation({target: exp, plist: params});
 		}
 
 		return expr.eval(ctx);
 	};
 
 	AST.Assignment.prototype.eval = function(ctx) {
-		ctx[':'].call(ctx, this.identifier, this.value);
+		// The assignment operator in the context updates the context and
+		// returns the match dictionary.
+		var matchDict = ctx[':'].call(ctx, this.identifier, this.value);
+		var newCtx = {};
+		for (var i in matchDict) {
+			newCtx[AST.Identifier({name: i})] = matchDict[i];
+		}
+		
+		return I.Map(newCtx);
 	};
 
 	AST.Invocation.prototype.eval = function(ctx) {
@@ -78,15 +95,18 @@ var error = require('./error');
 		}
 
 		if (target.type === 'Function') {
-			func = new AST.Function(target.plist, target.block);
-			func.ctx = clone(target.ctx);
-			locals = new Context();
-			params = func.plist.list;
+			var ctx;
+			//clone(target.ctx);
+			locals = {};
 
-			for (var i = 0, len = params.length; i < len; i++) {
-				locals[params[i].name] = this.params.list[i].eval(ctx);
-			}
+			func.plist.forEach(function(param) {
+				locals[param.name] = param.eval(ctx);
+			});
 
+			ctx = new Context(target.ctx, locals);
+			func = new AST.Function({plist: target.plist, block: target.block, ctx: ctx});
+
+			// TODO: This isn't quite right.
 			locals.__proto__ = func.block.ctx;
 			if (func.block.type === 'Function') {
 				return func.block.eval(locals);
@@ -96,10 +116,9 @@ var error = require('./error');
 				return func.block.expressionList.eval(locals);
 			}
 		} else if (target.type === 'Match') {
-			func = new AST.Match(target.kvl);
-			func.predicates = target.predicates;
-			//TODO: copy predicates instead of pointing?
-			func.ctx = clone(target.ctx);
+			func = target.update('ctx', function(ctx) {
+				return new Context(func.ctx);
+			});
 
 			var predicates = func.predicates;
 			var result = null;
@@ -115,8 +134,14 @@ var error = require('./error');
 					}
 				}
 				if (context) {
-					if ('ctx' in pair[1]) { context.__proto__ = pair[1].ctx }
-					if (pair[1].type === 'Block') {
+					if (pair[1].has('ctx')) {
+						// TODO: This may involve a diamond inheritance topology?
+						if (context.outer != null) {
+							console.log("WHOA THERE CHECK OUT eval.js");
+						}
+						context.outer = pair[1].ctx;
+					}
+					if (pair[1]._name === 'Block') {
 						result = pair[1].expressionList.eval(context);
 					} else {
 						result = pair[1];
@@ -151,7 +176,7 @@ var error = require('./error');
 				target.name = target.tags['name'];
 			}
 
-			var method = target.ctx[selector];
+			var method = target.ctx.locals.get(selector);
 			
 			//console.log(JSON.stringify(target));
 			//console.log(JSON.stringify(target.ctx));
@@ -180,19 +205,23 @@ var error = require('./error');
 					);
 				}
 				//var meth = target.ctx[selector];
-				func = new AST.Method(method.typeId, method.plist, method.block);
-				func.ctx = clone(target.ctx);
-				locals = new Context();
-				params = func.plist.list;
+				locals = {};
 
-				for (var i = 0, len = params.length; i < len; i++) {
-					if (params[i][1]) {
-						locals[params[i][1].name] = this.params.list[i].val.eval(ctx);
+				method.plist.list.forEach(function(param, key) {
+					if (param[1]) {
+						locals[param[1].name] = this.params.list.get(key).val.eval(ctx);
 					}
-				}
+				});
 
-				locals.__proto__ = func.block.ctx;
 				locals['this'] = target;
+
+				func = new AST.Method({
+					typeId: method.typeId,
+					plist: method.plist,
+					block: method.block,
+					ctx: new Context(I.Map(locals), target.ctx)
+				});
+
 				return func.block.expressionList.eval(locals);
 			} else {
 				var msg = (
@@ -212,16 +241,17 @@ var error = require('./error');
 		if (this.receiver) {
 			var recv = this.receiver;
 			lookup = function(name) {
-				var selector = recv.ctx[name];
+				var selector = recv.ctx.lookup(name);
+				// get(name);
 
-				if (selector === undefined) {
-					selector = recv.__proto__.ctx[name];
-				}
+				// if (selector === undefined) {
+				// 	selector = recv.__proto__.ctx[name];
+				// }
 
 				return selector;
 			};
 		} else {
-			lookup = function(name) { return ctx[name]; };
+			lookup = function(name) { return ctx.lookup(name); };
 		}
 
 		selector = lookup(this.message.identifier.name);
@@ -254,39 +284,40 @@ var error = require('./error');
 	};
 
 	AST.Function.prototype.eval = function(ctx) {
-		var func = new AST.Function(this.plist, this.block.eval(ctx));
-		//func.ctx = ctx;
-		return func;
+		return this.update('block', function(block) {
+			return block.eval(ctx);
+		});
 	};
 
 	AST.Match.prototype.eval = function(ctx) {
-		var match = new AST.Match();
-		match.ctx = ctx;
-		var ps = [];
-		var kvl = [];
-		for (var i = 0, len = this.kvl.length; i < len; i++) {
-			var kvp = new AST.KeyValuePair(this.kvl[i].key, this.kvl[i].val.eval(ctx));
-			ps.push([ctx.match.curry(kvp.key), kvp.val]);
-			kvl.push(kvp);
-		}
-		match.predicates = ps;
-		match.kvl = kvl;
-		return match;
+		var kvlist = this.kvlist.map(function(val) {
+			return val.eval(ctx);
+		});
+		var predicates = kvlist.map(function(val, key) {
+			return I.List.of(ctx.match.curry(key), val);
+		});
+		return this.merge({
+			// ctx: ctx,
+			predicates: predicates,
+			kvlist: kvlist
+		})
 	};
 
 	AST.Block.prototype.eval = function(ctx) {
-		var block = new AST.Block();
-		block.ctx.__proto__ = ctx;
+		// !!!! block.ctx.__proto__ = ctx;
+		// TODO: Update the context. I need to figure out the right procedure
+		// for this... 
 		// Recursively search for prefix expressions with a '\' operator
 		// and replace them with their evaluated value
-		block.expressionList = this.expressionList.transform(function(node) {
-			if (node.type === 'PrefixExpression' && node.op === "\\") {
-				return node.exp.eval(ctx);
-			} else {
-				return node;
-			}
+		return this.update('explist', function(explist) {
+			return explist.transform(function(node) {
+				if (node._name === 'PrefixExpression' && node.op === '\\') {
+					return node.exp.eval(ctx);
+				} else {
+					return node;
+				}
+			});
 		});
-		return block;
 	};
 
 	AST.Method.prototype.eval = function(ctx) {
@@ -294,16 +325,28 @@ var error = require('./error');
 		// operate on a type defined in the package context. Importing the
 		// type will also import its context I guess
 
-		var type = this.typeId.eval(ctx);
+		// 1. Find the type identifier in the current context. 
+		//    (if it doesn't exist, create it.)
+		// 2. Update the type's context with the method's selector
+		//    and body.
+
+		var typeId = this.typeId.eval(ctx);
 		var selector = '(' + this.plist.list.map(function(x) {
 			return x[0].name + (x[1] ? ':' : '')
 		}).join('') + ')';
 
-		if (!type.ctx) {
-			type.ctx = new Context();
+		var type = ctx.lookup(typeId.name);
+
+		if (type && type.has('ctx')) {
+			type = type.update('ctx', function(ctx) {
+				ctx.locals[selector] = this;
+				return ctx;
+			});
 		}
-		this.block = this.block.eval(ctx);
-		type.ctx[selector] = this;
+		// self = self.update('block', function(block) {
+		// 	return block.eval(ctx);
+		// });
+		
 		//return this;
 	};
 
@@ -314,32 +357,31 @@ var error = require('./error');
 
 		// This is the constructor function that returns a value created
 		// with the struct's parameters. It's bound to the struct's ctx.
-		this.ctx[signature] = function() {
+		this.ctx.locals = this.ctx.locals.set(signature, function() {
 			var args = Array.prototype.slice.call(arguments);
 			var values = {};
 			for (var i = 0, len = this.members.length; i < len; i++) {
 				values[this.members[i].key] = args[i];
 			}
-			var value = new AST.Value(this, values);
-			value.ctx = new Context();
-			value.ctx.__proto__ = this.ctx;
-			return value;
-		};
+			return new AST.Value({
+				mommy: this, values: values, ctx: new Context(this.ctx)
+			});
+		});
 
 		return this;
 	};
 
 	AST.Option.prototype.eval = function(ctx) {
-		this.values = {};
-		this.ctx = new Context();
-		for (var i = 0, len = this.variants.length; i < len; i++) {
-			var name = this.variants[i].name;
-			var tag = new AST.Tag(name);
-			tag.ctx = new Context();
-			tag.ctx.__proto__ = this.ctx;
-			this.values[name] = tag;
-		};
-		return this;
+		var values = {};
+		//!!! this.ctx = new Context();
+		this.variants.forEach(function(variant) {
+			values[variant.name] = new AST.Tag({
+				name: variant.name,
+				ctx: ctx
+			});
+		});
+		
+		return this.set('ctx', I.Map(values));
 	};
 
 	AST.Tag.prototype.eval = function(ctx) {
@@ -351,7 +393,7 @@ var error = require('./error');
 	};
 
 	AST.Identifier.prototype.eval = function(ctx) {
-		value = ctx[this.name];
+		var value = ctx.locals.get(this.name);
 
 		if (value === null || value === undefined) {
 			var msg = (
@@ -361,12 +403,13 @@ var error = require('./error');
 			throw new error.NameError(msg);  
 		}
 
-		value.tags['name'] = this.name;
-		return value;
+		return value.setIn(['tags', 'name'], this.name);
 	};
 
 	AST.KeyValuePair.prototype.eval = function(ctx) {
-		ctx[this.key.eval(ctx)] = this.val.eval(ctx);
+		// TODO: WHAT THE FUCK AM I DOING HERE?
+		ctx.locals = ctx.locals.set(this.key.eval(ctx), this.val.eval(ctx));
+		// ctx[this.key.eval(ctx)] = this.val.eval(ctx);
 		return this;
 	};
 
@@ -381,10 +424,9 @@ var error = require('./error');
 			newKVL.push(new AST.KeyValuePair(key, value));
 		}
 
-		var dict = new AST.Dictionary(newKVL, this.tags);
-		dict.ctx = newContext;
-
-		return dict;
+		return new AST.Dictionary({
+			kvlist: newKVL, ctx: new Context(null, newContext), tags: I.Map(this.tags)
+		});
 	};
 
 	AST.List.prototype.eval = function(ctx) {
@@ -415,7 +457,7 @@ var error = require('./error');
 					}
 				} else if (target.type === 'Dictionary') {
 					//TODO: Test that index is hashable
-					result.push(target.ctx[index] || new AST.Bottom());
+					result.push(target.ctx.locals.get(index) || new AST.Bottom());
 				} else if (target.type === 'String') {
 					if (index.type !== 'Integer') {
 						// THis is an error

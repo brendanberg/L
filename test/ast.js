@@ -96,7 +96,7 @@ ASTgen.infixExpression__r = gen.map(function(args) {
 
 ASTgen.list__r = gen.map(function(items) {
 	return new L.AST.List({list: I.List(items), tags: I.Map({source: 'list'})});
-}, gen.array(ASTgen.identifier));
+}, gen.array(ASTgen.identifier, ));
 
 ASTgen.keyValuePair__r = gen.map(function(args) {
 	return new L.AST.KeyValuePair({key: args[0], val: args[1]});

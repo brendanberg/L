@@ -65,7 +65,7 @@ var AST = {
 		{members: _list, name: _, tags: _map}, 'Struct'
 	),
 	Option: I.Record(
-		{variants: _list, name: _, tags: _map}, 'Option'
+		{variants: _list, name: _, ctx: _, tags: _map}, 'Option'
 	),
 	Tag: I.Record(
 		{name: _, value: _, ctx: _, tags: _map}, 'Tag'
