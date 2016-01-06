@@ -120,11 +120,12 @@ var I = require('immutable');
 				return new Context(func.ctx);
 			});
 
-			var predicates = func.predicates;
+			var predicates;
 			var result = null;
-			params = this.params.list.map(function(x) { return x.eval(ctx) });
-			for(var i in predicates) {
-				var pair = predicates[i];
+			params = this.plist.list.map(function(x) { return x.eval(ctx) });
+			// for(var i in predicates) {
+			func.predicates.forEach(function(pred) {
+				var pair = pred;
 				var context = null;
 				try {
 					context = pair[0].apply(null, params);
@@ -146,9 +147,9 @@ var I = require('immutable');
 					} else {
 						result = pair[1];
 					}
-					break;
+					return false;//break;
 				} 
-			}
+			});
 			return result || new AST.Bottom();
 		} else if (target.type === 'Block') {
 			return new AST.Block(target.expressionList.eval(ctx));
@@ -162,9 +163,9 @@ var I = require('immutable');
 			// > t = Thing(s: "stressed")
 			// > t(reverse)
 			// 'desserts'
-			var context = clone(ctx);
-			var selector = '(' + this.params.list.map(function(x) {
-				if (x.type === 'KeyValuePair') {
+			// var context = new Context(_, ctx);//clone(ctx);
+			var selector = '(' + this.plist.list.map(function(x) {
+				if (x._name === 'KeyValuePair') {
 					return x.key.name + ':';
 				} else {
 					return x.name;
@@ -176,23 +177,30 @@ var I = require('immutable');
 				target.name = target.tags['name'];
 			}
 
+			console.log(target);
 			var method = target.ctx.locals.get(selector);
 			
 			//console.log(JSON.stringify(target));
 			//console.log(JSON.stringify(target.ctx));
 
 			if (method === undefined) {
-				method = target.ctx.__proto__[selector];
+////////////
+				method = target.ctx.lookup(selector);
 			}
 
 			if (method && typeof method === 'function') {
-				params = this.params.list.filter(function (x) {
-					return x.type === 'KeyValuePair';
+				console.log('calling a builtin');
+				console.log(this.plist.list);
+				params = this.plist.list.filter(function (x) {
+					return x._name === 'KeyValuePair';
 				}).map(function(x) {
 					return x.val.eval(ctx);
 				});
-
-				target.ctx.__proto__ = ctx;
+				console.log(params);
+				console.log(method);
+				console.log(target);
+///////////
+				//target.ctx.__proto__ = ctx;
 				return method.apply(target, params) || new AST.Bottom();
 			} else if (method && method.type === 'Function') {
 				//target.ctx[selector].type === 'Function') {
@@ -209,7 +217,7 @@ var I = require('immutable');
 
 				method.plist.list.forEach(function(param, key) {
 					if (param[1]) {
-						locals[param[1].name] = this.params.list.get(key).val.eval(ctx);
+						locals[param[1].name] = this.plist.list.get(key).val.eval(ctx);
 					}
 				});
 
@@ -258,20 +266,23 @@ var I = require('immutable');
 
 		if (selector && typeof selector === 'function') {
 			var evaluate = function (x) { return x.eval(ctx) };
-			return selector.apply(this.receiver, this.message.params.list.map(evaluate));
+			return selector.apply(this.receiver, this.message.plist.list.map(evaluate));
 		} else if (selector && selector.type === 'Function') {
 			// Eval the function ugh
 			var scope;
 
-			if (selector.plist.length !== this.message.params.length) {
+			if (selector.plist.size !== this.message.plist.size) {
 				throw 'function signatures do not match';
 			}
 
 			scope = clone(selector.ctx);
 
-			for (var i = 0, len = selector.plist.list.length; i < len; i++) {
-				scope[selector.plist.list[i].name] = this.message.params.list[i].eval(ctx);
-			}
+			selector.plist.forEach(function(param, idx) {
+				scope[param.name] = this.message.plist.list.get(idx).eval(ctx);
+			});
+			// for (var i = 0, len = selector.plist.list.length; i < len; i++) {
+			// 	scope[selector.plist.list[i].name] = this.message.plist.list[i].eval(ctx);
+			// }
 
 			return selector.block.expressionList.eval(scope);
 		} else if (selector && selector.type === 'Method') {
@@ -360,9 +371,9 @@ var I = require('immutable');
 		this.ctx.locals = this.ctx.locals.set(signature, function() {
 			var args = Array.prototype.slice.call(arguments);
 			var values = {};
-			for (var i = 0, len = this.members.length; i < len; i++) {
-				values[this.members[i].key] = args[i];
-			}
+			this.members.forEach(function(member, idx) {
+				values[member.key] = args[idx];
+			});
 			return new AST.Value({
 				mommy: this, values: values, ctx: new Context(this.ctx)
 			});
@@ -417,12 +428,12 @@ var I = require('immutable');
 		var newContext = {};
 		var newKVL = [];
 
-		for (var i = 0, len = this.kvl.length; i < len; i++) {
-			var key = this.kvl[i].key;
-			var value = this.kvl[i].val.eval(ctx);
-			newContext[key] = value;
-			newKVL.push(new AST.KeyValuePair(key, value));
-		}
+		//for (var i = 0, len = this.kvl.length; i < len; i++) {
+		this.kvlist.forEach(function(kvp) {
+			var value = kvp.val.eval(ctx);
+			newContext[kvp.key] = value;
+			newKVL.push(new AST.KeyValuePair(kvp.key, value));
+		});
 
 		return new AST.Dictionary({
 			kvlist: newKVL, ctx: new Context(null, newContext), tags: I.Map(this.tags)
@@ -441,35 +452,38 @@ var I = require('immutable');
 
 		// Lookup integer indexes in lists or identifiers in dictionaries
 		if (this.term.type === 'List') {
-			list = this.term.list;
-			for (var i = 0, len = list.length; i < len; i++) {
-				index = list[i].eval(ctx);
-				if (target.type === 'List') {
-					if (index.type !== 'Integer') {
+			// list = this.term.list;
+			// for (var i = 0, len = list.length; i < len; i++) {
+			this.term.list.forEach(function(item, idx) {
+				index = item.eval(ctx);
+				if (target._name === 'List') {
+					if (index._name !== 'Integer') {
 						return new AST.Bottom();
 					}
 					if (index.value < 0) {
-						result.push(target.list[target.list.length + index.value]
-							|| new AST.Bottom()
+						result.push(
+							target.list.get(target.list.size + index.value) ||
+							new AST.Bottom()
 						);
 					} else {
-						result.push(target.list[index.value] || new AST.Bottom());
+						result.push(target.list.get(index.value) || new AST.Bottom());
 					}
-				} else if (target.type === 'Dictionary') {
+				} else if (target._name === 'Dictionary') {
 					//TODO: Test that index is hashable
 					result.push(target.ctx.locals.get(index) || new AST.Bottom());
-				} else if (target.type === 'String') {
-					if (index.type !== 'Integer') {
-						// THis is an error
+				} else if (target._name === 'String') {
+					if (index._name !== 'Integer') {
+						// TODO: THis is an error
 					}
 					if (index.value < 0) {
 						index.value = target.value.length + index.value;
 					}
 
 					// This is a problem.. Pushing empty string? LOL
+					// TODO: Should the default be Bottom()?
 					result.push(target.value[index.value] || '');
 				}
-			}
+			});
 		} else if (this.term.type === 'Identifier' || this.term.type === 'Option') {
 			if (!(this.term.name in target.values)) {
 				var msg = (

@@ -136,17 +136,34 @@ Context.prototype[':'] = function(identifier, value) {
 // TODO: Should underscore be a special case in the parser?
 Context.prototype['_'] = new AST.Bottom();
 
-require('./impl/strings');
-require('./impl/numbers');
-require('./impl/collections');
-require('./impl/blocks');
-require('./impl/types');
+var strings = require('./impl/strings');
+var numbers = require('./impl/numbers');
+var collections = require('./impl/collections');
+var blocks = require('./impl/blocks');
+var types = require('./impl/types');
 
-Context.prototype['String'] = AST.String.prototype.ctx;
-Context.prototype['Integer'] = AST.Integer.prototype.ctx;
-Context.prototype['Rational'] = AST.Rational.prototype.ctx;
-Context.prototype['Decimal'] = AST.Decimal.prototype.ctx;
-Context.prototype['Complex'] = AST.Complex.prototype.ctx;
-Context.prototype['List'] = AST.List.prototype.ctx;
+// TODO: The context should probably point to some sort of object context
+// console.log(Context);
+// AST.Integer.prototype.ctx = new Context(I.Map(methods), null);
+
+AST.Integer.prototype.ctx = new Context(I.Map(numbers.Integer), null);
+AST.Rational.prototype.ctx = new Context(I.Map(numbers.Rational), null);
+AST.Decimal.prototype.ctx = new Context(I.Map(numbers.Decimal), null);
+AST.Complex.prototype.ctx = new Context(I.Map(numbers.Complex), null);
+
+AST.List.prototype.ctx = new Context(I.Map(collections.List), null);
+AST.Dictionary.prototype.ctx = new Context(I.Map(collections.Dictionary), null);
+
+AST.String.prototype.ctx = new Context(I.Map(strings.String), null);
+
+AST.Block.prototype.ctx = new Context(I.Map(blocks.Block), null);
+AST.Struct.prototype.ctx = new Context(I.Map(types.Struct), null);
+
+// Context.prototype['String'] = AST.String.prototype.ctx;
+// Context.prototype['Integer'] = AST.Integer.prototype.ctx;
+// Context.prototype['Rational'] = AST.Rational.prototype.ctx;
+// Context.prototype['Decimal'] = AST.Decimal.prototype.ctx;
+// Context.prototype['Complex'] = AST.Complex.prototype.ctx;
+// Context.prototype['List'] = AST.List.prototype.ctx;
 
 module.exports = Context;
