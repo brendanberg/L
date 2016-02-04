@@ -35,6 +35,6 @@ Questions, comments, and suggestions can be addressed to
 [brendan@berg.industries][mailto].
 
 
-[cg]: https://github.com/brendanberg/l/blob/master/docs/community_guidelines.md
+[cg]: community_guidelines.md
 [issues]: https://github.com/brendanberg/l/issues
 [mailto]: mailto:brendan@berg.industries

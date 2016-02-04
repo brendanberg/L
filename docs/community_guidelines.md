@@ -129,7 +129,7 @@ the [Django Code of Conduct][django], and
 the [P5.js Community Statement][p5].
 This document is shared under the [Creative Commons Attribution License][cc].
 
-[as]: https://github.com/brendanberg/l/blob/master/docs/accessibility.md
+[as]: accessibility.md
 [community_email]: mailto:brendan@berg.industries
 [asf]: https://www.apache.org/foundation/policies/conduct.html
 [django]: https://www.djangoproject.com/conduct/
