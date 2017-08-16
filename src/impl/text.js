@@ -3,14 +3,14 @@ var dispatch = require('../dispatch');
 
 (function(AST) {
 	module.exports = {
-		String: {
+		Text: {
 			"('+':)": dispatch({
-				'String': function(s) {
-					return new AST.String(this.value + s.value);
+				'Text': function(s) {
+					return new AST.Text(this.value + s.value);
 				}
 			}),
 			"('==':)": dispatch({
-				'String': function(s) {
+				'Text': function(s) {
 					var exp = this.value === s.value;
 					return new AST.Tag(exp ? 'True' : 'False', null, {type: 'Bool'});
 				}
@@ -20,17 +20,17 @@ var dispatch = require('../dispatch');
 					var idx = n.value < 0 ? this.value.length + n.value : n.value;
 					var char = this.value[idx];
 					if (char) {
-						return new AST.String(char);
+						return new AST.Text(char);
 					} else {
 						return new AST.Bottom();
 					}
 				}
 			}),
 			'(split:)': dispatch({
-				'String': function(s) {
+				'Text': function(s) {
 					var ls = this.value.split(s.value);
 					return new AST.List(
-						ls.map(function(x) { return new AST.String(x); })
+						ls.map(function(x) { return new AST.Text(x); })
 					);
 				}
 			})

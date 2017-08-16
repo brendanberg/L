@@ -1,170 +1,112 @@
 {
 	var I = require('immutable');
+	var Skel = require('./skeleton');
+
 	var L = {};
-	L.AST = require('./ast');
+	let asString = function(val) { return val.toString(); };
+	//var Cursor = I.Record({start: _, end: _});
 }
 
+/* Parsing the L Programming Language
+
+	 The L Programming Language is parsed in three steps. First, the source code
+	 is read into a tokenized syntax tree. Second, the tokenized tree is traversed
+	 and expanded according to macro rules into an abstract syntax tree. Finally,
+	 the AST ---
+
+	 1. Read (build the term tree)
+
+	 The read stage reads the source text and outputs a term tree. 
+	 The read stage recognizes the generalized structure of the program:
+	 delimited lists, literals, identifiers, and operators.
+
+	 2. Match (macro-lookup)
+
+	 3. Expand
+
+ */
+
 start
-	= expressionList
+	= exprs:expressionList {
+			return new Skel.Block({
+				exprs: exprs,
+				tags: I.Map({source: 'module'})
+			});
+		}
 
 expressionList
-	= first:expression rest:(_S exp:expression { return exp; } )* _S? _ {
-			if (rest.length > 0) {
-				return new L.AST.ExpressionList({
-					list: I.List([first].concat(rest))
-				});
-			} else {
-				return first;
-			}
+	= __ first:expression rest:(_S e:expression { return e; })* _S? __ {
+			return I.List([first].concat(rest));
 		}
 
-pureExpressionList
-	= first:pureExpression rest:(_S exp:pureExpression { return exp; } )* _S? _ {
-			if (rest.length > 0) {
-				return new L.AST.ExpressionList({
-					list: I.List([first].concat(rest))
-				});
-			} else {
-				return first;
-			}
-		}
+
+/*
+
+	 The L Programming Language Skeleton Syntax
+
+	 A program is a list of expressions. Since blocks are lists of expressions
+	 with a context, parsing a source file returns a block containing the source
+	 program's expressions.
+
+	 At the skeleton tree level, expressions are lists of terms. Terms can be
+	 either atomic or containers of other expressions.
+
+	 Atomic terms are literals, identifiers, symbols, and operators.
+
+	 Container terms are lists, messages, types and blocks.
+
+ */
+
+/*---------------------------------------------------------------------------
+	Expressions
+	--------------------------------------------------------------------------*/
 
 expression
-	= declaration
-  / e1:pureExpression _ ':' _ e2:pureExpression {
-			//return new L.AST.Match(e1, e2);
-			return new L.AST.InfixExpression({op: ':', lhs: e1, rhs: e2}); 
-			// This is really a "match"
-		}
-	/ e1:expressionNoInfix _ '<-' _ e2:parameterList {
-			return new L.AST.MessageSend({receiver: e1, message: e2});
-		}
-	/ e1:infixExpression _ '<-' _ e2:parameterList {
-			// TODO: MAKE SURE THIS IS RIGHT
-			var lhs = e1.rhs;
-			e1.rhs = new L.AST.MessageSend({receiver: lhs, message: e2});
-		}
-	/ pureExpression
-
-// Purely functional expression
-pureExpression
-	= infixExpression
-	/ expressionNoInfix
-
-infixExpression
-	= lhs:expressionNoInfix infix:(_ op:infixOperator _ rhs:expression {
-			return new L.AST.InfixExpression({op: op, rhs: rhs});
-		}) {
-			return infix.set('lhs', lhs);
-		}
-
-declaration
-	= _ id:identifier _ s:selectorDeclaration _ "->" _ b:block {
-			return new L.AST.Method({typeId: id, plist: s, block: b});
-		}
-
-selectorDeclaration
-	= "(" _ name:specialIdentifier _ ")" {
-			return new L.AST.List({
-				list: I.List([[name, null]]),
-				tags: I.Map({source: 'parameterList'})
-			});
-		}
-	/ "(" _ first:selectorPair rest:(_S it:selectorPair { return it; })* _ ")" {
-			return new L.AST.List({
-				list: I.List([first].concat(rest)),
-				tags: I.Map({source: 'parameterList'})
+	= first:term rest:(_ t:term { return t; })* _ {
+			return new Skel.Expression({
+				terms: I.List([first].concat(rest))
 			});
 		}
 
-selectorPair
-	= name:specialIdentifier _ ":" _ val:identifier { return [name, val]; }
-
-specialIdentifier
+term
 	= identifier
-	/ "'" op:(infixOperator/prefixOperator) "'" {
-			return new L.AST.Identifier({name: "'" + op + "'"});
-		}
-
-expressionNoInfix
-	= val:value _ lst:list {
-			return new L.AST.Lookup({target: val, term: lst});
-		}
-	/ val:value more:(_ it:propertyOrCall { return it; })+ {
-			var expr = val;
-			for(var i = 0, len = more.length; i < len; i++) {
-				var item = more[i];
-				if (item._name === 'Identifier') {
-					expr = new L.AST.Lookup({target: expr, term: item});
-				} else {
-					expr = new L.AST.Invocation({target: expr, plist: item});
-				}
-			}
-			return expr;
-		}
-	/ prefixExpression
-	/ value
-
-propertyOrCall
-	= parameterList
-	/ "." id:identifier { return id; }
-
-parameterList
-	= _ '(' __ ')' {
-			return new L.AST.List({
-				list: I.List([]), 
-				tags: I.Map({source: 'parameterList'})
-			}); 
-		}
-	/ _ '(' __ first:(keyValuePair / pureExpression) rest:(
-			_S item:(keyValuePair / pureExpression) { return item; }
-		)* _S? __ ')' {
-			return new L.AST.List({
-				list: I.List([first].concat(rest)),
-				tags: I.Map({source: 'parameterList'})
-			});
-		}
-
-identifierList
-	= "(" __ idl:(first:identifier rest:(_S id:identifier { return id; })* _S? {
-			return new L.AST.List({
-				list: I.List([first].concat(rest)),
-				tags: I.Map({source: 'identifierList'})
-			});
-		}) ? __ ")" {
-			return idl || new L.AST.List({
-				list: I.List([]),
-				tags: I.Map({source: 'identifierList'})
-			});
-		}
-
-prefixExpression
-	= op:prefixOperator _ e:value {
-			return new L.AST.PrefixExpression({op: op, exp: e});
-		}
-
-value
-	= function     // -+ These non-terminals are allowed to span multiple lines
-	/ match        //  |
-	/ list         //  |
-	/ dictionary   // -+
-	/ identifier 
-	/ string
-	/ number
+	/ symbol
+	/ list
 	/ block
-	/ '(' e:expression ')' { return e.setIn(['tags', 'parenthesized'], true); }
-	/ type
+	// type
+	/ op:Operator { return new Skel.Operator({label: op}); }
+	/ number
+	/ '"' v:(!'"' !'\n' ch:. { return ch; })* '"' {
+			return new Skel.Text({value: v.join('')});
+		}
+	/ "'" v:(!"'" !'\n' ch:. { return ch; })* "'" {
+			return new Skel.Text({value: v.join('')});
+		}
+	/*/ '(' e:expression ')' {
+			return new Skel.Expression({
+				terms: I.List([e]),
+				tags: I.Map({enclosure: 'parentheses'})
+			});
+		}*/
+	/ message
 
-infixOperator "infix operator"
-	= "..."
+
+/*---------------------------------------------------------------------------
+  Operators
+ ---------------------------------------------------------------------------*/
+
+Operator "operator"
+	= "::"
+	/ "..."
 	/ ".."
+	/ "->"
 	/ "~>"
 	/ "<~"
 	/ "??"
-	/ "::"
 	/ "//:"
 	/ "/\\"
 	/ "\\/"
+	/ "\\"  // Prefix only: eager override
 	/ "/:"
 	/ "+:"
 	/ "-:"
@@ -176,8 +118,9 @@ infixOperator "infix operator"
 	/ ">="
 	/ "//"
 	/ "@"
-	/ "+"
-	/ "-"
+	/ "+"   // As prefix: arithmetic no-op
+	/ "-"   // As prefix: arithmetic negation
+	/ "!"   // Prefix only: logical not
 	/ "*"
 	/ "/"
 	/ "%"
@@ -185,216 +128,176 @@ infixOperator "infix operator"
 	/ ">"
 	/ "&"
 	/ "|"
-	/ "^"
-//	/ "->"
-//	/ "<-"
-//	/ ":"
-
-prefixOperator "prefix operator"
-	= "+"  // arithmetic no-op
-	/ "-"  // arithmetic negation
-	/ "~"  // ?
-	/ "!"  // logical not
-	/ "^"  // ?
-	/ "\\" // eager override
-	// "?" // pattern match
-	// "*" // destructure / dereference
+	/ "^"   // As prefix: [reserved for future use]
+	/ "."
+	/ ":"
+	/ "~"   // Prefix only: [reserved for future use]
 
 
-function
-	= il:identifierList _ "->" _ b:(block / match / function) {
-			return new L.AST.Function({
-				plist: il, 
-				block: b, 
-				tags: I.Map({type: 'thin'})
-			});
+/*---------------------------------------------------------------------------
+	Parenthesized List
+ ---------------------------------------------------------------------------*/
+
+// ( identifiers... )
+message
+	= '(' __ expList:expressionList ? __ ')' {
+			return new Skel.Message({exprs: expList || I.List([])});
 		}
 
-match
-	= "(" __ matches:(matchList) ")" {
-			return new L.AST.Match({kvlist: matches});
-		}
 
-matchList
-	= first:matchDecl rest:(_S decl:matchDecl { return decl; })* _S ? _ {
-			return [first].concat(rest);
-		}
+/*---------------------------------------------------------------------------
+	Braced List
+ ----------------------------------------------------------------------------*/
 
-matchDecl
-	= key:pureExpression _ "->" _ val:pureExpression {
-			return new L.AST.KeyValuePair({key: key, val: val});
-		}
-
+// { exprs... }
 block
-	= "{" __ exps:(expressionList)? "}" { 
-			var list;
-			
-			if (exps && exps._name === 'ExpressionList') {
-				list = exps.list;
-			} else if (exps) {
-				list = I.List([exps]);
-			} else {
-				list = I.List([]);
-			}
-			
-			return new L.AST.Block({
-				explist: new L.AST.ExpressionList({list: list})
-			});
+	= '{' __ expList:expressionList ? __ '}' {
+			return new Skel.Block({exprs: expList || I.List([])});
 		}
 
+
+/*---------------------------------------------------------------------------
+	Square Bracketed List
+ ----------------------------------------------------------------------------*/
+
+// [ exprs... ]
 list
-	= "[" __ el:pureExpressionList ? __ "]" {
-			if (!el) {
-				return new L.AST.List({
-					list: I.List([]), 
-					tags: I.Map({source: 'list'})
-				});
-			} else if (el._name === 'ExpressionList') {
-				// Expression lists are actually just expressions if there's just one
-				return new L.AST.List({
-					list: el.list,
-					tags: I.Map({source: 'list'})
-				});
-			} else {
-				return new L.AST.List({
-					list: I.List([el]), 
-					tags: I.Map({source: 'list'})
-				});
-			}
+	= '[' __ expList:expressionList ? __ ']' {
+			return new Skel.List({exprs: expList || I.List([])});
 		}
 
-dictionary
-	= "#[" __ kvl:keyValueList ? __ "]" { 
-				return kvl || new L.AST.Dictionary();
-			}
 
-keyValueList
-	= first:keyValuePair rest:(_S kvp:keyValuePair { return kvp; })* _S ? _ {
-			return new L.AST.Dictionary({
-				kvlist: I.List([first].concat(rest))
-			});
-		}
+/*---------------------------------------------------------------------------
+	Symbols and Identifiers
+ ----------------------------------------------------------------------------*/
 
-keyValuePair "key-value pair"
-	= key:tag _ ":" _ val:pureExpression {
-			return new L.AST.KeyValuePair({key: key, val: val});
-		}
-	/ key:pureExpression _ ":" _ val:pureExpression {
-			return new L.AST.KeyValuePair({key: key, val: val});
-		}
-
-tag "tag"
-	= "." id:name {
-			return new L.AST.Tag({name: id.name});
+// $ identifier
+symbol "symbol"
+	= '$' l:label {
+			return new Skel.Symbol({label: l});
 		}
 
 identifier "identifier"
-	= n:name mod:postfixModifier? {
-			return n.setIn(['tags', 'modifier'], mod || null);
+	= l:label mod:postfixModifier? {
+			return new Skel.Identifier({label: l, modifier: mod});
 		}
 
-name
-	= first:[a-zA-Z_] rest:[a-zA-Z0-9_-]* {
-			return new L.AST.Identifier({
-				name: first + rest.join('')
-			});
-		}
+label
+	= first:[a-zA-Z_] rest:[a-zA-Z0-9_-]* { return first + rest.join(''); }
 
 postfixModifier
-	= "?"
-	/ "!"
-	/ "..."
+	= '?' / '!'
 
-type
-	= "<" __ kvl:keyValueList ? __ ">" {
-			return new L.AST.Struct({
-				members: I.List(kvl && kvl.kvl || [])
-			});
-		}
-	/ "<" __ first:typeComponent _ rest:("|" __ it:typeComponent { return it; } )* __ ">" {
-			return new L.AST.Option({
-				variants: I.List([first].concat(rest))
-			});
-		}
-// 	/ "<" __  idl:(first:identifier rest:(_S _ id:identifier { return id; })* ) __ ">" {
-// 			return new L.AST.Struct(idl);
-// 		}
+/*
 
-typeComponent
-	= "_" { return new L.AST.Bottom(); }
-	/ identifier
-	/ type
+Symbol :: < Text label >
+Symbol s (init) -> (Text label) -> {
+  
+Symbol s (evaluate: Context c) -> { c(getSymbol: s.label) }
 
-string "string"
-	// potentially disallow new lines, control chars, etc.
-	= "\"" str:(escapedChar / [^"])* "\"" { return new L.AST.String({value: str.join('')}); }
-	/ "'" str:(escapedChar / [^'])* "'" { return new L.AST.String({value: str.join('')}); }
+Identifier :: < Text label >
+Identifier id (evaluate: Context c) -> { c[id.label] }
 
-escapedChar
-	= '\\' char:[ntb"'\\] {
-			return ({'"': '"', "'": "'", n: '\n', t: '\t', '\\': '\\'})[char];
-		}
+y :: $y
+items :: [Symbol('x'): 1, y: 2, $z: 3]
+
+#- $y is a symbol literal.
+ - Symbol('x') is the constructor form.
+ - In the hashmap literal, y gets evaluated in the current context, and
+ - resolves to $y. $z is the symbol literal, which evaluates to iteslf.
+ -#
+	 
+Bool :: < True | False >
+Bool.True
+Bool.False
+
+Option :: < Some(*) | Nothing >
+b :: Option.Some(Bool.True)
+
+ */
+
+
+/*---------------------------------------------------------------------------
+  Numeric Literals
+ ---------------------------------------------------------------------------*/
 
 number "number"
-	= imaginary
+	= hex
+	/ imaginary
 	/ scientific
-	/ hex
 	/ decimal
 	/ integer
 
 integer
-	= "0" { return new L.AST.Integer({value: 0, tags: I.Map({'source_base': 10})}); }
+	= '0' { return new Skel.Integer({value: 0, tags: I.Map({'source_base': 10})}); }
 	/ first:[1-9] rest:[0-9]* {
 			var val = parseInt(first + rest.join(''), 10);
-			return new L.AST.Integer({
-				value: val, tags: I.Map({'source_base': 10})
-			});
+			return new Skel.Integer({value: val, tags: I.Map({'source_base': 10})});
 		}
 
 decimal
-	= int:integer "." digits:[0-9]* {
+	= int:integer '.' digits:[0-9]* {
 			var fraction = parseInt(digits.join(''), 10) || 0;
 			var factor = Math.pow(10, digits.length);
-			return new L.AST.Decimal({
-				numerator: int.value * factor + fraction, 
+
+			return new Skel.Decimal({
+				numerator: int.value * factor + fraction,
 				exponent: digits.length
 			});
 		}
 
 scientific
 	= sig:integer [eE] [+-]? mant:integer {
-			return new L.AST.Scientific({significand: sig, mantissa: mant});
+			return new Skel.Scientific({significand: sig, mantissa: mant});
 		}
 	/ sig:decimal [eE] [+-]? mant:integer {
-			return new L.AST.Scientific({significand: sig, mantissa: mant});
+			return new Skel.Scientific({significand: sig, mantissa: mant});
 		}
 
 hex
-	= "0x0" {
-			return new L.AST.Integer({
-				value: 0,
-				tags: I.Map({'source_base': 16})
-			}); 
+	= '0x0' {
+			return new Skel.Integer({value: 0, tags: I.Map({'source_base': 16})});
 		}
-	/ "0x" first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
+	/ '0x' first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
 			var val = parseInt(first + rest.join(''), 16);
-			return new L.AST.Integer({
-				value: val,
-				tags: I.Map({'source_base': 16})
-			});
+			return new Skel.Integer({value: val, tags: I.Map({'source_base': 16})});
 		}
 
 imaginary
 	= num:(scientific / hex / decimal / integer) [ijJ] {
-			return new L.AST.Complex({imaginary: num});
+			return new Skel.Complex({imaginary: num});
 		}
 
+
+/*---------------------------------------------------------------------------
+  Convenience Shorthand for Whitespaces and Separators
+ ---------------------------------------------------------------------------*/
+
 _ "whitespace"
-	= (" " / "\t")*
+  = (Whitespace / Comment)*
 
 __ "whitespace"
-	= (" " / "\t" / "\n")*
+	= (Linespace / Comment)*
 
 _S "separator"
-	= _ "," __
-	/ _ "\n" __
+	= _ [,\n] __
+
+
+/*---------------------------------------------------------------------------
+  Whitespace and Comment Definitions
+ ---------------------------------------------------------------------------*/
+
+Whitespace
+	= [ \t]+
+
+Linespace
+	= [ \t\n]+
+
+Comment "comment"
+	= '#' t:(!'\n' .)* '\n' {
+			return Skel.Comment({text: t.join(''), tags: I.Map({source: 'trailing'})});
+		}
+	/ '#-' t:(!'-#' .)* '-#' {
+			return Skel.Comment({text: t.join(''), tags: I.Map({source: 'inline'})});
+		}
+

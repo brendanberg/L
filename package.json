@@ -1,8 +1,8 @@
 {
   "name": "l",
-  "version": "0.1.0",
+  "version": "0.2.1",
   "description": "The L Programming Language",
-  "author": "Brendan Berg <brendan@plusminusfive.com>",
+  "author": "Brendan Berg <brendan@berg.industries>",
   "main": "lib/l.js",
   "repository": {
     "type": "git",

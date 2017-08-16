@@ -3,8 +3,8 @@ var error = require('./error');
 var extend = require('util')._extend;
 var I = require('immutable');
 
-var Context = function(locals, outer) {
-	this.locals = I.Map(locals) || I.Map();
+var Context = function(local, outer) {
+	this.local = I.Map(local) || I.Map();
 	this.outer = outer || null;
 };
 
@@ -13,7 +13,7 @@ Context.prototype.match = function(pattern, value) {
 	var values = Array.prototype.slice.call(arguments).slice(1);
 	var ctx = {'__': value};
 	var key, val;
-	//ctx.locals = ctx.locals.set('__', value);
+	//ctx.local = ctx.local.set('__', value);
 	// console.log('attempt to match ' + pattern + ' with ' + value);
 
 	if (pattern._name === 'List') {
@@ -109,12 +109,16 @@ Context.prototype.match.curry = function() {
 }
 
 Context.prototype.lookup = function(name) {
-	var value = this.locals.get(name, null);
+	var value = this.local.get(name, null);
 	if (value == null && this.outer != null) {
 		return this.outer.lookup(name);
 	} else {
-		return value || new AST.Bottom();
+		return value;
 	}
+};
+
+Context.prototype.eval = function(ast) {
+
 };
 
 Context.prototype[':'] = function(identifier, value) {
@@ -127,7 +131,7 @@ Context.prototype[':'] = function(identifier, value) {
 	if (ctx === null) {
 		throw new error.MatchError('incorrect match');
 	} else {
-		this.locals = this.locals.merge(ctx);
+		this.local = this.local.merge(ctx);
 	}
 	console.log(ctx);
 	return ctx;//AST.Dictionary({kvlist: I.List;
@@ -136,7 +140,7 @@ Context.prototype[':'] = function(identifier, value) {
 // TODO: Should underscore be a special case in the parser?
 Context.prototype['_'] = new AST.Bottom();
 
-var strings = require('./impl/strings');
+var text = require('./impl/text');
 var numbers = require('./impl/numbers');
 var collections = require('./impl/collections');
 var blocks = require('./impl/blocks');
@@ -152,12 +156,12 @@ AST.Decimal.prototype.ctx = new Context(I.Map(numbers.Decimal), null);
 AST.Complex.prototype.ctx = new Context(I.Map(numbers.Complex), null);
 
 AST.List.prototype.ctx = new Context(I.Map(collections.List), null);
-AST.Dictionary.prototype.ctx = new Context(I.Map(collections.Dictionary), null);
+AST.Map.prototype.ctx = new Context(I.Map(collections.Dictionary), null);
 
-AST.String.prototype.ctx = new Context(I.Map(strings.String), null);
+AST.Text.prototype.ctx = new Context(I.Map(text.Text), null);
 
 AST.Block.prototype.ctx = new Context(I.Map(blocks.Block), null);
-AST.Struct.prototype.ctx = new Context(I.Map(types.Struct), null);
+AST.Record.prototype.ctx = new Context(I.Map(types.Record), null);
 
 // Context.prototype['String'] = AST.String.prototype.ctx;
 // Context.prototype['Integer'] = AST.Integer.prototype.ctx;

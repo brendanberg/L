@@ -8,6 +8,12 @@ function NameError(msg) {
 
 NameError.prototype.toString = toString;
 
+function ArgumentError(msg) {
+	this.message = msg;
+}
+
+ArgumentError.prototype.toString = toString;
+
 function MatchError(msg) {
 	this.message = msg;
 }
@@ -26,8 +32,16 @@ function NotImplemented(msg) {
 
 NotImplemented.prototype.toString = toString;
 
+function ParseError(msg) {
+	this.message = msg;
+}
+
+ParseError.prototype.toString = toString;
+
 var error = {
+	ParseError: ParseError,
 	NameError: NameError,
+	ArgumentError: ArgumentError,
 	MatchError: MatchError,
 	TypeError: TypeError,
 	NotImplemented: NotImplemented

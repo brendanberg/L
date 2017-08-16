@@ -26,7 +26,7 @@ gulp.task('l', ['parser'], function(cb) {
 });
 
 gulp.task('repl', ['l'], function(cb) {
-	return gulp.src('src/ell.js').pipe(gulp.dest('build'));
+	return gulp.src('src/repl.js').pipe(gulp.dest('build'));
 });
 
 gulp.task('build', ['l', 'repl']);

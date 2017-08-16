@@ -3,9 +3,9 @@ var dispatch = require('../dispatch');
 
 (function(AST) {
 	module.exports = {
-		Struct: {
+		Record: {
 			"('|':)": dispatch({
-				'Struct': function(t) {
+				'Record': function(t) {
 					return new AST.Option([this, t]);
 				},
 				'Option': function(o) {

@@ -9,7 +9,7 @@ function inspectify(depth, fmt) {
 
 (function(AST) {
 	module.exports = {
-		Dictionary: {
+		Map: {
 			"('@':)": dispatch({
 				'Integer': function(n) {
 					return this.ctx[n.value] || new AST.Bottom();

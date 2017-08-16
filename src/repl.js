@@ -1,26 +1,26 @@
-var repl = require('repl');
-var L = require('./l');
-var util = require('util');
-var debug = util.debuglog('repl');
+let repl = require('repl');
+let L = require('./l');
+let util = require('util');
+let debug = util.debuglog('repl');
 
-var ctx = new L.Context();
-var str = '';
-var rep;
+let ctx = new L.Context();
+let str = '';
+let rep;
 
-var fs = require('fs');
-var path = require('path');
+let fs = require('fs');
+let path = require('path');
 
-var basepath = path.resolve('./lib');
-var filenames = fs.readdirSync(basepath).filter(function(filename) {
+let basepath = path.resolve('./lib');
+let filenames = fs.readdirSync(basepath).filter(function(filename) {
 	return filename.match(/^[^\.].+\.ell$/) ? true : false;
 });
-var contents, ast = null;
+let contents, ast = null;
 
 for (var i = 0, len = filenames.length; i < len; i++) {
 	contents = fs.readFileSync(path.join(basepath, filenames[i]), 'utf-8');
 
 	try {
-		ast = L.Parser.parse(contents);
+		//ast = L.Parser.parse(contents).transform(ctx, L.Rules);
 	} catch (e) {
 		var result = e.toString();
 		
@@ -34,6 +34,7 @@ for (var i = 0, len = filenames.length; i < len; i++) {
 	}
 
 	if (ast) {
+		// ctx.eval(ast);
 		ast.eval(ctx);
 	}
 }
@@ -68,8 +69,8 @@ rep.on('line', function(cmd) {
 	}
 
 	if (!skipCatchall) {
-		var evalCmd = rep.bufferedCommand + cmd;
-		if (/^\s*\{/.test(evalCmd) && /\}\s*$/.test(evalCmd)) {
+		var evalCmd = rep.bufferedCommand + cmd + '\n';
+		/*if (/^\s*\{/.test(evalCmd) && /\}\s*$/.test(evalCmd)) {
 			// It's confusing for `{ a : 1 }` to be interpreted as a block
 			// statement rather than an object literal.	So, we first try
 			// to wrap it in parentheses, so that it will be interpreted as
@@ -80,13 +81,14 @@ rep.on('line', function(cmd) {
 			// terminated, or continued onto the next expression if it's an
 			// unexpected end of input.
 			evalCmd = evalCmd + '\n';
-		}
+		}*/
 
 		debug('eval %j', evalCmd);
 		rep.eval(evalCmd, rep.context, 'repl', finish);
 	} else {
 		finish(null);
 	}
+
 	function finish(e, ret) {
 		debug('finish', e, ret);
 		rep.memory(cmd);
@@ -163,7 +165,8 @@ var fmt = {
 		name: 'blue',
 		delimiter: 'cyan',
 		error: 'red',
-		comment: 'white'
+		comment: 'white',
+		important: 'underline',
 	},
 	colors: {
 		'bold' : [1, 22],
@@ -220,7 +223,7 @@ function eval(cmd, context, filename, callback) {
 	}
 
 	try {
-		ast = L.Parser.parse(command);
+		ast = L.Parser.parse(command).transform(ctx, L.Rules);
 		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
@@ -250,8 +253,11 @@ function eval(cmd, context, filename, callback) {
 	}
 
 	try {
-		L.log.info(JSON.stringify(ast));	
-		result = ast.eval(ctx);	
+		//console.log('pre eval: ' + ast);
+		//console.log('          ' + ast._name);
+		//L.log.info(JSON.stringify(ast.set('ctx', null)));	
+		result = new L.AST.Evaluate({target: ast}).eval(ctx);
+		//console.log(result._name);
 	} catch (e) {
 		result = fmt.stylize(e.toString(), 'error');
 		
