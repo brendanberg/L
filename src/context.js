@@ -9,7 +9,7 @@ var Context = function(local, outer) {
 };
 
 // TODO: This should be a function on the global L object, not the context.
-Context.prototype.match = function(pattern, value) {
+/*Context.prototype.match = function(pattern, value) {
 	var values = Array.prototype.slice.call(arguments).slice(1);
 	var ctx = {'__': value};
 	var key, val;
@@ -93,6 +93,143 @@ Context.prototype.match = function(pattern, value) {
 	} else {
 		return null;
 	}
+};*/
+
+Context.prototype.match = function(pattern, value) {
+	let capture = function(pattern, value, ctx) {
+		// TODO: Abstract the list decomposition procedure to re-use for blocks
+		// let decompose = function(a, b) { ... }
+		if (ctx === null) { return null; }
+
+		if (pattern._name === 'List') {
+			// TODO: Eventually add support for maps. (How?)
+			if (value._name !== 'List') { return null; }
+
+			// Test the first value.
+			let [first, rest] = [pattern.items.first(), pattern.items.rest()];
+
+			// capture([], []) -> {}
+			// capture([], [*]) -> <NO MATCH>
+			if (!first) {
+				return value.items.count() ? null : ctx;
+			}
+
+			// capture([a..., b], [*]) -> capture([a...], []) + {b: *}
+			// capture([a..., b], [*..., *]) -> capture([a...], [*...]) + {b: *}
+
+			// capture([a...], []) -> {a: []}
+			// capture([a...], [*]) -> {a: [*]}
+			// capture([a...], [*, *...]) -> {a: [*, *...]}
+			if (first._name === 'Identifier' && first.getIn(['tags', 'collect'], false)) {
+				if (rest.isEmpty()) {
+					return ctx.set(first.label, value);
+					// The same as `capture(first, value)`
+				} else {
+					// Pick the last item off the list and go deeper
+					let last = pattern.items.last();
+
+					if (last._name === 'Identifier' && last.getIn(['tags', 'collect'], false)) {
+						// TODO: Should this really be an exception?
+						return null;
+					}
+
+					let innerCtx = capture(last, value.items.last(), ctx);
+					return innerCtx && capture(
+						new AST.List({items: pattern.items.butLast(), tags: pattern.tags}),
+						new AST.List({items: value.items.butLast(), tags: value.tags}),
+						innerCtx
+					);
+				}
+			}
+
+			// capture([a] [*] -> {a: *}
+			// capture([a, b], [*, *]) -> capture([b], [*]) + {a: *}
+			// capture([a, b...], [*]) -> capture([b...], []) + {a: *}
+			// capture([a, b..., c], [*, *..., *]) -> capture([b..., c], [*..., *]) + {a: *}
+			if (rest.isEmpty() && value.items.count() === 1) {
+				return capture(first, value.items.first(), ctx);
+			} else if (rest.isEmpty()) {
+				return null;
+			} else {
+				let innerCtx = capture(first, value.items.first(), ctx);
+				return innerCtx && capture(
+					new AST.List({items: rest, tags: pattern.tags}),
+					new AST.List({items: value.items.rest(), tags: value.tags}),
+					innerCtx
+				);
+			}
+		} else if (pattern._name === 'Block') {
+			if (value._name !== 'Block') { console.log('block'); return null; }
+			// TODO: The same strategy here.
+		} else if (pattern._name === 'Identifier') {
+			let type = pattern.getIn(['tags', 'type'], null);
+			// TODO: Type check here.
+			return ctx.set(pattern.label, value);
+		} else if (pattern._name === 'Symbol') {
+			// TODO: Replace each of these test cases with an equality
+			// method defined on each AST node
+			if (value._name === 'Symbol' && value.label === pattern.label) {
+				return ctx;
+			} else { 
+				return null;
+			}
+		} else if (pattern._name === 'Text') {
+			if (value._name === 'Text' && value.value === pattern.value) {
+				return ctx;
+			} else {
+				return null;
+			}
+		} else if (pattern._name === 'Integer') {
+			if (value._name === 'Integer' && value.value === pattern.value) {
+				return ctx;
+			} else {
+				return null;
+			}
+		} else if (pattern._name === 'Decimal') {
+			if (value._name === 'Decimal' &&
+					value.numerator === pattern.numerator &&
+					value.exponent === pattern.exponent) {
+				return ctx;
+			} else {
+				return null;
+			}
+		} else if (pattern._name === 'Scientific') {
+			if (value._name === 'Scientific' &&
+					value.significand === pattern.significand &&
+					value.mantissa === pattern.mantissa) {
+				return ctx;
+			} else {
+				return null;
+			}
+		} else if (pattern._name === 'Complex') {
+			if (value._name === 'Complex' &&
+					value.real === pattern.real &&
+					value.imaginary === pattern.imaginary) {
+				return ctx;
+			} else {
+				return null;
+			}
+		} else {
+			// This is where we test value equivalence
+			// TODO: This should maybe call the equality method on the value
+			// (but which side is the target and which is the argument?)
+			let isEqual = (new AST.Invocation({
+				target: value, plist: new AST.Message({
+					___: _,
+					___: pattern
+				})
+			})).eval(ctx);
+
+			if (isEqual._name === 'Member' && isEqual.label === 'True') {
+				return ctx;
+			} else {
+				return null;
+			}
+		}
+	};
+
+	let ctx = capture(pattern, value, I.Map({}));
+	return ctx;
 };
 
 Context.prototype.match.curry = function() {
@@ -106,7 +243,12 @@ Context.prototype.match.curry = function() {
 	return function () {
 		return self.apply(this, args.concat(Array.prototype.slice.call(arguments)));
 	};
-}
+};
+
+Context.prototype.extend = function(pattern, value) {
+	let captured = this.match(pattern, value);
+	return captured && new Context(captured, this);
+};
 
 Context.prototype.lookup = function(name) {
 	var value = this.local.get(name, null);

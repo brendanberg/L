@@ -1,8 +1,8 @@
 {
-	var I = require('immutable');
-	var Skel = require('./skeleton');
+	let I = require('immutable');
+	let Skel = require('./skeleton');
 
-	var L = {};
+	let L = {};
 	let asString = function(val) { return val.toString(); };
 	//var Cursor = I.Record({start: _, end: _});
 }
@@ -73,7 +73,7 @@ term
 	/ symbol
 	/ list
 	/ block
-	// type
+	/ type
 	/ op:Operator { return new Skel.Operator({label: op}); }
 	/ number
 	/ '"' v:(!'"' !'\n' ch:. { return ch; })* '"' {
@@ -82,12 +82,6 @@ term
 	/ "'" v:(!"'" !'\n' ch:. { return ch; })* "'" {
 			return new Skel.Text({value: v.join('')});
 		}
-	/*/ '(' e:expression ')' {
-			return new Skel.Expression({
-				terms: I.List([e]),
-				tags: I.Map({enclosure: 'parentheses'})
-			});
-		}*/
 	/ message
 
 
@@ -141,7 +135,10 @@ Operator "operator"
 // ( identifiers... )
 message
 	= '(' __ expList:expressionList ? __ ')' {
-			return new Skel.Message({exprs: expList || I.List([])});
+			return new Skel.Message({
+				exprs: expList || I.List([]),
+				tags: I.Map({envelopeShape: '()'})
+			});
 		}
 
 
@@ -151,10 +148,18 @@ message
 
 // { exprs... }
 block
-	= '{' __ expList:expressionList ? __ '}' {
-			return new Skel.Block({exprs: expList || I.List([])});
+	= '{{' __ expList:expressionList ? __ '}}' {
+			return new Skel.Block({
+				exprs: expList || I.List([]),
+				tags: I.Map({envelopeShape: '{{}}'})
+			});
 		}
-
+	/ '{' __ expList:expressionList ? __ '}' {
+			return new Skel.Block({
+				exprs: expList || I.List([]),
+				tags: I.Map({envelopeShape: '{}'})
+			});
+		}
 
 /*---------------------------------------------------------------------------
 	Square Bracketed List
@@ -163,9 +168,23 @@ block
 // [ exprs... ]
 list
 	= '[' __ expList:expressionList ? __ ']' {
-			return new Skel.List({exprs: expList || I.List([])});
+			return new Skel.List({
+				exprs: expList || I.List([]),
+				tags: I.Map({envelopeShape: '[]'})
+			});
 		}
 
+/*---------------------------------------------------------------------------
+  Angle Bracketed List
+ ---------------------------------------------------------------------------*/
+
+type
+	= '<' __ expList:expressionList ? __ '>' {
+			return new Skel.Type({
+				exprs: expList || I.List([]),
+				tags: I.Map({envelopeShape: '<>'})
+			});
+		}
 
 /*---------------------------------------------------------------------------
 	Symbols and Identifiers

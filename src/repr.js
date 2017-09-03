@@ -58,15 +58,18 @@ function format(depth, fmt) {
 	
 	AST.Function.prototype.toString = function() {
 		var arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
-		return '(' + this.plist.map(function(item) {
-			return item.toString();
-		}).toArray().join(', ') + ')' + arrow + this.block.toString();
+		return (
+			'(' + this.template.match.items.map(stringify).join(', ') + ')' +
+			arrow + this.block.toString()
+		);
 	};
 
 	AST.Function.prototype.repr = function(depth, fmt) {
 		var arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
 		return (
-			'(' + this.plist.map(function(p) { return p.repr(depth, fmt) }).toArray().join(', ') + ')' +
+			fmt.stylize('(', 'delimiter') +
+			this.template.match.items.map(stringify).join(fmt.stylize(', ', 'separator')) + 
+			fmt.stylize(')', 'delimiter') +
 			fmt.stylize(arrow, 'delimiter') +
 			this.block.repr(depth, fmt)
 		);
@@ -97,17 +100,21 @@ function format(depth, fmt) {
 	};
 
 	AST.Match.prototype.toString = function() {
-		return "(\n" + this.kvlist.map(stringify) + "\n)";
+		return (
+			"{{\n    " +
+			this.predicates.map(stringify).join('\n').replace(/\n/g, '\n    ') +
+			"\n}}"
+		);
 	};
 
 	AST.Match.prototype.repr = function(depth, fmt) {
 		//TODO: smart newlines for compact reprs
 		return (
-			fmt.stylize('(', 'delimiter') + '\n    ' +
-			this.kvlist.map(format(depth, fmt)).join(
+			fmt.stylize('{{', 'delimiter') + '\n    ' +
+			this.predicates.map(format(depth, fmt)).join(
 				fmt.stylize('\n', 'delimiter')
 			).replace(/\n/g, '\n    ') + '\n' +
-			fmt.stylize(')', 'delimiter')
+			fmt.stylize('}}', 'delimiter')
 		);
 	};
 
@@ -155,15 +162,27 @@ function format(depth, fmt) {
 	}
 	
 	AST.Block.prototype.toString = function () {
-		return '{\n' + this.exprs.map(stringify).join('\n') + '\n}';
+		if (this.getIn(['tags', 'envelopeShape']) === '{{}}') {
+			return '{{\n' + this.exprs.map(stringify).join('\n') + '\n}}';
+		} else {
+			return '{\n' + this.exprs.map(stringify).join('\n') + '\n}';
+		}
 	};
 
 	AST.Block.prototype.repr = function(depth, fmt) {
-		var exps = this.exprs.map(format(depth, fmt));
+		let exps = this.exprs.map(format(depth, fmt));
+		let open, close;
+
+		if (this.getIn(['tags', 'envelopeShape']) === '{{}}') {
+			[open, close] = ['{{', '}}'];
+		} else {
+			[open, close] = ['{', '}'];
+		}
+
 		return (
-			fmt.stylize('{', 'delimiter') + '\n    ' +
+			fmt.stylize(open, 'delimiter') + '\n    ' +
 			exps.join('\n').replace(/\n/g, '\n    ') + '\n' +
-			fmt.stylize('}', 'delimiter')
+			fmt.stylize(close, 'delimiter')
 		);
 	};
 

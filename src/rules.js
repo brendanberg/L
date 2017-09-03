@@ -79,11 +79,8 @@ let match = {
 		let exp = (
 			this.assignmentExpression(context, node, unparsed) ||
 			this.expressionNoAssign(context, node, unparsed)
-			//this.infixExpression(context, node, unparsed) ||
-			//this.expressionNoInfix(context, node, unparsed)
 		);
 
-		//return exp;
 		if (exp && exp[1].count() > 0) {
 			let ret = [new AST.Error({
 				message: 'did not consume all tokens',
@@ -123,7 +120,6 @@ let match = {
 				infixExp = new AST.InfixExpression({
 					lhs: leftMatch[0], op: op.label, rhs: rightMatch[0]
 				});
-
 				if (rightMatch._name === 'Error') {
 					return [infixExp, I.List([])];
 				} else {
@@ -160,7 +156,7 @@ let match = {
 
 				if (callExpr) {
 					return [
-						new AST.FunctionCall({target: valMatch[0], plist: callExpr[0].exprs}),
+						new AST.FunctionCall({target: valMatch[0], plist: callExpr[0]}),
 						callExpr[1]
 					];
 				}
@@ -231,7 +227,7 @@ let match = {
 				else { return null; }
 			}
 
-			return [new AST.ParameterList({exprs: I.List(exprs)}), unparsed];
+			return [new AST.List({items: I.List(exprs)}), unparsed];
 		}
 
 		return null;
@@ -320,7 +316,6 @@ let match = {
 		} else {
 			// Otherwise, we look for a template part.
 			let template = this.templatePart(context, node, unparsed);
-
 			return template && [new AST.Template({
 				match: template[0]
 			}), template[1]];
@@ -380,7 +375,13 @@ let match = {
 	},
 	value: function(context, node, unparsed) {
 		if (node._name === 'Block') {
-			return [node.transform(context, this), unparsed];
+			if (node.getIn(['tags', 'envelopeShape']) === '{}') {
+				// Regular ol' block. Recursively descend and build the context.
+				return [node.transform(context, this), unparsed];
+			} else if (node.getIn(['tags', 'envelopeShape']) === '{{}}') {
+				// Pattern matching function. Parse each 
+				return this.matchDefn(context, node, unparsed);
+			}
 		}
 
 		let match = (
@@ -421,8 +422,39 @@ let match = {
 
 		return null;
 	},
+	matchDefn: function(context, node, unparsed) {
+		if (node._name === 'Block' &&
+				node.getIn(['tags', 'envelopeShape']) === '{{}}') {
+			let funcs = [];
+
+			for (let expr of node.exprs) {
+				let fn = this.functionDefn(context, expr.terms.first(), expr.terms.rest());
+				if (fn && fn[1].count() === 0) {
+					funcs.push(fn[0]);
+				} else if (fn) {
+					funcs.push(new AST.Error({
+						message: 'did not consume all tokens',
+						consumed: fn[0],
+						encountered: fn[0]
+					}));
+				} else {
+					return null;
+				}
+			}
+
+			return [new AST.Match({predicates: funcs}), unparsed];
+		} else {
+			return null;
+		}
+	},
 	functionDefn: function(context, node, unparsed) {
-		let idList = this.identifierList(context, node, unparsed);
+		if (node._name === 'Message') {
+			node._name = 'List';
+		} else if (node._name !== 'List') {
+			return null;
+		}
+
+		let idList = this.template(context, node, unparsed);
 		if (!(idList && idList[1].count() > 0)) { return null; }
 
 		let [first, rest] = [idList[1].first(), idList[1].rest()];
@@ -430,7 +462,7 @@ let match = {
 
 		if (!body) { return null; }
 		return [
-			new AST.Function({plist: idList[0].idents, block: body[0]}),
+			new AST.Function({template: idList[0], block: body[0]}),
 			body[1]
 		];
 	},

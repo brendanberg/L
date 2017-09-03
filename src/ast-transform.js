@@ -30,6 +30,11 @@ function transform(func) {
 			return transform(func)(block);
 		}));
 	};
+	AST.Match.prototype.transform = function(func) {
+		return func(this.update('predicates', function(predicates) {
+			return predicates.map(transform(func));
+		}));
+	};
 	AST.Block.prototype.transform = function(func) {
 		return func(this.update('exprs', function(exprs) {
 			return exprs.map(transform(func));

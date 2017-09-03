@@ -1,12 +1,12 @@
-var I = require("immutable");
-var _ = null;
+let I = require("immutable");
+const _ = null;
 
-var nilMap = I.Map({});
-var nilList = I.List([]);
+const nilMap = I.Map({});
+const nilList = I.List([]);
 
-var Cursor = I.Record({start: _, end: _});
+let Cursor = I.Record({start: _, end: _});
 
-var AST = {
+let AST = {
 	MatchExpression: I.Record(
 		{lhs: _, rhs: _, tags: nilMap}, 'MatchExpression'
 	),
@@ -17,7 +17,7 @@ var AST = {
 		{op: _, exp: _, tags: nilMap}, 'PrefixExpression'
 	),
 	Function: I.Record(
-		{plist: nilList, block: _, ctx: _, tags: nilMap}, 'Function'
+		{template: _, plist: nilList, block: _, ctx: _, tags: nilMap}, 'Function'
 	),
 	FunctionCall: I.Record(
 		{plist: nilList, target: _, tags: nilMap}, 'FunctionCall'
@@ -33,7 +33,7 @@ var AST = {
 		{expr: _}, 'Parenthesized'
 	),
 	Match: I.Record(
-		{kvlist: nilList, predicates: nilList, ctx: _, tags: nilMap}, 'Match'
+		{predicates: nilList, ctx: _, tags: nilMap}, 'Match'
 	),
 	Method: I.Record(
 		{type: _, target: _, selector: nilList, block: _, ctx: _, tags: nilMap}, 'Method'

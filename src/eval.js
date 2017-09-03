@@ -1,7 +1,7 @@
-var AST = require('./ast');
-var Context = require('./context');
-var error = require('./error');
-var I = require('immutable');
+let AST = require('./ast');
+let Context = require('./context');
+let error = require('./error');
+let I = require('immutable');
 
 (function(AST) {
 	function clone(obj) {
@@ -48,12 +48,6 @@ var I = require('immutable');
 
 	AST.InfixExpression.prototype.eval = function (ctx) {
 		let msg, expr, name;
-		/*if (this.op === '::') {
-			// Special case for assignment. Probably make this a macro at
-			// some point, but not now bc I need assignment and I haven't
-			// built macros yet.
-			expr = new AST.Assignment({template: this.lhs, value: this.rhs.eval(ctx)});
-		} else {*/
 		let target = this.lhs.eval(ctx);
 		let selector = I.List([new AST.KeyValuePair({key: "'='", val: this.rhs.eval(ctx)})]);
 		return (new AST.Invocation({target: target, plist: selector})).eval(ctx);
@@ -63,91 +57,7 @@ var I = require('immutable');
 		// Recursively descend through the template, matching value equivalence
 		// between template and evaluated right-hand expression and capturing
 		// values into identifier placeholders in the template.
-		let capture = function(match, value, ctx) {
-			if (ctx === null) { return null; }
-
-			if (match._name === 'List') {
-				// TODO: Eventually add support for maps. (How?)
-				if (value._name !== 'List') { return null; }
-
-				// Test the first value.
-				let [first, rest] = [match.items.first(), match.items.rest()];
-
-				// capture([], []) -> {}
-				// capture([], [*]) -> <NO MATCH>
-				if (!first) {
-					return value.items.count() ? null : ctx;
-				}
-
-				// capture([a..., b], [*]) -> capture([a...], []) + {b: *}
-				// capture([a..., b], [*..., *]) -> capture([a...], [*...]) + {b: *}
-
-				// capture([a...], []) -> {a: []}
-				// capture([a...], [*]) -> {a: [*]}
-				// capture([a...], [*, *...]) -> {a: [*, *...]}
-				if (first._name === 'Identifier' && first.getIn(['tags', 'collect'], false)) {
-					if (rest.isEmpty()) {
-						return ctx.set(first.label, value);
-						// The same as `capture(first, value)`
-					} else {
-						// Pick the last item off the list and go deeper
-						let last = match.items.last();
-
-						if (last._name === 'Identifier' && last.getIn(['tags', 'collect'], false)) {
-							// TODO: Should this really be an exception?
-							return null;
-						}
-
-						let innerCtx = capture(last, value.items.last(), ctx);
-						return innerCtx && capture(
-							new AST.List({items: match.items.butLast(), tags: match.tags}),
-							new AST.List({items: value.items.butLast(), tags: value.tags}),
-							innerCtx
-						);
-					}
-				}
-
-				// capture([a] [*] -> {a: *}
-				// capture([a, b], [*, *]) -> capture([b], [*]) + {a: *}
-				// capture([a, b...], [*]) -> capture([b...], []) + {a: *}
-				// capture([a, b..., c], [*, *..., *]) -> capture([b..., c], [*..., *]) + {a: *}
-				if (rest.isEmpty() && value.items.count() === 1) {
-					return ctx.set(first.label, value.items.first());
-				} else {
-					let innerCtx = capture(first, value.items.first(), ctx);
-					return innerCtx && capture(
-						new AST.List({items: rest, tags: match.tags}),
-						new AST.List({items: value.items.rest(), tags: value.tags}),
-						innerCtx
-					);
-				}
-			} else if (match._name === 'Block') {
-				if (value._name !== 'Block') { return null; }
-				// TODO: The same strategy here.
-			} else if (match._name === 'Identifier') {
-				let type = match.getIn(['tags', 'type'], null);
-				// TODO: Type check here.
-				return ctx.set(match.label, value);
-			} else {
-				// This is where we test value equivalence
-				// TODO: This should maybe call the equality method on the value
-				// (but which side is the target and which is the argument?)
-				let isEqual = (new AST.Invocation({
-					target: value, plist: new AST.Message({
-						___: _,
-						___: match
-					})
-				})).eval(ctx);
-
-				if (isEqual._name === 'Member' && isEqual.label === 'True') {
-					return ctx;
-				} else {
-					return null;
-				}
-			}
-		};
-
-		let newCtx = capture(this.template.match, this.value.eval(ctx), I.Map({}));
+		let newCtx = ctx.match(this.template.match, this.value.eval(ctx));
 		ctx.local = ctx.local.merge(newCtx);
 		return newCtx && new AST.Map({items: newCtx.map(function(val, key) {
 			return new AST.KeyValuePair({key: new AST.Symbol({label: key}), val: val});
@@ -156,14 +66,37 @@ var I = require('immutable');
 
 	AST.FunctionCall.prototype.eval = function(ctx) {
 		let target = this.target.eval(ctx);
-		let idents = target.plist.map(function(x) { return x.label; });
+		let plist = this.plist.eval(ctx);
+		let block;
+		//let idents = target.plist.map(function(x) { return x.label; });
 
-		if (this.plist.count() !== idents.count()) {
-			throw new error.ArgumentError('mismatched arity');
+		//if (this.plist.count() !== idents.count()) {
+		//	throw new error.ArgumentError('mismatched arity');
+		//}
+		// TODO: switch on whether the function is a fn or a match
+		let newCtx;
+
+		if (target._name === 'Function') {
+			newCtx = ctx.extend(target.template.match, plist);
+			block = target.block;
+		} else if (target._name === 'Match') {
+			// Naieve algorithm: attempt a match 
+			for (let predicate of target.predicates) {
+				let testCtx = ctx.extend(predicate.template.match, plist);
+				if (testCtx) {
+					newCtx = testCtx;
+					block = predicate.block;
+					break;
+				}
+			}
 		}
 
-		let newCtx = new Context(I.Map(idents.zip(this.plist)), target.ctx);
-		return (new AST.Evaluate({target: target.block})).eval(newCtx);
+		if (newCtx) {
+			return (new AST.Evaluate({target: block})).eval(newCtx);
+		} else {
+			// TODO: note the reason for the failed match
+			return new AST.Bottom();
+		}
 	};
 
 	AST.Invocation.prototype.eval = function(ctx) {
@@ -200,7 +133,12 @@ var I = require('immutable');
 				return func.block.expressionList.eval(local);
 			}
 		} else if (target.type === 'Match') {
-			func = target.update('ctx', function(ctx) {
+			
+			for (let p of target.predicates) {
+				//
+
+			}
+			/*func = target.update('ctx', function(ctx) {
 				return new Context(func.ctx);
 			});
 
@@ -234,7 +172,7 @@ var I = require('immutable');
 					return false;//break;
 				} 
 			});
-			return result || new AST.Bottom();
+			return result || new AST.Bottom();*/
 		} else if (target.type === 'Block') {
 			return new AST.Block({exprs: target.expressionList.eval(ctx)});
 		} else {
@@ -328,7 +266,7 @@ var I = require('immutable');
 	AST.Evaluate.prototype.eval = function (ctx) {
 		let target = this.target;
 
-		if (target._name === 'Block') {
+		if (target._name === 'Block'/* && target.getIn(['tags', 'envelopeShape']) === '{}'*/) {
 			let result = [];
 
 			for (let exp of target.exprs) {
@@ -396,6 +334,17 @@ var I = require('immutable');
 	};
 
 	AST.Function.prototype.eval = function(ctx) {
+		let val = this.transform(function(node) {
+			if (node._name === 'Evaluate') {
+				return node.eval(ctx);
+			} else {
+				return node;
+			}
+		}).set('ctx', ctx);
+		return val;
+	};
+
+	AST.Match.prototype.eval = function(ctx) {
 		return this.transform(function(node) {
 			if (node._name === 'Evaluate') {
 				return node.eval(ctx);
@@ -403,20 +352,6 @@ var I = require('immutable');
 				return node;
 			}
 		}).set('ctx', ctx);
-	};
-
-	AST.Match.prototype.eval = function(ctx) {
-		var items = this.items.map(function(val) {
-			return val.eval(ctx);
-		});
-		var predicates = items.map(function(val, key) {
-			return I.List.of(ctx.match.curry(key), val);
-		});
-		return this.merge({
-			// ctx: ctx,
-			predicates: predicates,
-			items: items
-		})
 	};
 
 	AST.Parenthesized.prototype.eval = function (ctx) {
