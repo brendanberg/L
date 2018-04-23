@@ -92,7 +92,7 @@ term
             });
 			return new AST.Text({value: value});
 		}
-	/ op:operator { return new Skel.Operator({label: op}); }
+	/ op:operator { return new AST.Operator({label: op}); }
 
 
 /*---------------------------------------------------------------------------

@@ -4,6 +4,7 @@
  */
 
 const { Map, List, Record } = require('immutable');
+const Bottom = require('./bottom');
 
 const _ = null;
 const _map = Map({});
@@ -19,7 +20,7 @@ Evaluate.prototype.eval = function(ctx) {
         let result = [];
 
         for (let exp of target.exprs) {
-            let r = exp.eval && exp.eval(ctx) || new AST.Bottom();
+            let r = exp.eval && exp.eval(ctx) || new Bottom();
             result.push(r);
         }
 

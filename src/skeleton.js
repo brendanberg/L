@@ -16,7 +16,7 @@ let Skel = {
 	Expression: require('./skeleton/expression'),
 
 	// Terminal Nodes not otherwise in AST
-	Operator: require('./skeleton/operator'),
+	//Operator: require('./skeleton/operator'),
 	Comment: require('./skeleton/comment'),
 };
 

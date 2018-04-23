@@ -31,8 +31,7 @@ InfixExpression.prototype.repr = function(depth, style) {
 InfixExpression.prototype.eval = function(ctx) {
     let target = this.lhs.eval(ctx);
     let value = this.rhs.eval(ctx);
-	console.log('op', this.op);
-    let selector = List([new KeyValuePair({key: `'{this.op}'`, val: value})]); 
+    let selector = List([new KeyValuePair({key: this.op, val: value})]); 
 
     // TODO: Replace the list / invocation with a message / message send
     return (new Invocation({target: target, plist: selector})).eval(ctx);

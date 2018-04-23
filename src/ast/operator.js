@@ -17,9 +17,13 @@ Operator.prototype.repr = function (depth, fmt) {
 	return this.toString();
 };
 
+Operator.prototype.eval = function(ctx) {
+	return this;
+};
+
 Operator.prototype.transform = function(context, match) {
 	// Note: This rule should be unreachable if the grammar rules are correct
-	return new AST.Bottom();
+	return this;
 };
 
 module.exports = Operator;

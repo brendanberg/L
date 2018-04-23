@@ -175,7 +175,7 @@ function peg$parse(input, options) {
       		},
       peg$c12 = "'",
       peg$c13 = peg$literalExpectation("'", false),
-      peg$c14 = function(op) { return new Skel.Operator({label: op}); },
+      peg$c14 = function(op) { return new AST.Operator({label: op}); },
       peg$c15 = peg$otherExpectation("operator"),
       peg$c16 = "::",
       peg$c17 = peg$literalExpectation("::", false),
@@ -2578,8 +2578,7 @@ function peg$parse(input, options) {
 
 
   	const { Map, List } = require('immutable');
-  	let Skel = require('./skeleton');
-      let AST = require('./ast');
+  	const { AST, Skel } = require('./l')
 
 
   peg$result = peg$startRuleFunction();

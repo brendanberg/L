@@ -6,6 +6,7 @@ module.exports = {
     Grouping: require('./ast/grouping'),
     InfixExpression: require('./ast/infixexpression'),
     PrefixExpression: require('./ast/prefixexpression'),
+	Operator: require('./ast/operator'),
     Function: require('./ast/function'),
     FunctionCall: require('./ast/functioncall'),
 	IdentifierList: require('./ast/identifierlist'),

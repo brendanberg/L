@@ -2,18 +2,6 @@ const { List } = require('immutable');
 const AST = require('./ast');
 
 /*
-
-expression -> expressionNoInfix
-            | infixExpression
-
-expressionNoInfix -> declaration
-                   | messageSend
-                   | listAccessor
-                   | call
-                   | propertyAccessor
-                   | prefixExpression
-                   | value
-
 declaration -> identifier identifier selectorDeclaration '->' block
 
 selectorDeclaration -> MESSAGE[selectorDeclarationPart*]
@@ -24,7 +12,6 @@ invocation -> expression MESSAGE[selectorInvocationPart*]
 
 selectorInvocationPart -> identifier ':' expression
 
-infixExpression -> expressionNoInfix INFIXOPERATOR expression
 
 messageSend -> expression '<~'
 
@@ -76,6 +63,11 @@ parenthesizedExpr -> EXPRESSION
 
 let match = {
 	expression: function(context, node, unparsed) {
+		// Match any expression
+		// 
+        //     expression -> assignmentExpression
+        //                 | expressionNoAssign
+		//
 		let exp = (
 			this.assignmentExpression(context, node, unparsed) ||
 			this.expressionNoAssign(context, node, unparsed)
@@ -92,7 +84,13 @@ let match = {
 			return exp;
 		}
 	},
+
 	expressionNoAssign: function(context, node, unparsed) {
+		// Match any expression with the exception of assignment expressions
+		//
+		//     expressionNoAssign -> infixExpression
+		//                         | expressionNoInfix
+		//
 		let exp = (
 			this.infixExpression(context, node, unparsed) ||
 			this.expressionNoInfix(context, node, unparsed)
@@ -100,7 +98,13 @@ let match = {
 
 		return exp;
 	},
+
 	infixExpression: function(context, node, unparsed) {
+		// Match an expression consisting of lefthand and righthand sub-
+		// expressions joined by an infix operator
+		//
+        //     infixExpression -> expressionNoInfix OPERATOR expressionNoAssign
+		//
 		let leftMatch = this.expressionNoInfix(context, node, unparsed);
 		let op, terms, rightMatch;
 
@@ -118,7 +122,7 @@ let match = {
 
 			if (rightMatch) {
 				infixExp = new AST.InfixExpression({
-					lhs: leftMatch[0], op: op.label, rhs: rightMatch[0]
+					lhs: leftMatch[0], op: op, rhs: rightMatch[0]
 				});
 				if (rightMatch._name === 'Error') {
 					return [infixExp, List([])];
@@ -130,7 +134,18 @@ let match = {
 
 		return null;
 	},
+
 	expressionNoInfix: function(context, node, unparsed) {
+		// Match any expression that is not an `infixExpression`
+		//
+        //     expressionNoInfix -> declaration
+        //                        | messageSend
+        //                        | listAccessor
+        //                        | call
+        //                        | propertyAccessor
+        //                        | prefixExpression
+        //                        | value
+		//
 		let pfxMatch = this.prefixExpression(context, node, unparsed);
 		if (pfxMatch) { return pfxMatch; }
 
@@ -247,6 +262,10 @@ let match = {
 		return null;
 	},
 	assignmentExpression: function(context, node, unparsed) {
+		// Matches assignment expressions
+		//
+		//     assignmentExpression -> template '::' expressionNoAssign
+		//
 		let dest = this.template(context, node, unparsed);
 		if (!dest) { return null; }
 
@@ -262,12 +281,19 @@ let match = {
 		return null;
 	},
 	template: function(context, node, unparsed) {
+		// Matches an assignment destination structure
+		//
+		//     template -> list
+		//               | map
+		//               | block
+		//               | templatePart
+		//
 		// Assignment expressions in L destructure the source expression to
 		// allow some basic pattern matching functionality.
-		// Lists             `[Function a, Integer b, Integer c...]`
+		// Lists			 `[Function a, Integer b, Integer c...]`
 		// Maps              `[a: b, $c: d, e...]`
 		// Blocks            `{exp..., ret}`
-		// Functions         `(a, b, c...) -> block` or `(a, b) -> { exps... }`
+		// Functions		 `(a, b, c...) -> block` or `(a, b) -> { exps... }`
 		// Scalar literals   `'text'`, `123.45`, `$symbol`
 		//
 		// What about nesting? Are any of the following allowed?
@@ -277,7 +303,7 @@ let match = {
 		// What about infix expressions? This gets super tricky.
 		// `a + b :: 1 + 2` => `[$a: 1, $b: 2]`
 		// `a :: { 1 + 2 }` => `[$a: { 1 + 2 }]`
-		//     `a.exprs(last)` => `MessageSend(target: 1, message:('+': 2))`
+		// `a.exprs(last)`  => `MessageSend(target: 1, message:('+': 2))`
 
 		// [BB 2017-08-12]: Currently templates support lists, maps, and blocks
 		if (node._name === 'List') {
@@ -338,9 +364,18 @@ let match = {
 		return null;
 	},
 	templatePart: function (context, node, unparsed) {
-		// Syntactically, this can be a scalar literal, or identifier.
+		// Matches an identifier or scalar literal in a template
+		//
+		//     templatePart -> [identifier] identifier
+		//                   | symbol
+		//                   | text
+		//                   | integer
+		//                   | decimal
+		//                   | scientific
+		//                   | complex
+		//
 		// TODO: in __future__, allow identifiers to have eager override
-		//       to pin their evaluated value...
+		//	   to pin their evaluated value...
 		let first = (
 			this.identifier(context, node, unparsed) ||
 			this.symbol(context, node, unparsed) ||
@@ -373,6 +408,7 @@ let match = {
 			return first;
 		}
 	},
+
 	prefixExpression: function(context, node, unparsed) {
 		const prefixOperators = List(['+', '-', '!', '~', '^', '\\']);
 		if (node._name !== 'Operator' || !prefixOperators.contains(node.label)) { return null; }
@@ -384,11 +420,12 @@ let match = {
 			console.log(exp[1]);
 			return [new AST.Evaluate({target: exp[0]}), exp[1]];
 		} else if (exp) {
-			return [new AST.PrefixExpression({op: node.label, expr: exp[0]}), exp[1]];
+			return [new AST.PrefixExpression({op: node, expr: exp[0]}), exp[1]];
 		} else {
 			return null;
 		}
 	},
+
 	value: function(context, node, unparsed) {
 		if (node._name === 'Block') {
 			if (node.getIn(['tags', 'envelopeShape']) === '{}') {
@@ -401,8 +438,8 @@ let match = {
 		}
 
 		let match = (
-            //this.option(context, node, unparsed) ||
-            this.record(context, node, unparsed) ||
+			//this.option(context, node, unparsed) ||
+			this.record(context, node, unparsed) ||
 			this.functionDefn(context, node, unparsed) ||
 			this.identifier(context, node, unparsed) ||
 			this.symbol(context, node, unparsed) ||
@@ -418,6 +455,7 @@ let match = {
 
 		return match;
 	},
+
 	parenthesized: function(context, node, unparsed) {
 		if (node._name === 'Message') {
 			let [first, rest] = [node.exprs.first(), node.exprs.rest()];
@@ -440,10 +478,11 @@ let match = {
 
 		return null;
 	},
-    record: function(context, node, unparsed) {
-        if (node._name === 'Type') {
-            let members = [];
-            for (let expr of node.exprs) {
+
+	record: function(context, node, unparsed) {
+		if (node._name === 'Type') {
+			let members = [];
+			for (let expr of node.exprs) {
 				let first = this.identifier(context, expr.terms.first(), expr.terms.rest());
 				let second;
 
@@ -473,18 +512,20 @@ let match = {
 				} else {
 					members.push(first[0]);
 				}
-            }
-            return [new AST.Record({
-                'members': List(members)
-            }), unparsed];
-        }
-        return null;
-    },
-    option: function(context, node, unparsed) {
-        if (node._name === 'Type') {
+			}
+			return [new AST.Record({
+				'members': List(members)
+			}), unparsed];
+		}
+		return null;
+	},
 
-        }
-    },
+	option: function(context, node, unparsed) {
+		if (node._name === 'Type') {
+
+		}
+	},
+
 	matchDefn: function(context, node, unparsed) {
 		if (node._name === 'Block' &&
 				node.getIn(['tags', 'envelopeShape']) === '{{}}') {
@@ -510,6 +551,7 @@ let match = {
 			return null;
 		}
 	},
+
 	functionDefn: function(context, node, unparsed) {
 		if (node._name === 'Message') {
 			node._name = 'List';
@@ -529,6 +571,7 @@ let match = {
 			body[1]
 		];
 	},
+
 	functionBody: function(context, node, unparsed) {
 		if (node._name !== 'Operator' || node.label !== '->') {
 			return null;
@@ -545,6 +588,7 @@ let match = {
 
 		return block;
 	},
+
 	list: function(context, node, unparsed) {
 		if (node._name === 'List') {
 			let exprs = [];
@@ -564,6 +608,7 @@ let match = {
 
 		return null;
 	},
+
 	map: function(context, node, unparsed) {
 		if (node._name === 'List') {
 			let kvps = [];
@@ -578,17 +623,17 @@ let match = {
 						let val = this.expressionNoAssign(context, rest.first(), rest.rest());
 						kvps.push(new AST.KeyValuePair({key: key[0], val: val[0]}));
 					} else {
-					    /*
+						/*
 							[ a : 1 ]
 							  ^ ^ ^
-							  | | +---- Expression             1
-							  | +------ Operator               :
+							  | | +---- Expression			   1
+							  | +------ Operator			   :
 							  +-------- Non-Infix Expression   a
 							[ a + 1 ]
 							  ^ ^ ^
-								| | +---- Expression             1
-								| +------ Operator               +
-								+-------- Non-Infix Expression   a
+							  | | +---- Expression			   1
+							  | +------ Operator			   +
+							  +-------- Non-Infix Expression   a
 						*/
 						// We started parsing *something* but it's not what the map rule
 						// was expecting. Backtrack.
@@ -605,49 +650,91 @@ let match = {
 
 		return null;
 	},
+
 	identifier: function(context, node, unparsed) {
+		// Matches an identifier
+		//
+		//     identifier -> [a-zA-Z_] [a-zA-Z0-9_-]* postfixModifier?
+		//
+		//     postfixModifier -> [?!]
+		//
 		if (node._name === 'Identifier') {
 			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
+
 	symbol: function(context, node, unparsed) {
+		// Matches a symbol
+		//
+		//     symbol -> '$' [a-zA-Z_] [a-zA-Z0-9_-]*
+		//
 		if (node._name === 'Symbol') {
 			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
+
 	text: function(context, node, unparsed) {
+		// Matches a text value
+		//
+		//     text -> TEXT
+		//
 		if (node._name === 'Text') {
 			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
+
 	integer: function(context, node, unparsed) {
+		// Matches an integer value
+		//
+		//     integer -> DIGIT+
+		//
 		if (node._name === 'Integer') {
 			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
+
 	decimal: function(context, node, unparsed) {
+		// Matches a decimal value
+		//
+		//     decimal -> DIGIT+ '.' DIGIT*
+		//
 		if (node._name === 'Decimal') {
 			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
+
 	scientific: function(context, node, unparsed) {
+		// Matches a numeric value in scientific notation
+		//
+		//     scientific -> integer [eE] [+-]? integer
+		//                 | decimal [eE] [+-]? integer
+		//
 		if (node._name === 'Scientific') {
 			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
+
 	complex: function(context, node, unparsed) {
+		// Matches a complex value
+		//
+		//     complex -> integer [+-] imaginary
+		//              | decimal [+-] imaginary
+		//
+		//     imaginary -> integer [ijJ]
+		//                | decimal [ijJ]
+		//
 		if (node._name === 'Complex') {
 			return [node, unparsed];
 		} else {
