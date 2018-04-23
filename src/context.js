@@ -1,4 +1,4 @@
-var AST = require('./ast');
+let AST = require('./ast');
 var error = require('./error');
 var extend = require('util')._extend;
 var I = require('immutable');
@@ -280,7 +280,7 @@ Context.prototype[':'] = function(identifier, value) {
 };
 
 // TODO: Should underscore be a special case in the parser?
-Context.prototype['_'] = new AST.Bottom();
+//Context.prototype['_'] = new AST.Bottom({});
 
 var text = require('./impl/text');
 var numbers = require('./impl/numbers');
@@ -291,7 +291,7 @@ var types = require('./impl/types');
 // TODO: The context should probably point to some sort of object context
 // console.log(Context);
 // AST.Integer.prototype.ctx = new Context(I.Map(methods), null);
-
+/*
 AST.Integer.prototype.ctx = new Context(I.Map(numbers.Integer), null);
 AST.Rational.prototype.ctx = new Context(I.Map(numbers.Rational), null);
 AST.Decimal.prototype.ctx = new Context(I.Map(numbers.Decimal), null);
@@ -304,7 +304,7 @@ AST.Text.prototype.ctx = new Context(I.Map(text.Text), null);
 
 AST.Block.prototype.ctx = new Context(I.Map(blocks.Block), null);
 AST.Record.prototype.ctx = new Context(I.Map(types.Record), null);
-
+*/
 // Context.prototype['String'] = AST.String.prototype.ctx;
 // Context.prototype['Integer'] = AST.Integer.prototype.ctx;
 // Context.prototype['Rational'] = AST.Rational.prototype.ctx;

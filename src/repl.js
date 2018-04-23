@@ -1,5 +1,5 @@
 let repl = require('repl');
-let L = require('./l');
+const L = require('./l');
 let util = require('util');
 let debug = util.debuglog('repl');
 
@@ -16,7 +16,10 @@ let filenames = fs.readdirSync(basepath).filter(function(filename) {
 });
 let contents, ast = null;
 
-for (var i = 0, len = filenames.length; i < len; i++) {
+const style = require('./format');
+
+
+for (let i = 0, len = filenames.length; i < len; i++) {
 	contents = fs.readFileSync(path.join(basepath, filenames[i]), 'utf-8');
 
 	try {
@@ -34,12 +37,11 @@ for (var i = 0, len = filenames.length; i < len; i++) {
 	}
 
 	if (ast) {
-		// ctx.eval(ast);
 		ast.eval(ctx);
 	}
 }
 
-console.log('The L Programming Language, v' + L.version);
+console.log(style.operator('The L Programming Language, v' + L.version));
 
 rep = repl.start({
 	ignoreUndefined: true,
@@ -50,7 +52,6 @@ rep = repl.start({
 rep.removeAllListeners('line');
 rep.on('line', function(cmd) {
 	debug('line %j', cmd);
-	sawSIGINT = false;
 	var skipCatchall = false;
 	cmd = trimWhitespace(cmd);
 
@@ -70,19 +71,6 @@ rep.on('line', function(cmd) {
 
 	if (!skipCatchall) {
 		var evalCmd = rep.bufferedCommand + cmd + '\n';
-		/*if (/^\s*\{/.test(evalCmd) && /\}\s*$/.test(evalCmd)) {
-			// It's confusing for `{ a : 1 }` to be interpreted as a block
-			// statement rather than an object literal.	So, we first try
-			// to wrap it in parentheses, so that it will be interpreted as
-			// an expression.
-			evalCmd = '(' + evalCmd + ')\n';
-		} else {
-			// otherwise we just append a \n so that it will be either
-			// terminated, or continued onto the next expression if it's an
-			// unexpected end of input.
-			evalCmd = evalCmd + '\n';
-		}*/
-
 		debug('eval %j', evalCmd);
 		rep.eval(evalCmd, rep.context, 'repl', finish);
 	} else {
@@ -122,7 +110,8 @@ rep.on('line', function(cmd) {
 
 		// If we got any output - print it (if no error)
 		if (!e && (!rep.ignoreUndefined || !util.isUndefined(ret))) {
-			rep.context._ = ret;
+			// TODO: Re-enable the special `_` value
+			//rep.context._ = ret;
 			rep.outputStream.write(rep.writer(ret) + '\n');
 		}
 
@@ -141,54 +130,20 @@ function trimWhitespace(cmd) {
   return '';
 }
 
+rep.removeAllListeners('SIGINT');
+rep.on('SIGINT', function() {
+	rep.outputStream.write(rep.writer('\nCommand interrupt is not implemented yet'));
+	rep.close();
+});
+
 rep.on('exit', function() {
 	console.log('');
 });
 
-var fmt = {
-	depth: null,
-	stylize: function(str, styleType) {
-		var style = this.styles[styleType];
-
-		if (style) {
-			return ('\u001b[' + this.colors[style][0] + 'm' + str +
-					'\u001b[' + this.colors[style][1] + 'm');
-		} else {
-			return str;
-		}
-	},
-	styles: {
-		number: 'yellow',
-		string: 'green',
-		boolean: 'yellow',
-		operator: 'magenta',
-		name: 'blue',
-		delimiter: 'cyan',
-		error: 'red',
-		comment: 'white',
-		important: 'underline',
-	},
-	colors: {
-		'bold' : [1, 22],
-		'italic' : [3, 23],
-		'underline' : [4, 24],
-		'inverse' : [7, 27],
-		'white' : [37, 39],
-		'grey' : [90, 39],
-		'black' : [30, 39],
-		'blue' : [34, 39],
-		'cyan' : [36, 39],
-		'green' : [32, 39],
-		'magenta' : [35, 39],
-		'red' : [31, 39],
-		'yellow' : [33, 39]
-	}
-};
-
 function writer(obj) {
 	if (typeof obj === 'object') {
 		if ('repr' in obj) {
-			return obj.repr(fmt.depth, fmt);
+			return obj.repr(-1, style);
 		} else {
 			return obj.toString();
 		}
@@ -227,6 +182,7 @@ function eval(cmd, context, filename, callback) {
 		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
+        console.log(e);
 		L.log.info(function() { return e.toString(); });
 		if (e.found == null) {
 			str = command + '\n';
@@ -235,17 +191,17 @@ function eval(cmd, context, filename, callback) {
 			return;
 		}
 
-		result = fmt.stylize(e.toString(), 'error');
+		result = style.error(e.toString());
 		
 		if (e.line && e.column) {
 			// Parser errors come with line, column, offset, expected,
 			// and found properties.
-			var pointer = Array(e.column).join(' ') + fmt.stylize('^', 'string');
+			var pointer = Array(e.column).join(' ') + style.string('^');
 			result = '   ' + pointer + '\n' + result;
 			str = '';
 			rep.setPrompt('>> ');
 		} else {
-			result += '\n' + fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
+			result += '\n' + style.string(e.stack.replace(/^[^\n]+\n/, ''));
 		}
 
 		callback(null, result);
@@ -253,16 +209,12 @@ function eval(cmd, context, filename, callback) {
 	}
 
 	try {
-		//console.log('pre eval: ' + ast);
-		//console.log('          ' + ast._name);
-		//L.log.info(JSON.stringify(ast.set('ctx', null)));	
-		result = new L.AST.Evaluate({target: ast}).eval(ctx);
-		//console.log(result._name);
+		result = (new L.AST.Evaluate({target: ast})).eval(ctx);
 	} catch (e) {
-		result = fmt.stylize(e.toString(), 'error');
+		result = style.error(e.toString());
 		
 		if (e.stack) {
-			result += '\n' + fmt.stylize(e.stack.replace(/^[^\n]+\n/, ''), 'string');
+			result += '\n' + style.string(e.stack.replace(/^[^\n]+\n/, ''));
 		}
 	} finally {
 		callback(null, result);

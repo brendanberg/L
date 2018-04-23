@@ -38,7 +38,7 @@ function ParseError(msg) {
 
 ParseError.prototype.toString = toString;
 
-var error = {
+module.exports = {
 	ParseError: ParseError,
 	NameError: NameError,
 	ArgumentError: ArgumentError,
@@ -46,5 +46,3 @@ var error = {
 	TypeError: TypeError,
 	NotImplemented: NotImplemented
 };
-
-module.exports = error;

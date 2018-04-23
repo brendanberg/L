@@ -1,5 +1,5 @@
-let I = require('immutable');
-let AST = require('./ast');
+const { List } = require('immutable');
+const AST = require('./ast');
 
 /*
 
@@ -86,7 +86,7 @@ let match = {
 				message: 'did not consume all tokens',
 				consumed: exp[0],
 				encountered: exp[1]
-			}), I.List([])];
+			}), List([])];
 			return ret;
 		} else {
 			return exp;
@@ -110,7 +110,7 @@ let match = {
 		// Adding the colon operator to the disallowed list is a nasty hack
 		// but I want key value pairs to only be valid in map literals and
 		// selector messages.
-		let disallowed = I.List(['::', ':', '!', '~', '.']);
+		let disallowed = List(['::', ':', '!', '~', '.']);
 
 		if (op && op._name === 'Operator' && !disallowed.contains(op.label) && terms.count() > 0) {
 			rightMatch = this.expressionNoAssign(context, terms.first(), terms.rest());
@@ -121,7 +121,7 @@ let match = {
 					lhs: leftMatch[0], op: op.label, rhs: rightMatch[0]
 				});
 				if (rightMatch._name === 'Error') {
-					return [infixExp, I.List([])];
+					return [infixExp, List([])];
 				} else {
 					return [infixExp, rightMatch[1]];
 				}
@@ -134,45 +134,59 @@ let match = {
 		let pfxMatch = this.prefixExpression(context, node, unparsed);
 		if (pfxMatch) { return pfxMatch; }
 
-		let valMatch = this.value(context, node, unparsed);
-		if (!valMatch) { return null; }
+		var expr = this.value(context, node, unparsed);
+		if (!expr) { return null; }
 
-		let [next, rest] = [valMatch[1].first(), valMatch[1].rest()];
+		var target = expr;
 
-		if (next) {
+		while (expr) {
 			// We need to explicitly test for compound expressions. They are
 			// property lookup (`struct.property`), function or method invocation
 			// (`func(value)`), and collection interrogation (`list[index]`)
+			// Chaining operations in any order (`func(value)[index].property`)
+			// is permitted. Compound expressions are left associative
+			let [next, rest] = [expr[1].first(), expr[1].rest()];
+			expr = null;
 
-			if (next._name === 'Operator' && next.label === '.') {
-				let ident = this.identifier(context, next, rest);
+			if (next) {
+				//console.log('next: ' + next);
+				if (next._name === 'Operator' && next.label === '.') {
+					//console.log('operator');
+					let ident = this.identifier(context, rest.first(), rest.rest());
 
-				return ident && [
-					new AST.PropertyLookup({target: valMatch[0], term: ident[0]}),
-					ident[1]
-				];
-			} else {
-				let callExpr = this.parameterList(context, next, rest);
-
-				if (callExpr) {
-					return [
-						new AST.FunctionCall({target: valMatch[0], plist: callExpr[0]}),
-						callExpr[1]
+					expr = ident && [
+						new AST.PropertyLookup({target: target[0], term: ident[0]}),
+						ident[1]
 					];
-				}
+				} else if (next._name === 'Message') {
+					let message = this.parameterList(context, next, rest);
+					//console.log('message: ' + message[0]);
+					expr = message && [
+						new AST.FunctionCall({target: target[0], args: message[0]}),
+						message[1]
+					];
+				} else if (next._name === 'List') {
+					//console.log('list');
+					let lookup = this.list(context, next, rest);
 
-				let lookupExpr = this.list(context, next, rest);
-
-				if (lookupExpr) {
-					return [
-						new AST.ListAccess({target: valMatch[0], terms: lookupExpr[0].items}),
-						lookupExpr[1]
+					expr = lookup && [
+						new AST.ListAccess({target: target[0], terms: lookup[0].items}),
+						lookup[1]
 					];
 				}
 			}
+			//console.log('target: ' + target[0]);
+			//console.log('expr:   ' + (expr && expr[0]));
+			if (expr) {
+				//console.log('expr: ' + expr[0]);
+				// If we found a clarification operation, we assign it to target.
+				// If there was no match, target remains the previous value, and
+				// we break out of the while loop and return the previous value.
+				target = expr;
+			}
 		}
 
-		return valMatch;
+		return target;
 	},
 	identifierList: function(context, node, unparsed) {
 		if (node._name === 'Message') {
@@ -211,7 +225,7 @@ let match = {
 				}
 			}
 
-			return [new AST.IdentifierList({idents: I.List(idents)}), unparsed];
+			return [new AST.IdentifierList({idents: List(idents)}), unparsed];
 		}
 
 		return null;
@@ -227,7 +241,7 @@ let match = {
 				else { return null; }
 			}
 
-			return [new AST.List({items: I.List(exprs)}), unparsed];
+			return [new AST.List({items: List(exprs)}), unparsed];
 		}
 
 		return null;
@@ -289,7 +303,7 @@ let match = {
 			}
 
 			return [new AST.Template({
-				match: new AST.List({items: I.List(parts)})
+				match: new AST.List({items: List(parts)})
 			}), unparsed];
 		} else if (node._name === 'Block') {
 			let parts = [];
@@ -311,7 +325,7 @@ let match = {
 			}
 
 			return [new AST.Template({
-				match: new AST.Block({exprs: I.List(parts)})
+				match: new AST.Block({exprs: List(parts)})
 			}), unparsed];
 		} else {
 			// Otherwise, we look for a template part.
@@ -360,15 +374,17 @@ let match = {
 		}
 	},
 	prefixExpression: function(context, node, unparsed) {
-		const prefixOperators = I.List(['+', '-', '!', '~', '^', '\\']);
+		const prefixOperators = List(['+', '-', '!', '~', '^', '\\']);
 		if (node._name !== 'Operator' || !prefixOperators.contains(node.label)) { return null; }
 
 		let exp = this.value(context, unparsed.first(), unparsed.rest());
 
 		if (exp && node.label === '\\') {
+			console.log(exp[0]);
+			console.log(exp[1]);
 			return [new AST.Evaluate({target: exp[0]}), exp[1]];
 		} else if (exp) {
-			return [new AST.PrefixExpression({op: node.label, exp: exp[0]}), exp[1]];
+			return [new AST.PrefixExpression({op: node.label, expr: exp[0]}), exp[1]];
 		} else {
 			return null;
 		}
@@ -385,6 +401,8 @@ let match = {
 		}
 
 		let match = (
+            //this.option(context, node, unparsed) ||
+            this.record(context, node, unparsed) ||
 			this.functionDefn(context, node, unparsed) ||
 			this.identifier(context, node, unparsed) ||
 			this.symbol(context, node, unparsed) ||
@@ -406,13 +424,13 @@ let match = {
 
 			if (node.exprs.count() > 1) {
 				// TODO: this drops the comma because reasons
-				return [new AST.Parenthesized({
+				return [new AST.Grouping({
 					expr: new AST.Error({
 						message: '',
 						consumed: first,
 						encountered: rest
 					})
-				}), I.List([])];
+				}), List([])];
 			}
 
 			let expr = this.expressionNoAssign(context, first.terms.first(), first.terms.rest());
@@ -422,6 +440,51 @@ let match = {
 
 		return null;
 	},
+    record: function(context, node, unparsed) {
+        if (node._name === 'Type') {
+            let members = [];
+            for (let expr of node.exprs) {
+				let first = this.identifier(context, expr.terms.first(), expr.terms.rest());
+				let second;
+
+				if (!first) {
+					members.push(new AST.Error({
+						message: 'Encountered unexpected term',
+						consumed: null,
+						encountered: terms
+					}));
+					break;
+				}
+
+				if (first[1].count() > 0) {
+					second = this.identifier(context, first[1].first(), first[1].rest());
+				}
+
+				if (second) {
+					if (second[1].count() > 0) {
+						// Didn't consume all tokens...
+						members.push(new AST.Error({
+							message: 'Encountered unexpected term',
+							consumed: second[0],
+							encountered: second[1]
+						}));
+					}
+					members.push(second[0].setIn(['tags', 'type'], first[0].label));
+				} else {
+					members.push(first[0]);
+				}
+            }
+            return [new AST.Record({
+                'members': List(members)
+            }), unparsed];
+        }
+        return null;
+    },
+    option: function(context, node, unparsed) {
+        if (node._name === 'Type') {
+
+        }
+    },
 	matchDefn: function(context, node, unparsed) {
 		if (node._name === 'Block' &&
 				node.getIn(['tags', 'envelopeShape']) === '{{}}') {
@@ -496,7 +559,7 @@ let match = {
 				}
 			}
 
-			return [new AST.List({items: I.List(exprs)}), unparsed];
+			return [new AST.List({items: List(exprs)}), unparsed];
 		}
 
 		return null;
@@ -515,12 +578,12 @@ let match = {
 						let val = this.expressionNoAssign(context, rest.first(), rest.rest());
 						kvps.push(new AST.KeyValuePair({key: key[0], val: val[0]}));
 					} else {
-						/*
+					    /*
 							[ a : 1 ]
-								^ ^ ^
-								| | +---- Expression             1
-								| +------ Operator               :
-								+-------- Non-Infix Expression   a
+							  ^ ^ ^
+							  | | +---- Expression             1
+							  | +------ Operator               :
+							  +-------- Non-Infix Expression   a
 							[ a + 1 ]
 							  ^ ^ ^
 								| | +---- Expression             1
@@ -537,56 +600,56 @@ let match = {
 					return null;
 				}
 			}
-			return [new AST.Map({items: I.List(kvps)}), unparsed];
+			return [new AST.Map({items: List(kvps)}), unparsed];
 		}
 
 		return null;
 	},
 	identifier: function(context, node, unparsed) {
 		if (node._name === 'Identifier') {
-			return [node.transform(context, this), unparsed];
+			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
 	symbol: function(context, node, unparsed) {
 		if (node._name === 'Symbol') {
-			return [node.transform(context, this), unparsed];
+			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
 	text: function(context, node, unparsed) {
 		if (node._name === 'Text') {
-			return [node.transform(context, this), unparsed];
+			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
 	integer: function(context, node, unparsed) {
 		if (node._name === 'Integer') {
-			return [node.transform(context, this), unparsed];
+			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
 	decimal: function(context, node, unparsed) {
 		if (node._name === 'Decimal') {
-			return [node.transform(context, this), unparsed];
+			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
 	scientific: function(context, node, unparsed) {
 		if (node._name === 'Scientific') {
-			return [node.transform(context, this), unparsed];
+			return [node, unparsed];
 		} else {
 			return null;
 		}
 	},
 	complex: function(context, node, unparsed) {
 		if (node._name === 'Complex') {
-			return [node.transform(context, this), unparsed];
+			return [node, unparsed];
 		} else {
 			return null;
 		}

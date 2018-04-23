@@ -1,38 +1,23 @@
-let I = require('immutable');
+const { Record, Map } = require('immutable');
 
 const _ = null;
-const nilMap = I.Map({});
-const nilList = I.List([]);
+const _map = Map({});
 
 let Skel = {
 	// Context Nodes
-	Block: I.Record({exprs: nilList, tags: nilMap}, 'Block'),
+	Block: require('./skeleton/block'),
 
 	// Container Nodes
-	List: I.Record({exprs: nilList, tags: nilMap}, 'List'),
-	Message: I.Record({exprs: nilList, tags: nilMap}, 'Message'),
-	Type: I.Record({exprs: nilList, tags: nilMap}, 'Type'),
+	List: require('./skeleton/list'),
+	Message: require('./skeleton/message'),
+	Type: require('./skeleton/type'),
 
 	// Expression Node
-	Expression: I.Record({terms: nilList, tags: nilMap}, 'Expression'),
+	Expression: require('./skeleton/expression'),
 
-	// TODO: Nodes below this note are identical to the ones in
-	// the AST definitions. We should use AST nodes for these tokens
-	// in parser.pegjs
-
-	// Symbol Nodes
-	Operator: I.Record({label: _, tags: nilMap}, 'Operator'),
-	Symbol: I.Record({label: _, tags: nilMap}, 'Symbol'),
-	Identifier: I.Record({label: _, modifier: _, tags: nilMap}, 'Identifier'),
-
-	// Literal value nodes
-	Text: I.Record({value: _, tags: nilMap}, 'Text'),
-	Integer: I.Record({value: _, tags: nilMap}, 'Integer'),
-	Decimal: I.Record({numerator: _, exponent: _, tags: nilMap}, 'Decimal'),
-	Scientific: I.Record({significand: _, mantissa: _, tags: nilMap}, 'Scientific'),
-	Complex: I.Record({real: _, imaginary: _, tags: nilMap}, 'Complex'),
-	
-	Comment: I.Record({text: _, tags: nilMap}, 'Comment'),
+	// Terminal Nodes not otherwise in AST
+	Operator: require('./skeleton/operator'),
+	Comment: require('./skeleton/comment'),
 };
 
 module.exports = Skel;

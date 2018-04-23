@@ -1,10 +1,6 @@
 {
-	let I = require('immutable');
-	let Skel = require('./skeleton');
-
-	let L = {};
-	let asString = function(val) { return val.toString(); };
-	//var Cursor = I.Record({start: _, end: _});
+	const { Map, List } = require('immutable');
+	const { AST, Skel } = require('./l')
 }
 
 /* Parsing the L Programming Language
@@ -30,13 +26,13 @@ start
 	= exprs:expressionList {
 			return new Skel.Block({
 				exprs: exprs,
-				tags: I.Map({source: 'module'})
+				tags: Map({source: 'module'})
 			});
 		}
 
 expressionList
 	= __ first:expression rest:(_S e:expression { return e; })* _S? __ {
-			return I.List([first].concat(rest));
+			return List([first].concat(rest));
 		}
 
 
@@ -64,32 +60,46 @@ expressionList
 expression
 	= first:term rest:(_ t:term { return t; })* _ {
 			return new Skel.Expression({
-				terms: I.List([first].concat(rest))
+				terms: List([first].concat(rest))
 			});
 		}
 
 term
 	= identifier
 	/ symbol
-	/ list
-	/ block
-	/ type
-	/ op:Operator { return new Skel.Operator({label: op}); }
+	/ angle_container // type
+	/ brack_container // list
+    / paren_container // message
+	/ brace_container // block
 	/ number
 	/ '"' v:(!'"' !'\n' ch:. { return ch; })* '"' {
-			return new Skel.Text({value: v.join('')});
+            let value = v.join('').replace(/\\[tn\\]/g, function(match) {
+                return ({
+                    "\\n": "\n",
+                    "\\t": "\t",
+                    "\\\\": "\\"
+                })[match];
+            });
+			return new AST.Text({value: value});
 		}
 	/ "'" v:(!"'" !'\n' ch:. { return ch; })* "'" {
-			return new Skel.Text({value: v.join('')});
+            let value = v.join('').replace(/\\[tn\\]/g, function(match) {
+                return ({
+                    "\\n": "\n",
+                    "\\t": "\t",
+                    "\\\\": "\\"
+                })[match];
+            });
+			return new AST.Text({value: value});
 		}
-	/ message
+	/ op:operator { return new Skel.Operator({label: op}); }
 
 
 /*---------------------------------------------------------------------------
   Operators
  ---------------------------------------------------------------------------*/
 
-Operator "operator"
+operator "operator"
 	= "::"
 	/ "..."
 	/ ".."
@@ -118,8 +128,10 @@ Operator "operator"
 	/ "*"
 	/ "/"
 	/ "%"
-	/ "<"
-	/ ">"
+	/ "<" !"<"
+	/ ">" !">"
+    / "<*"
+    / "*>"
 	/ "&"
 	/ "|"
 	/ "^"   // As prefix: [reserved for future use]
@@ -133,11 +145,11 @@ Operator "operator"
  ---------------------------------------------------------------------------*/
 
 // ( identifiers... )
-message
-	= '(' __ expList:expressionList ? __ ')' {
+paren_container
+    = '(' __ expList:expressionList ? __ ')' {
 			return new Skel.Message({
-				exprs: expList || I.List([]),
-				tags: I.Map({envelopeShape: '()'})
+				exprs: expList || List([]),
+				tags: Map({envelopeShape: '()'})
 			});
 		}
 
@@ -147,17 +159,17 @@ message
  ----------------------------------------------------------------------------*/
 
 // { exprs... }
-block
+brace_container
 	= '{{' __ expList:expressionList ? __ '}}' {
 			return new Skel.Block({
-				exprs: expList || I.List([]),
-				tags: I.Map({envelopeShape: '{{}}'})
+				exprs: expList || List([]),
+				tags: Map({envelopeShape: '{{}}'})
 			});
 		}
 	/ '{' __ expList:expressionList ? __ '}' {
 			return new Skel.Block({
-				exprs: expList || I.List([]),
-				tags: I.Map({envelopeShape: '{}'})
+				exprs: expList || List([]),
+				tags: Map({envelopeShape: '{}'})
 			});
 		}
 
@@ -166,11 +178,11 @@ block
  ----------------------------------------------------------------------------*/
 
 // [ exprs... ]
-list
+brack_container
 	= '[' __ expList:expressionList ? __ ']' {
 			return new Skel.List({
-				exprs: expList || I.List([]),
-				tags: I.Map({envelopeShape: '[]'})
+				exprs: expList || List([]),
+				tags: Map({envelopeShape: '[]'})
 			});
 		}
 
@@ -178,11 +190,11 @@ list
   Angle Bracketed List
  ---------------------------------------------------------------------------*/
 
-type
-	= '<' __ expList:expressionList ? __ '>' {
+angle_container
+	= '<<' __ expList:expressionList ? __ '>>' {
 			return new Skel.Type({
-				exprs: expList || I.List([]),
-				tags: I.Map({envelopeShape: '<>'})
+				exprs: expList || List([]),
+				tags: Map({envelopeShape: '<<>>'})
 			});
 		}
 
@@ -193,12 +205,12 @@ type
 // $ identifier
 symbol "symbol"
 	= '$' l:label {
-			return new Skel.Symbol({label: l});
+			return new AST.Symbol({label: l});
 		}
 
 identifier "identifier"
 	= l:label mod:postfixModifier? {
-			return new Skel.Identifier({label: l, modifier: mod});
+			return new AST.Identifier({label: l, modifier: mod});
 		}
 
 label
@@ -248,10 +260,10 @@ number "number"
 	/ integer
 
 integer
-	= '0' { return new Skel.Integer({value: 0, tags: I.Map({'source_base': 10})}); }
+	= '0' { return new AST.Integer({value: 0, tags: Map({'source_base': 10})}); }
 	/ first:[1-9] rest:[0-9]* {
 			var val = parseInt(first + rest.join(''), 10);
-			return new Skel.Integer({value: val, tags: I.Map({'source_base': 10})});
+			return new AST.Integer({value: val, tags: Map({'source_base': 10})});
 		}
 
 decimal
@@ -259,7 +271,7 @@ decimal
 			var fraction = parseInt(digits.join(''), 10) || 0;
 			var factor = Math.pow(10, digits.length);
 
-			return new Skel.Decimal({
+			return new AST.Decimal({
 				numerator: int.value * factor + fraction,
 				exponent: digits.length
 			});
@@ -267,24 +279,24 @@ decimal
 
 scientific
 	= sig:integer [eE] [+-]? mant:integer {
-			return new Skel.Scientific({significand: sig, mantissa: mant});
+			return new AST.Scientific({significand: sig, mantissa: mant});
 		}
 	/ sig:decimal [eE] [+-]? mant:integer {
-			return new Skel.Scientific({significand: sig, mantissa: mant});
+			return new AST.Scientific({significand: sig, mantissa: mant});
 		}
 
 hex
 	= '0x0' {
-			return new Skel.Integer({value: 0, tags: I.Map({'source_base': 16})});
+			return new AST.Integer({value: 0, tags: Map({'source_base': 16})});
 		}
 	/ '0x' first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
 			var val = parseInt(first + rest.join(''), 16);
-			return new Skel.Integer({value: val, tags: I.Map({'source_base': 16})});
+			return new AST.Integer({value: val, tags: Map({'source_base': 16})});
 		}
 
 imaginary
 	= num:(scientific / hex / decimal / integer) [ijJ] {
-			return new Skel.Complex({imaginary: num});
+			return new AST.Complex({imaginary: num});
 		}
 
 
@@ -314,9 +326,9 @@ Linespace
 
 Comment "comment"
 	= '#' t:(!'\n' .)* '\n' {
-			return Skel.Comment({text: t.join(''), tags: I.Map({source: 'trailing'})});
+			return Skel.Comment({text: t.join(''), tags: Map({source: 'trailing'})});
 		}
 	/ '#-' t:(!'-#' .)* '-#' {
-			return Skel.Comment({text: t.join(''), tags: I.Map({source: 'inline'})});
+			return Skel.Comment({text: t.join(''), tags: Map({source: 'inline'})});
 		}
 
