@@ -27,8 +27,8 @@ module.exports = {
 //  MessageSend: require('./ast/messagesend'),
     Identifier: require('./ast/identifier'),
     KeyValuePair: require('./ast/keyvaluepair'),
-//  Record: require('./ast/record'),
-//  Option: require('./ast/option'),
+	Record: require('./ast/record'),
+	Option: require('./ast/option'),
     Symbol: require('./ast/symbol'),
 	Error: require('./ast/error'),
     Text: require('./ast/text'),
@@ -56,12 +56,6 @@ let AST = {
 	),
 	MessageSend: I.Record(
 		{sender: _, receiver: _, message: _, tags: _map}, 'MessageSend'
-	),
-	Record: I.Record(
-		{members: nilList, ctx: _, tags: _map}, 'Record'
-	),
-	Option: I.Record(
-		{components: nilList, label: _, ctx: _, tags: _map}, 'Option'
 	),
 	Error: I.Record(
 		{subject: _, message: _, consumed: _, encountered: nilList}, 'Error'
