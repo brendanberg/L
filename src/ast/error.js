@@ -6,7 +6,7 @@ const { List, Map, Record } = require('immutable');
 const _ = null;
 const _list = List([]);
 const _map = Map({});
-
+const { ParseError } = require('../error');
 
 const Error = Record({subject: _, message: _, consumed: _, encountered: _list}, 'Error');
 
@@ -31,6 +31,10 @@ Error.prototype.repr = function(depth, style) {
 			}).join(' '))
 		)
 	);
+};
+
+Error.prototype.eval = function(ctx) {
+	throw new ParseError(this.message);
 };
 
 module.exports = Error;

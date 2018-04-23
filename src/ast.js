@@ -24,7 +24,7 @@ module.exports = {
 	Lookup: require('./ast/lookup'),
 //  Unify: require('./ast/unify'),
 //* Message: require('./ast/message'),
-//  MessageSend: require('./ast/messagesend'),
+	MessageSend: require('./ast/messagesend'),
     Identifier: require('./ast/identifier'),
     KeyValuePair: require('./ast/keyvaluepair'),
 	Record: require('./ast/record'),
@@ -44,21 +44,11 @@ module.exports = {
 
 /*
 let AST = {
-	// TODO: The invocation may be specific to method calls on types
-	Invocation: I.Record(
-		{target: _, plist: nilList, tags: _map}, 'Invocation'
-	),
 	Unify: I.Record(
 		{lhs: _, rhs: _, tags: _map}, 'Unify'
 	),
 	Message: I.Record(
 		{identifier: _, plist: _, tags: _map}, 'Message'
-	),
-	MessageSend: I.Record(
-		{sender: _, receiver: _, message: _, tags: _map}, 'MessageSend'
-	),
-	Error: I.Record(
-		{subject: _, message: _, consumed: _, encountered: nilList}, 'Error'
 	),
 };*/
 
