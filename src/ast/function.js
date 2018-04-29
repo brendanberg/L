@@ -2,20 +2,20 @@
    Function AST node
  */
 
-let I = require('immutable');
-
+const { Map, List, Record } = require('immutable');
+const Context = require('../context');
 const _ = null;
-const _map = I.Map({});
-const _list = I.List([]);
+const _map = Map({});
+const _list = List([]);
 
 
-let _Function = I.Record({template: _, plist: _list, block: _, ctx: _, tags: _map}, 'Function');
+let _Function = Record({template: _, plist: _list, block: _, ctx: _, tags: _map}, 'Function');
 
 _Function.prototype.toString = function() {
     let arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
 
     return (
-        '(' + this.teplate.match.items.map(function(node) {
+        '(' + this.template.match.items.map(function(node) {
 			return node.toString();
 		}).join(', ') + ')' +
         arrow + this.block.toString()
@@ -35,9 +35,10 @@ _Function.prototype.repr = function(depth, style) {
 }
 
 _Function.prototype.eval = function(ctx) {
+	let scope = new Context({local: _map, outer: ctx});
     let val = this.transform(function(node) {
-        return node._name === 'Evaluate' ? node.eval(ctx) : node;
-    }).set('ctx', ctx);
+        return node._name === 'Evaluate' ? node.eval(scope) : node;
+    }).set('ctx', scope);
     return val;
 };
 

@@ -29,6 +29,7 @@ module.exports = {
     KeyValuePair: require('./ast/keyvaluepair'),
 	Record: require('./ast/record'),
 	Option: require('./ast/option'),
+	Tag: require('./ast/tag'),
     Symbol: require('./ast/symbol'),
 	Error: require('./ast/error'),
     Text: require('./ast/text'),

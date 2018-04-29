@@ -2,11 +2,12 @@
 	Collection Accessor AST node
 */
 
-const { Map, List, Record } = require('immutable');
-
+const { Map, List: IList, Record } = require('immutable');
+const Bottom = require('./bottom');
+const List = require('./list');
 const _ = null;
 const _map = Map({});
-const _list = List([]);
+const _list = IList([]);
 
 const Accessor = Record({target: _, terms: _list, tags: _map}, 'Accessor');
 
@@ -40,19 +41,19 @@ Accessor.prototype.eval = function(ctx) {
 		index = item.eval(ctx);
 		if (target._name === 'List') {
 			if (index._name !== 'Integer') {
-				return new AST.Bottom();
+				return new Bottom();
 			}
 			if (index.value < 0) {
 				result.push(
-					target.list.get(target.list.size + index.value) ||
-					new AST.Bottom()
+					target.items.get(target.items.size + index.value) ||
+					new Bottom()
 				);
 			} else {
-				result.push(target.list.get(index.value) || new AST.Bottom());
+				result.push(target.items.get(index.value) || new Bottom());
 			}
 		} else if (target._name === 'Map') {
 			//TODO: Test that index is hashable
-			result.push(target.ctx.local.get(index) || new AST.Bottom());
+			result.push(target.ctx.lookup(index));
 		} else if (target._name === 'Text') {
 			if (index._name !== 'Integer') {
 				// TODO: THis is an error
@@ -70,7 +71,7 @@ Accessor.prototype.eval = function(ctx) {
 	if (target.type === 'Text') {
 		return target.set('value', result.join(''));
 	} else {
-		return new AST.List({items: result});
+		return new List({items: result});
 	}
 };
 

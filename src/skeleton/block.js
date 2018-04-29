@@ -19,7 +19,7 @@ Block.prototype.transform = function(context, match) {
 	// anywhere in the block, so this needs two passes basically.
 
     //console.log(this.exprs);
-	let subcontext = new Context(null, context);
+	let subcontext = new Context({local: _map, outer: context});
 	let exprs = [];
 	// TODO: Currently the context and match are mutable, but
 	// they should probably be made immutable.

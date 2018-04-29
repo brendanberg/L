@@ -8,7 +8,7 @@ const _ = null;
 const _list = List([]);
 const _map = Map({});
 
-const IdentifierList = Record({idents: _list, tags: _map}, 'IdentifierList');
+const IdentifierList = Record({items: _list, tags: _map}, 'IdentifierList');
 
 module.exports = IdentifierList;
 

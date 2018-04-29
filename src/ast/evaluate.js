@@ -17,12 +17,14 @@ Evaluate.prototype.eval = function(ctx) {
     let target = this.target;
 
     if (target._name === 'Block' /* && target.getIn(['tags', 'envelopeShape']) === '{}' */) {
+		// TODO: This needs to be a depth-first traversal
+		let newBlock = target.eval(ctx);
         let result = [];
 
-        for (let exp of target.exprs) {
-            let r = exp.eval && exp.eval(ctx) || new Bottom();
-            result.push(r);
-        }
+		for (let exp of newBlock.exprs) {
+			let r = (exp.eval && exp.eval(ctx)) || new Bottom();
+			result.push(r);
+		}
 
         return result.pop();
     } else {

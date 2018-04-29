@@ -1,24 +1,24 @@
 {
   "name": "l",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "The L Programming Language",
   "author": "Brendan Berg <brendan@berg.industries>",
   "main": "lib/l.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/brendanberg/L.git"
+    "url": "https://github.com/brendanberg/l.git"
   },
   "scripts": {
-    "clean": "rm -rf build/ && rm l.js l.min.js src/parser.js",
-    "gen-parser": "pegjs -o src/parser.js src/parser.pegjs"
+    "build": "rm src/parser.js && pegjs -o src/parser.js src/parser.pegjs"
+  },
+  "bin": {
+    "metal": "src/repl.js"
   },
   "dependencies": {
+    "immutable": "^3.7.6",
     "log": "^1.4.0"
   },
   "devDependencies": {
-    "browserify": "^11.0.1",
-    "del": "^1.2.1",
-    "immutable": "^3.7.6",
     "mocha-testcheck": "0.1.2",
     "pegjs": "^0.10.0"
   },

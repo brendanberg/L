@@ -2,14 +2,14 @@
     Block AST node
 */
 
-let I = require('immutable');
-
+const { List, Map, Record } = require('immutable');
+const Context = require('../context');
 const _ = null;
-const _list = I.List([]);
-const _map = I.Map({});
+const _list = List([]);
+const _map = Map({});
 
 
-let Block = I.Record({exprs: _list, ctx: _, tags: _map}, 'Block');
+let Block = Record({exprs: _list, ctx: _, tags: _map}, 'Block');
 
 Block.prototype.toString = function() {
 	if (this.getIn(['tags', 'envelopeShape']) === '{{}}') {
@@ -54,12 +54,11 @@ Block.prototype.eval = function(ctx) {
     // and replace them with their evaluated value
 	// TODO: Figure out the right evaluation semantics for `\`
 	//       operators in nested blocks
-	return this.transform(function(node) {
-		if (node._name === 'Evaluate') {
-			return node.eval(ctx);
-		} else {
-			return node;
-		}
+	let scope = new Context({outer: ctx});
+	let temp = this.set('ctx', scope);
+	// TODO: This needs to be a depth-first traversal
+	return temp.transform(function(node) {
+		return node._name === 'Evaluate' ? node.eval(scope) : node;
 	});
 };
 

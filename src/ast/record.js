@@ -1,5 +1,5 @@
 
-const { Map, List, IRecord: Record } = require('immutable');
+const { Map, List, Record: IRecord } = require('immutable');
 const _ = null;
 const _map = Map({});
 const _list = List([]);

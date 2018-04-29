@@ -14,9 +14,9 @@ Option.prototype.toString = function () {
 	return '<< ' + variants.join(' | ') + ' >>';
 };
 
-Option.prototype.repr = function (depth, fmt) {
+Option.prototype.repr = function(depth, style) {
 	let variants = this.variants.map(function(node) {
-		return node.repr(depth, fmt);
+		return node.repr(depth, style);
 	});
 
 	return (

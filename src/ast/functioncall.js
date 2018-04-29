@@ -15,15 +15,14 @@ const _list = I.List([]);
 let FunctionCall = I.Record({args: _list, target: _, tags: _map}, 'FunctionCall');
 
 FunctionCall.prototype.toString = function() {
-    return this.target.toString() + '(' + this.args.map(function(it) {
+    return this.target.toString() + '(' + this.args.items.map(function(it) {
         return it.toString();
     }).toArray().join(', ') + ')';
 };
 
 FunctionCall.prototype.repr = function(depth, style) {
     return this.target.repr(depth, style) + '(' +
-		console.log(this.args);
-        this.args.map(function(it) {
+        this.args.items.map(function(it) {
             return it.repr(depth, style);
         }).toArray().join(', ') + ')';
 };
@@ -35,6 +34,8 @@ FunctionCall.prototype.eval = function(ctx) {
 	let context;
 
 	if (target._name === 'Function') {
+		//console.log('eval ctx', ctx);
+		//console.log('body ctx', target.ctx);
 		context = target.ctx.extend(target.template.match, args);
         // TODO: Perhaps the context needs to get attached to the block?
 		block = target.block; // target.block.set('ctx', context);
@@ -51,6 +52,7 @@ FunctionCall.prototype.eval = function(ctx) {
 			}
 		}
 	} else if (target._name === 'Record') {
+	console.log('Record constructor');
         context = target.ctx;
         if (target.members.count() != args.count()) {
             throw ArgumentError('');

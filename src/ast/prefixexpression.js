@@ -2,16 +2,16 @@
    PrefixExpression AST node
  */
 
-let I = require('immutable');
-let KeyValuePair = require('./keyvaluepair');
-let Invocation = require('./invocation');
+const { Map, List, Record } = require('immutable');
+const KeyValuePair = require('./keyvaluepair');
+const Invocation = require('./invocation');
 
 const _ = null;
-const _map = I.Map({});
-const _list = I.List([]);
+const _map = Map({});
+const _list = List([]);
 
 
-let PrefixExpression = I.Record({op: _, expr: _, tags: _map}, 'PrefixExpression');
+let PrefixExpression = Record({op: _, expr: _, tags: _map}, 'PrefixExpression');
 
 PrefixExpression.prototype.toString = function() {
     return this.op.replace(/^'(.*)'$/, '$1') + this.exp.toString();
@@ -22,11 +22,8 @@ PrefixExpression.prototype.repr = function(depth, style) {
 };
 
 PrefixExpression.prototype.eval = function(ctx) {
-    let target = this.expr.eval(ctx);
-    let selector = I.List([new KeyValuePair({key: `'{this.op}'`, val: _})]);
-
     // TODO: Replace the list / invocation with a message / message send
-    return (new Invocation({target: target, plist: selector})).eval(ctx);
+    return (new Invocation({target: this.expr, plist: List([this.op])})).eval(ctx);
 };
 
 PrefixExpression.prototype.transform = function(func) {

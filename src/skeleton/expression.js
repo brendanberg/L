@@ -11,9 +11,9 @@ Expression = Record({terms: _list, tags: _map}, 'Expression');
 
 Expression.prototype.toString = function () {
 	if (this.getIn(['tags', 'enclosure'], null) === 'parentheses') {
-		return '(' + this.terms.map(stringify).join(' ') + ')';
+		return '(' + this.terms.map(function(t) { return t.toString() }).join(' ') + ')';
 	} else {
-		return this.terms.map(stringify).join(' ');
+		return this.terms.map(function(t) { return t.toString() }).join(' ');
 	}
 };
 

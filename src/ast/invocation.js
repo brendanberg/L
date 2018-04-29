@@ -3,7 +3,7 @@
  */
 
 let I = require('immutable');
-
+const { NameError } = require('../error');
 const _ = null;
 const _map = I.Map({});
 const _list = I.List([]);
@@ -25,7 +25,132 @@ Invocation.prototype.repr = function(depth, style) {
 };
 
 Invocation.prototype.eval = function(ctx) {
-    return this;
+	let target = this.target.eval(ctx);
+	// This is a method invocation LOL
+	// Take the selector keys and string em together.
+	// Dispatch will select on the type signature so get that right
+	// when you define the ctx
+	// > Thing :: << s: Text >>
+	// > Thing t (reverse!) -> { t.s(reverse!) }
+	// > t :: Thing(s: "stressed")
+	// > t(reverse!)
+	// 'desserts'
+	// var context = new Context(_, ctx);//clone(ctx);
+	var selector = '(' + this.plist.map(function(x) {
+		if (x._name === 'KeyValuePair') {
+			if (x.key._name === 'Identifier') {
+				return x.key.label + ':';
+			} else if (x.key._name === 'Operator') {
+				return "'" + x.key.label + "':";
+			}
+		} else {
+			if (x._name === 'Identifier') {
+				return x.label;
+			} else if (x._name === 'Operator') {
+				return "'" + x.label + "'";
+			}
+		}
+	}).join('') + ')';
+	var method;
+
+	if (target.type === 'Record') {
+		target.name = target.tags['name'];
+	}
+
+	var method = ctx.lookup(target._name).get(selector);
+
+	/*if (method === undefined) {
+		method = target.ctx.lookup(selector);
+	}*/
+
+	if (method && typeof method === 'function') {
+		params = this.plist.filter(function (x) {
+			return x._name === 'KeyValuePair';
+		}).map(function(x) {
+			return x.val.eval(ctx);
+		}).toArray();
+		//target.ctx.__proto__ = ctx;
+		return method.apply(target, params) || new AST.Bottom();
+	} else if (method && method.type === 'Function') {
+		//target.ctx[selector].type === 'Function') {
+		return new AST.Text({value: 'Whoa! Not implemented!'});
+	} else if (method && method.type === 'Method') {
+		// (target.ctx[selector].type === 'Method') {
+		if (target.type === 'Record' || target.type === 'Option') {
+			throw new error.NotImplemented(
+				"method invocations on types are not implemented"
+			);
+		}
+		//var meth = target.ctx[selector];
+		local = {};
+
+		method.plist.list.forEach(function(param, key) {
+			if (param[1]) {
+				local[param[1].name] = this.plist.list.get(key).val.eval(ctx);
+			}
+		});
+
+		local['this'] = target;
+
+		func = new AST.Method({
+			typeId: method.typeId,
+			plist: method.plist,
+			block: method.block,
+			ctx: new Context({local: I.Map(local), outer: target.ctx})
+		});
+
+		return func.block.expressionList.eval(local);
+	} else {
+		console.log('method', method);
+		console.log('selector', selector);
+		var msg = (
+			"'" + target.name + "' does not have a method " +
+			"matching the selector '" + selector + "'"
+		);
+		throw new NameError(msg);
+	}
+	/*
+	var target = this.target.eval(ctx); // Should verify we got a function
+	var func, local, params;
+	
+	function clone(obj) {
+		if (obj === null || typeof obj !== 'object') { return obj; }
+		var copy = obj.constructor() || {};
+		for (var attr in obj) {
+			if (obj.hasOwnProperty(attr)) { copy[attr] = obj[attr]; }
+		}
+		return copy;
+	}
+	
+	if (target.type === 'Function') {
+		var ctx;
+		//clone(target.ctx);
+		local = {};
+	
+		func.plist.forEach(function(param) {
+			local[param.name] = param.eval(ctx);
+		});
+	
+		ctx = new Context({local: local, outer: target.ctx});
+		func = new AST.Function({plist: target.plist, block: target.block, ctx: ctx});
+	
+		// TODO: This isn't quite right.
+		local.__proto__ = func.block.ctx;
+		if (func.block.type === 'Function') {
+			return func.block.eval(local);
+		} else if (func.block.type === 'Block') {
+			return func.block.expressionList.eval(local);
+		}
+	} else if (target.type === 'Match') {
+		
+		for (let p of target.predicates) {
+			//
+	
+		}
+	} else if (target.type === 'Block') {
+		return new AST.Block({exprs: target.expressionList.eval(ctx)});
+	} else {
+	*/
 }
 
 module.exports = Invocation;

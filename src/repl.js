@@ -1,3 +1,5 @@
+#! /usr/bin/env node
+
 let repl = require('repl');
 const L = require('./l');
 let util = require('util');
@@ -10,7 +12,7 @@ let rep;
 let fs = require('fs');
 let path = require('path');
 
-let basepath = path.resolve('./lib');
+let basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
 let filenames = fs.readdirSync(basepath).filter(function(filename) {
 	return filename.match(/^[^\.].+\.ell$/) ? true : false;
 });
@@ -182,7 +184,6 @@ function eval(cmd, context, filename, callback) {
 		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
-        console.log(e);
 		L.log.info(function() { return e.toString(); });
 		if (e.found == null) {
 			str = command + '\n';

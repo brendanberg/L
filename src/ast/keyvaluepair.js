@@ -2,14 +2,12 @@
     Key value pair AST node
  */
 
-let I = require('immutable');
-
+const { Map, Record } = require('immutable');
 const _ = null;
-const _map = I.Map({});
-const _list = I.List([]);
+const _map = Map({});
 
 
-let KeyValuePair = I.Record({key: _, val:_, tags: _map}, 'KeyValuePair');
+const KeyValuePair = Record({key: _, val:_, tags: _map}, 'KeyValuePair');
 
 KeyValuePair.prototype.toString = function() {
     return this.key.toString() + ': ' + this.val.toString();
@@ -23,9 +21,7 @@ KeyValuePair.prototype.repr = function(depth, style) {
 };
 
 KeyValuePair.prototype.eval = function(ctx) {
-    // TODO: Figure out whether this is right
-    ctx.local = ctx.local.set(this.key.eval(ctx), this.val.eval(ctx));
-    return this;
+	return this.merge({key: this.key.eval(ctx), val: this.val.eval(ctx)});
 };
 
 KeyValuePair.prototype.transform = function(func) {

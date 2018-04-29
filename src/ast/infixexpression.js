@@ -15,7 +15,7 @@ let InfixExpression = Record({op: _, lhs: _, rhs: _, tags: _map}, 'InfixExpressi
 InfixExpression.prototype.toString = function() {
     return [
         this.lhs.toString(), 
-        this.op.replace(/^'(.*)'$/, '$1'),
+        this.op.label.replace(/^'(.*)'$/, '$1'),
         this.rhs.toString()
     ].join(' ');
 };
@@ -23,18 +23,15 @@ InfixExpression.prototype.toString = function() {
 InfixExpression.prototype.repr = function(depth, style) {
     return [
         this.lhs.repr(depth, style),
-        style.operator(this.op.replace(/^'(.*)'$/, '$1')),
+        style.operator(this.op.label.replace(/^'(.*)'$/, '$1')),
         this.rhs.repr(depth, style)
     ].join(' ');
 };
 
 InfixExpression.prototype.eval = function(ctx) {
-    let target = this.lhs.eval(ctx);
-    let value = this.rhs.eval(ctx);
-    let selector = List([new KeyValuePair({key: this.op, val: value})]); 
-
     // TODO: Replace the list / invocation with a message / message send
-    return (new Invocation({target: target, plist: selector})).eval(ctx);
+    let selector = List([new KeyValuePair({key: this.op, val: this.rhs})]); 
+    return (new Invocation({target: this.lhs, plist: selector})).eval(ctx);
 };
 
 InfixExpression.prototype.transform = function(func) {
