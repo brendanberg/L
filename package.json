@@ -9,7 +9,8 @@
     "url": "https://github.com/brendanberg/l.git"
   },
   "scripts": {
-    "build": "rm src/parser.js && pegjs -o src/parser.js src/parser.pegjs"
+    "build": "rm src/parser.js && pegjs -o src/parser.js src/parser.pegjs",
+	"metal": "src/repl.js"
   },
   "bin": {
     "metal": "src/repl.js"
