@@ -65,10 +65,10 @@ let match = {
 	expression: function(context, node, unparsed) {
 		// Match any expression
 		// 
-        //     expression ::= assignmentExpression
+		//     expression ::= assignmentExpression
 		//                  | typeDeclaration
 		//                  | methodDeclaration
-        //                  | expressionNoAssign
+		//                  | expressionNoAssign
 		//
 		let exp = (
 			this.assignmentExpression(context, node, unparsed) ||
@@ -107,7 +107,7 @@ let match = {
 		// Match an expression consisting of lefthand and righthand sub-
 		// expressions joined by an infix operator
 		//
-        //     infixExpression -> expressionNoInfix OPERATOR expressionNoAssign
+		//     infixExpression -> expressionNoInfix OPERATOR expressionNoAssign
 		//
 		let leftMatch = this.expressionNoInfix(context, node, unparsed);
 		let op, terms, rightMatch;
@@ -142,13 +142,13 @@ let match = {
 	expressionNoInfix: function(context, node, unparsed) {
 		// Match any expression that is not an `infixExpression`
 		//
-        //     expressionNoInfix -> declaration
-        //                        | messageSend
-        //                        | listAccessor
-        //                        | call
-        //                        | propertyAccessor
-        //                        | prefixExpression
-        //                        | value
+		//     expressionNoInfix -> declaration
+		//                        | messageSend
+		//                        | listAccessor
+		//                        | call
+		//                        | propertyAccessor
+		//                        | prefixExpression
+		//                        | value
 		//
 		let pfxMatch = this.prefixExpression(context, node, unparsed);
 		if (pfxMatch) { return pfxMatch; }
