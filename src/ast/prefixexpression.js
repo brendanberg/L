@@ -14,11 +14,11 @@ const _list = List([]);
 let PrefixExpression = Record({op: _, expr: _, tags: _map}, 'PrefixExpression');
 
 PrefixExpression.prototype.toString = function() {
-    return this.op.replace(/^'(.*)'$/, '$1') + this.exp.toString();
+    return this.op.label.replace(/^'(.*)'$/, '$1') + this.expr.toString();
 };
 
 PrefixExpression.prototype.repr = function(depth, style) {
-    return style.operator(this.op.replace(/^'(.*)'$/, '$1')) + this.exp.repr(depth, style);
+    return style.operator(this.op.label.replace(/^'(.*)'$/, '$1')) + this.expr.repr(depth, style);
 };
 
 PrefixExpression.prototype.eval = function(ctx) {

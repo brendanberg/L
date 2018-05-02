@@ -5,25 +5,25 @@ const _map = Map({});
 const _list = List([]);
 
 
-Record = IRecord({members: _list, ctx: _, tags: _map}, 'Record');
+Record = IRecord({label: _, members: _list, ctx: _, tags: _map}, 'Record');
 
 Record.prototype.toString = function () {
-	return "<< " + this.members.map(stringify).join(', ') + " >>";
+	let members = this.members.map(function(node) {
+		return node.toString();
+	});
+	return this.label + ' << ' + members.join(', ') + ' >>';
 };
 
-Record.prototype.repr = function (depth, fmt) {
-	if (this.getIn(['tags', 'name'])) {
-        return style.name(this.tags.name) + '( ... )';
-	}
-
+Record.prototype.repr = function (depth, style) {
 	let members = this.members.map(function(node) {
-		return node.repr(depth, fmt);
+		return node.repr(depth, style);
 	});
 
 	return (
-		style.delimiter("<<") + ' ' +
-		members.join(style.delimiter(', ')) + ' ' +
-		style.delimiter(">>")
+		style.name(this.label) + 
+		style.delimiter(' << ') +
+		members.join(style.delimiter(', ')) +
+		style.delimiter(' >>')
 	);
 };
 

@@ -10,7 +10,7 @@
   },
   "scripts": {
     "build": "rm src/parser.js && pegjs -o src/parser.js src/parser.pegjs",
-	"metal": "src/repl.js"
+    "metal": "src/repl.js"
   },
   "bin": {
     "metal": "src/repl.js"

@@ -5,28 +5,27 @@ const _map = Map({});
 const _list = List([]);
 
 
-Option = Record({variants: _list, label: _, ctx: _, tags: _map}, 'Option');
+Union = Record({label: _, variants: _list, ctx: _, tags: _map}, 'Union');
 
-Option.prototype.toString = function () {
+Union.prototype.toString = function () {
 	let variants = this.variants.map(function(node) {
 		return node.toString();
 	});
-	return '<< ' + variants.join(' | ') + ' >>';
+	return this.label + '<< ' + variants.join(' | ') + ' >>';
 };
 
-Option.prototype.repr = function(depth, style) {
+Union.prototype.repr = function(depth, style) {
 	let variants = this.variants.map(function(node) {
 		return node.repr(depth, style);
 	});
 
 	return (
-		style.delimiter('<<') + 
-		variants.join(style.delimiter(' | ')) +
-		style.delimiter('>>')
+		style.name(this.label) + style.delimiter(' << ') + 
+		variants.join(style.delimiter(' | ')) + style.delimiter(' >>')
 	);
 };
 
-Option.prototype.eval = function(ctx) {
+Union.prototype.eval = function(ctx) {
 	return this;
 
 	// TODO: I guess there needs to be some bookkeeping here?
@@ -42,10 +41,10 @@ Option.prototype.eval = function(ctx) {
 	// return this.set('ctx', Map(values));
 };
 
-Option.prototype.transform = function(context, match) {
+Union.prototype.transform = function(context, match) {
 	// Note: This rule should be unreachable if the grammar rules are correct
 	return this;
 };
 
-module.exports = Option;
+module.exports = Union;
 

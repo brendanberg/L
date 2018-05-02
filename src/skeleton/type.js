@@ -10,9 +10,9 @@ const AST = require('../ast');
 Type = Record({exprs: _list, tags: _map}, 'Type');
 
 Type.prototype.toString = function () {
-	return '<' + this.exprs.map(function(x) {
+	return '<<' + this.exprs.map(function(x) {
 		return x.toString();
-	}).toArray().join(', ') + '>';
+	}).toArray().join(', ') + '>>';
 };
 
 Type.prototype.repr = function (depth, fmt) {

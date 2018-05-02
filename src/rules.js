@@ -1,4 +1,4 @@
-const { List } = require('immutable');
+const { List, Record } = require('immutable');
 const AST = require('./ast');
 
 /*
@@ -65,11 +65,15 @@ let match = {
 	expression: function(context, node, unparsed) {
 		// Match any expression
 		// 
-        //     expression -> assignmentExpression
-        //                 | expressionNoAssign
+        //     expression ::= assignmentExpression
+		//                  | typeDeclaration
+		//                  | methodDeclaration
+        //                  | expressionNoAssign
 		//
 		let exp = (
 			this.assignmentExpression(context, node, unparsed) ||
+			this.typeDeclaration(context, node, unparsed) ||
+			// this.methodDeclaration(context, node, unparsed) ||
 			this.expressionNoAssign(context, node, unparsed)
 		);
 
@@ -203,6 +207,7 @@ let match = {
 
 		return target;
 	},
+
 	identifierList: function(context, node, unparsed) {
 		// Match a list of identifiers
 		//
@@ -248,6 +253,7 @@ let match = {
 
 		return null;
 	},
+
 	parameterList: function(context, node, unparsed) {
 		if (node._name === 'Message') {
 			let exprs = [];
@@ -264,10 +270,11 @@ let match = {
 
 		return null;
 	},
+
 	assignmentExpression: function(context, node, unparsed) {
 		// Matches assignment expressions
 		//
-		//     assignmentExpression -> template '::' expressionNoAssign
+		//     assignmentExpression ::= template Operator(::) expressionNoAssign
 		//
 		let dest = this.template(context, node, unparsed);
 		if (!dest) { return null; }
@@ -283,6 +290,168 @@ let match = {
 
 		return null;
 	},
+
+	typeDeclaration: function(context, node, unparsed) {
+		// Matches a type declaration
+		//
+		//     typeDeclaration ::= identifier recordType
+		//                       | identifier unionType
+		//
+		// A quick primer on type declarations:
+		//
+		// - The most basic type declaration is the unit type, or a 0-tuple
+		//     `Unit << >>`
+		//
+		// - The unit type has one value
+		//     ```
+		//     u :: Unit()
+		//     v :: Unit()
+		//     u == v      # .True
+		//     ```
+		//
+		// - A record type is a named, ordered collection of fields
+		//     `Point << Integer x, Integer y >>
+		//
+		// - An instance of a record type may be instantiated by ___
+		//     ```
+		//     p1 :: Point(x: 3, y: 5)
+		//     p2 :: Point(7, 4)
+		//
+		// - A union type consists of two or more variants, separated by `|`
+		//     `Boolean << True | False >>`
+		//
+		// - A union's variants may be accessed with the dot operator
+		//     ```
+		//     Boolean p :: .True
+		//     q :: Boolean.False
+		//     ```
+		//
+		// - A union variant may have a list of associated values
+		//     ```
+		//     Color << RGB(Integer, Integer, Integer)
+		//            | CMYK(Decimal, Decimal, Decimal, Decimal) >>
+		//     ```
+		//
+		// - Associated values may be instantiated by __
+		//     ```
+		//     redColor :: Color.RGB(255, 0, 0)
+		//     cyanColor :: Color.CMYK(1.0, 0.0, 0.0, 0.0)
+		//     ```
+		let ident = this.identifier(context, node, unparsed);
+		if (!(ident && ident[1].count() > 0)) { return null; }
+
+		let [first, rest] = [ident[1].first(), ident[1].rest()];
+
+		let type = (
+			this.recordType(context, first, rest) ||
+			this.unionType(context, first, rest)
+		);
+		
+		return type && [type[0].set('label', ident[0]), type[1]];
+	},
+
+	recordType: function(context, node, unparsed) {
+		// Match a record type declaration
+		//
+		//     recordType ::= TYPE[ (identifier identifier?)* ]
+		//
+		if (node._name === 'Type') {
+			let members = [];
+			for (let expr of node.exprs) {
+				let first = this.identifier(context, expr.terms.first(), expr.terms.rest());
+				let second;
+
+				if (!first) {
+					return null;
+				}
+
+				if (first[1].count() > 0) {
+					second = this.identifier(context, first[1].first(), first[1].rest());
+
+					if (!second) {
+						return null;
+					}
+				}
+
+				if (second) {
+					if (second[1].count() > 0) {
+						// Didn't consume all tokens...
+						return null;
+					}
+					members.push(second[0].setIn(['tags', 'type'], first[0].label));
+				} else {
+					members.push(first[0]);
+				}
+			}
+			return [new AST.Record({members: List(members)}), unparsed];
+		}
+		return null;
+	},
+
+	unionType: function(context, node, unparsed) {
+		// Matches a union type literal
+		//
+		//     unionType ::= TYPE[ variant ( Operator('|') variant )* ]
+		//
+		//     variant ::= identifier
+		//               | identifier LIST[ Identifier + ]
+		//
+		if (node._name === 'Type') {
+			if (node.exprs.count() !== 1) {
+				return null;
+			}
+
+			let expr = node.exprs.first();
+
+			var cont = false;
+			var variants = List([]);
+
+			for (let term of expr.terms) {
+				if (cont && term._name === 'Message') {
+					// Parse the identifiers in the message
+					let values = term.exprs.reduce(function(vs, v) {
+						if (!(vs instanceof List)) {
+							return vs;
+						} else if (v._name === 'Expression' && v.terms.count() === 1) {
+							let ident = v.terms.first();
+							if (ident._name === 'Identifier') {
+								return vs.push(ident);
+							} else {
+								return new AST.Error();
+							}
+						} else {
+							return new AST.Error();
+						}
+					}, List([]));
+
+					if (values instanceof List) {
+						variants = variants.update(-1, function(v) {
+							return v.set('values', values);
+						});
+					} else {
+						return values;
+					}
+				} else if (cont && term._name === 'Operator' && term.label === '|') {
+					cont = false;
+				} else if (!cont && term._name === 'Identifier') {
+					cont = true;
+					variants = variants.push(new AST.Variant({label: term.label}));
+				} else {
+					return new AST.Error({
+						message: 'Encountered unexpected node'
+					});
+				}
+			}
+
+			if (variants.count() >= 2) {
+				return [new AST.Union({variants: List(variants)}), unparsed];
+			} else {
+				return null;
+			}
+		}
+		return null;
+	},
+
 	template: function(context, node, unparsed) {
 		// Matches an assignment destination structure
 		//
@@ -453,143 +622,6 @@ let match = {
 		return null;
 	}
 };*/
-/*
-Context.prototype.match = function(pattern, value) {
-	let capture = function(pattern, value, ctx) {
-		// TODO: Abstract the list decomposition procedure to re-use for blocks
-		// let decompose = function(a, b) { ... }
-		if (ctx === null) { return null; }
-
-		if (pattern._name === 'List') {
-			// TODO: Eventually add support for maps. (How?)
-			if (value._name !== 'List') { return null; }
-
-			// Test the first value.
-			let [first, rest] = [pattern.items.first(), pattern.items.rest()];
-
-			// capture([], []) -> {}
-			// capture([], [*]) -> <NO MATCH>
-			if (!first) {
-				return value.items.count() ? null : ctx;
-			}
-
-			// capture([a..., b], [*]) -> capture([a...], []) + {b: *}
-			// capture([a..., b], [*..., *]) -> capture([a...], [*...]) + {b: *}
-
-			// capture([a...], []) -> {a: []}
-			// capture([a...], [*]) -> {a: [*]}
-			// capture([a...], [*, *...]) -> {a: [*, *...]}
-			if (first._name === 'Identifier' && first.getIn(['tags', 'collect'], false)) {
-				if (rest.isEmpty()) {
-					return ctx.set(first.label, value);
-					// The same as `capture(first, value)`
-				} else {
-					// Pick the last item off the list and go deeper
-					let last = pattern.items.last();
-
-					if (last._name === 'Identifier' && last.getIn(['tags', 'collect'], false)) {
-						// TODO: Should this really be an exception?
-						return null;
-					}
-
-					let innerCtx = capture(last, value.items.last(), ctx);
-					return innerCtx && capture(
-						new AST.List({items: pattern.items.butLast(), tags: pattern.tags}),
-						new AST.List({items: value.items.butLast(), tags: value.tags}),
-						innerCtx
-					);
-				}
-			}
-
-			// capture([a] [*] -> {a: *}
-			// capture([a, b], [*, *]) -> capture([b], [*]) + {a: *}
-			// capture([a, b...], [*]) -> capture([b...], []) + {a: *}
-			// capture([a, b..., c], [*, *..., *]) -> capture([b..., c], [*..., *]) + {a: *}
-			if (rest.isEmpty() && value.items.count() === 1) {
-				return capture(first, value.items.first(), ctx);
-			} else if (rest.isEmpty()) {
-				return null;
-			} else {
-				let innerCtx = capture(first, value.items.first(), ctx);
-				return innerCtx && capture(
-					new AST.List({items: rest, tags: pattern.tags}),
-					new AST.List({items: value.items.rest(), tags: value.tags}),
-					innerCtx
-				);
-			}
-		} else if (pattern._name === 'Block') {
-			if (value._name !== 'Block') { console.log('block'); return null; }
-			// TODO: The same strategy here.
-		} else if (pattern._name === 'Identifier') {
-			let type = pattern.getIn(['tags', 'type'], null);
-			// TODO: Type check here.
-			return ctx.set(pattern.label, value);
-		} else if (pattern._name === 'Symbol') {
-			// TODO: Replace each of these test cases with an equality
-			// method defined on each AST node
-			if (value._name === 'Symbol' && value.label === pattern.label) {
-				return ctx;
-			} else { 
-				return null;
-			}
-		} else if (pattern._name === 'Text') {
-			if (value._name === 'Text' && value.value === pattern.value) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Integer') {
-			if (value._name === 'Integer' && value.value === pattern.value) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Decimal') {
-			if (value._name === 'Decimal' &&
-					value.numerator === pattern.numerator &&
-					value.exponent === pattern.exponent) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Scientific') {
-			if (value._name === 'Scientific' &&
-					value.significand === pattern.significand &&
-					value.mantissa === pattern.mantissa) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Complex') {
-			if (value._name === 'Complex' &&
-					value.real === pattern.real &&
-					value.imaginary === pattern.imaginary) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else {
-			// This is where we test value equivalence
-			// TODO: This should maybe call the equality method on the value
-			// (but which side is the target and which is the argument?)
-			let isEqual = (new AST.Invocation({
-				target: value, plist: new AST.Message({
-					___: _,
-					___: pattern
-				})
-			})).eval(ctx);
-
-			if (isEqual._name === 'Member' && isEqual.label === 'True') {
-				return ctx;
-			} else {
-				return null;
-			}
-		}
-	};
-
-	let ctx = capture(pattern, value, I.Map({}));
-	return ctx;
-};*/
 	templatePart: function (context, node, unparsed) {
 		// Matches an identifier or scalar literal in a template
 		//
@@ -676,7 +708,7 @@ Context.prototype.match = function(pattern, value) {
 
 		let match = (
 			//this.option(context, node, unparsed) ||
-			this.record(context, node, unparsed) ||
+			//this.record(context, node, unparsed) ||
 			this.functionDefn(context, node, unparsed) ||
 			this.identifier(context, node, unparsed) ||
 			this.symbol(context, node, unparsed) ||
@@ -720,58 +752,10 @@ Context.prototype.match = function(pattern, value) {
 		return null;
 	},
 
-	record: function(context, node, unparsed) {
-		// Match a record type declaration
+	matchDefn: function(context, node, unparsed) { // TODO: this doesn't compose with fns
+		// Matches a pattern match definition
 		//
-		//     record -> TYPE[ (identifier identifier?)* ]
-		//
-		if (node._name === 'Type') {
-			let members = [];
-			for (let expr of node.exprs) {
-				let first = this.identifier(context, expr.terms.first(), expr.terms.rest());
-				let second;
-
-				if (!first) {
-					members.push(new AST.Error({
-						message: 'Encountered unexpected term',
-						consumed: null,
-						encountered: terms
-					}));
-					break;
-				}
-
-				if (first[1].count() > 0) {
-					second = this.identifier(context, first[1].first(), first[1].rest());
-				}
-
-				if (second) {
-					if (second[1].count() > 0) {
-						// Didn't consume all tokens...
-						members.push(new AST.Error({
-							message: 'Encountered unexpected term',
-							consumed: second[0],
-							encountered: second[1]
-						}));
-					}
-					members.push(second[0].setIn(['tags', 'type'], first[0].label));
-				} else {
-					members.push(first[0]);
-				}
-			}
-			return [new AST.Record({
-				'members': List(members)
-			}), unparsed];
-		}
-		return null;
-	},
-
-	option: function(context, node, unparsed) {
-		if (node._name === 'Type') {
-
-		}
-	},
-
-	matchDefn: function(context, node, unparsed) {
+		//     matchDefn -> 
 		if (node._name === 'Block' &&
 				node.getIn(['tags', 'envelopeShape']) === '{{}}') {
 			let funcs = [];
@@ -798,6 +782,10 @@ Context.prototype.match = function(pattern, value) {
 	},
 
 	functionDefn: function(context, node, unparsed) {
+		// Matches a function definition
+		//
+		//     functionDefn ::= idList functionBody
+		//
 		if (node._name === 'Message') {
 			node._name = 'List';
 		} else if (node._name !== 'List') {
