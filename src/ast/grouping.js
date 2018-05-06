@@ -27,7 +27,5 @@ Grouping.prototype.eval = function(ctx) {
     return this.expr.eval(ctx);
 };
 
-Grouping.prototype.transform = function() {};
-
 module.exports = Grouping;
 

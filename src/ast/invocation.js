@@ -2,14 +2,16 @@
     Invocation AST node
  */
 
-let I = require('immutable');
+const { Map, List, Record } = require('immutable');
+const Value = require('./value');
 const { NameError } = require('../error');
+
 const _ = null;
-const _map = I.Map({});
-const _list = I.List([]);
+const _map = Map({});
+const _list = List([]);
 
 
-let Invocation = I.Record({target: _, plist: _list, tags: _map}, 'Invocation');
+let Invocation = Record({target: _, plist: _list, tags: _map}, 'Invocation');
 
 Invocation.prototype.toString = function () {
     return this.target.toString() + '(' + this.plist.map(function(it) {
@@ -30,7 +32,7 @@ Invocation.prototype.eval = function(ctx) {
 	// Take the selector keys and string em together.
 	// Dispatch will select on the type signature so get that right
 	// when you define the ctx
-	// > Thing :: << s: Text >>
+	// > Thing :: << Text s >>
 	// > Thing t (reverse!) -> { t.s(reverse!) }
 	// > t :: Thing(s: "stressed")
 	// > t(reverse!)
@@ -53,8 +55,13 @@ Invocation.prototype.eval = function(ctx) {
 	}).join('') + ')';
 	var method;
 
-	if (target.type === 'Record') {
-		target.name = target.tags['name'];
+	if (target._name === 'Record') {
+		return new Value({
+			label: target.label,
+			fields: Map(this.plist.map(function(kvp) {
+				return [kvp.key.label, kvp.val.eval(ctx)];
+			}))
+		});
 	}
 
 	var method = ctx.lookup(target._name).get(selector);
@@ -96,7 +103,7 @@ Invocation.prototype.eval = function(ctx) {
 			typeId: method.typeId,
 			plist: method.plist,
 			block: method.block,
-			ctx: new Context({local: I.Map(local), outer: target.ctx})
+			ctx: new Context({local: Map(local), outer: target.ctx})
 		});
 
 		return func.block.expressionList.eval(local);
@@ -109,48 +116,6 @@ Invocation.prototype.eval = function(ctx) {
 		);
 		throw new NameError(msg);
 	}
-	/*
-	var target = this.target.eval(ctx); // Should verify we got a function
-	var func, local, params;
-	
-	function clone(obj) {
-		if (obj === null || typeof obj !== 'object') { return obj; }
-		var copy = obj.constructor() || {};
-		for (var attr in obj) {
-			if (obj.hasOwnProperty(attr)) { copy[attr] = obj[attr]; }
-		}
-		return copy;
-	}
-	
-	if (target.type === 'Function') {
-		var ctx;
-		//clone(target.ctx);
-		local = {};
-	
-		func.plist.forEach(function(param) {
-			local[param.name] = param.eval(ctx);
-		});
-	
-		ctx = new Context({local: local, outer: target.ctx});
-		func = new AST.Function({plist: target.plist, block: target.block, ctx: ctx});
-	
-		// TODO: This isn't quite right.
-		local.__proto__ = func.block.ctx;
-		if (func.block.type === 'Function') {
-			return func.block.eval(local);
-		} else if (func.block.type === 'Block') {
-			return func.block.expressionList.eval(local);
-		}
-	} else if (target.type === 'Match') {
-		
-		for (let p of target.predicates) {
-			//
-	
-		}
-	} else if (target.type === 'Block') {
-		return new AST.Block({exprs: target.expressionList.eval(ctx)});
-	} else {
-	*/
 }
 
 module.exports = Invocation;

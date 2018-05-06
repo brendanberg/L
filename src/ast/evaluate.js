@@ -14,21 +14,20 @@ const _list = List([]);
 let Evaluate = Record({target: _, tags: _map}, 'Evaluate');
 
 Evaluate.prototype.eval = function(ctx) {
-    let target = this.target;
+    let target = this.target.eval(ctx);
 
     if (target._name === 'Block' /* && target.getIn(['tags', 'envelopeShape']) === '{}' */) {
 		// TODO: This needs to be a depth-first traversal
-		let newBlock = target.eval(ctx);
         let result = [];
 
-		for (let exp of newBlock.exprs) {
+		for (let exp of target.exprs) {
 			let r = (exp.eval && exp.eval(ctx)) || new Bottom();
 			result.push(r);
 		}
 
         return result.pop();
     } else {
-        return target.eval(ctx);
+        return target;
     }
 };
 

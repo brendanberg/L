@@ -3,7 +3,7 @@
 */
 
 const { Map, List, Record } = require('immutable');
-
+const { NameError } = require('../error');
 const _ = null;
 const _map = Map({});
 
@@ -24,23 +24,22 @@ Lookup.prototype.repr = function(depth, style) {
 Lookup.prototype.eval = function(ctx) {
     let target = this.target.eval(ctx);
 
-    if (target._name === 'Record' && this.term._name === 'Identifier') {
-        if (!(target.ctx.has(this.term.label))) {
+    if (target._name === 'Value' && this.term._name === 'Identifier') {
+        if (!(target.fields.has(this.term.label))) {
             let name = this.target.label;
             let label = this.term.label;
-			throw new error.NameError(`'${name}' has no attribute '${label}'`);
+			throw new NameError(`'${name}' has no attribute '${label}'`);
         }
 
-        let value = target.ctx.get(this.term.label);
-        return value.setIn(['tags', 'type'], target.getIn(['tags', 'type'], ''));
-    } else if (this.term._name === 'Identifier' || this.term._name === 'Option') {
-		if (!(this.term.label in this.target.values)) {
-            let name = this.target.tags['name'];
+        return target.fields.get(this.term.label);
+    } else if (target._name === 'Union' && this.term._name === 'Identifier') {
+		if (!(target.variants.has(this.term.label))) {
+            let name = this.target.label;
             let label = this.term.label;
-			throw new error.NameError(`'${name}' has no attribute '${label}'`);
+			throw new NameError(`'${name}' has no attribute '${label}'`);
 		}
-		//let value = target.values[this.term.label]; //.eval(ctx);
-		//return value.setIn(['tags', 'type'], target.tags.label || '');
+
+		return target.variants.get(this.term.label);
 	}
 };
 

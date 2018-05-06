@@ -144,9 +144,15 @@ operator "operator"
 	Parenthesized List
  ---------------------------------------------------------------------------*/
 
-// ( identifiers... )
+// ( exprs... )
 paren_container
-    = '(' __ expList:expressionList ? __ ')' {
+    = '(' __ exp:expression __ ')' {
+			return new Skel.Message({
+				exprs: List([exp]),
+				tags: Map({envelopeShape: '()', specialForm: true})
+			});
+		}
+	/ '(' __ expList:expressionList ? __ ')' {
 			return new Skel.Message({
 				exprs: expList || List([]),
 				tags: Map({envelopeShape: '()'})

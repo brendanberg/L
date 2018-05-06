@@ -32,20 +32,10 @@ Record.prototype.eval = function(ctx) {
 		return x.label + ':'
 	}).join('') + ')';
 
-	// This is the constructor function that returns a value created
-	// with the struct's parameters. It's bound to the struct's ctx.
-    /*
-	this.ctx.local = this.ctx.local.set(signature, function() {
-		var args = Array.prototype.slice.call(arguments);
-		var values = {};
-		this.members.forEach(function(member, idx) {
-			values[member.key] = args[idx];
-		});
-		return new AST.Value({
-			mommy: this, values: values, ctx: new Context(this.ctx)
-		});
-	});
-    */
+	let newCtx = {};
+	newCtx[this.label] = this;
+
+	ctx.local = ctx.local.merge(newCtx);
 	return this;
 };
 

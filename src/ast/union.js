@@ -5,13 +5,13 @@ const _map = Map({});
 const _list = List([]);
 
 
-Union = Record({label: _, variants: _list, ctx: _, tags: _map}, 'Union');
+Union = Record({label: _, variants: _map, tags: _map}, 'Union');
 
 Union.prototype.toString = function () {
 	let variants = this.variants.map(function(node) {
 		return node.toString();
 	});
-	return this.label + '<< ' + variants.join(' | ') + ' >>';
+	return this.label + '<< ' + variants.valueSeq().join(' | ') + ' >>';
 };
 
 Union.prototype.repr = function(depth, style) {
@@ -26,19 +26,12 @@ Union.prototype.repr = function(depth, style) {
 };
 
 Union.prototype.eval = function(ctx) {
-	return this;
+	// TODO: WARNING: CONTEXT MUTATION
+	let newCtx = {};
+	newCtx[this.label] = this;
 
-	// TODO: I guess there needs to be some bookkeeping here?
-	// ------------------------------------------------------
-	// var values = {};
-	// this.variants.forEach(function(variant) {
-	// 	values[variant.name] = new Tag({
-	// 		name: variant.name,
-	// 		ctx: ctx
-	// 	});
-	// });
-	// 
-	// return this.set('ctx', Map(values));
+	ctx.local = ctx.local.merge(newCtx);
+	return this;
 };
 
 Union.prototype.transform = function(context, match) {

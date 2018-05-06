@@ -1,10 +1,11 @@
 const { Map } = require('immutable');
 const Rational = require('../ast/rational');
-const Tag = require('../ast/tag');
+const Variant = require('../ast/variant');
 const dispatch = require('../dispatch');
 
+
 function make_bool(exp) {
-	return new Tag({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
+	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
 }
 
 module.exports = Map({
