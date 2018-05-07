@@ -1,34 +1,76 @@
 # The 🅛 Programming Language
 
-The L Programming Language is an experimental, minimalist, functional programming language.
-It is designed around the radical philosophy that powerful programs should be concise
+The __L__ Programming Language is an experimental, minimalist, multi-paradigm programming language.
+It is designed around the radical philosophy that programs should be intelligible
 and easy to reason about.
-Therefore, the syntax is minimal but extensible.
-The language semantics can be extended through a safe macro system.
+Therefore, the core syntax is concise but extensible
+and the language semantics can be extended through a safe macro system.
+
+## Design Goals
+
+The __L__ Programming Language is designed to be intuitive
+and easily comprehensible after learning the foundational building blocks of the syntax.
+The syntax is distinctive in its lack of reserved words
+and its structural simplicity.
+
+The language's built-in concurrency semantics combined with a powerful runtime
+make it easy to write distributed concurrent programs.
+
+## Notable Features
+
+- __Pattern Matching:__
+  One of the first surprising features of __L__ is that it does not have an assignment operator.
+  Instead, it uses the `::` "match" operator to structurally map values onto their corresponding variables.
+  For example, `[x, y..., z] :: [16, 25, 36, 49, 64]` would set `x` to the integer `16`, `z` to `64`,
+  and `y` to the list `[25, 36, 49]`.
+
+- __Gradual Typing:__
+  Variables are not required to explicitly state the data type of the value they contain.
+  The runtime is able to infer most of the necessary type information to run a program,
+  but when a programmer wishes to add additional constraints to an implementation,
+  they can add explicit types for compile-time checking.
+
+- __First-Class, Anonymous Functions:__
+  All functions in __L__ are first-class values.
+  A function may receive another function as an argument and return a function as a result.
+  Functions in __L__ are not named,
+  but they may be assigned to variables just like any other value.
+
+- __Algebraic Data Types:__
+  There are two main user-definable data types in __L__.
+  Unions are collections of two or more named variants.
+  The `Boolean` data type is an example of a union having variants for `True` and `False`. 
+  Records are values that are collections of named fields.
+  Cartesian points, for example, could be represented as a record,
+  having values for their `x` and `y` components.
+
+There are far more features than can be highlighted here,
+so the best place to learn more is the [Introduction to the L Programming Language][intro].
 
 ## Installing L
 
-Clone the repository on your machine.
-From within the project directory, run the following commands:
+Clone the repository and from within the newly created project directory,
+run the following commands:
 
 ```
 npm install
-gulp build
+npm run metal
 ```
 
-The `gulp build` command will create a build directory in the project folder
-with a browserified script and an interactive shell.
+The `npm run metal` command starts the interactive shell.
 
-To run the interactive shell, invoke `node build/ell.js` from the command line.
+You can learn more about -- in the [Contribution Guidelines][contrib].
+
+[contrib]: docs/contributing.md
 
 ## Using the Interactive Shell
 
-L comes with an interactive shell.
-After building the project, run `node build/ell.js` to start the shell.
+__L__ comes with an interactive shell.
+After building the project, run `npm run metal` to start the shell.
 You'll see an __L__ prompt like this:
 
 ```
-The L Programming Language, v0.0.1
+The L Programming Language, Meta-L v0.2.02
 >>
 ```
 
@@ -46,4 +88,6 @@ Here's a simple example of an __L__ program:
 2
 </pre>
 
-The documentation covers more things you can do with the shell.
+The [Intruduction to the L Programming Language][intro] describes additional shell interactions.
+
+[intro]: docs/introduction.md
