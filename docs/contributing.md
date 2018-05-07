@@ -1,5 +1,4 @@
-Contributing
-============
+# Contributing
 
 Contributions to the __L__ Programming Language are welcome and appreciated!
 Contributions can range from development to documentation and
@@ -12,7 +11,7 @@ create and maintain an inclusive, welcoming, and supportive community.
 In short, be courteous, be inquisitive, and don't be a jerk.
 You can read more in the [community guidelines][cg].
 
-# Getting Started
+## Getting Started
 
 The __L__ source is in the `src` directory.
 Build dependencies are listed in `package.json`, so you can run `npm install`
@@ -20,12 +19,12 @@ in the project directory to install project dependencies.
 To build the library, use the `gulp` build tool--just run `gulp build`
 from the command line.
 
-# Testing
+## Testing
 
 Tests are in the `test` directory, and there is a gulp task to run them.
 Run `gulp test` on the command line.
 
-# What to Work On
+## What to Work On
 
 A good place to see what needs work is in the [issue tracker][issues].
 In the future, there will be a roadmap page in the wiki that discusses new
