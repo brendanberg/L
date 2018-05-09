@@ -601,8 +601,8 @@ let match = {
 					} else if (part) {
 						values.push(new AST.Error({
 							message: 'did not consume all tokens',
-							consumed: fn[0],
-							encountered: fn[0]
+							consumed: part[1],
+							encountered: part[0]
 						}));
 					} else {
 						console.log('this is a parse error @ match.templateVariant');
