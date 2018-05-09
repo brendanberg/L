@@ -26,7 +26,7 @@ start
 	= exprs:expressionList {
 			return new Skel.Block({
 				exprs: exprs,
-				tags: Map({source: 'module'})
+				tags: Map({source: 'module', 'envelopeShape': '{}'})
 			});
 		}
 

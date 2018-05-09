@@ -144,7 +144,7 @@ function peg$parse(input, options) {
       peg$c0 = function(exprs) {
       			return new Skel.Block({
       				exprs: exprs,
-      				tags: Map({source: 'module'})
+      				tags: Map({source: 'module', 'envelopeShape': '{}'})
       			});
       		},
       peg$c1 = function(first, e) { return e; },

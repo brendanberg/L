@@ -4,8 +4,6 @@ const _ = null;
 const _map = Map({});
 const _list = List([]);
 
-const AST = require('../ast');
-
 
 Operator = Record({label: _, tags: _map}, 'Operator');
 
