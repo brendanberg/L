@@ -33,6 +33,7 @@ module.exports = {
 	Union: require('./ast/union'),
 	Variant: require('./ast/variant'),
 	Symbol: require('./ast/symbol'),
+	Qualifier: require('./ast/qualifier'),
 	Error: require('./ast/error'),
 	Text: require('./ast/text'),
 	Integer: require('./ast/integer'),

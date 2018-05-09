@@ -135,12 +135,10 @@ let match = {
 			expr = null;
 
 			if (next) {
-				if (next._name === 'Operator' && next.label === '.') {
-					let ident = this.identifier(context, rest.first(), rest.rest());
-
-					expr = ident && [
-						new AST.Lookup({target: target[0], term: ident[0]}),
-						ident[1]
+				if (next._name === 'Qualifier') {
+					expr = [
+						new AST.Lookup({target: target[0], term: next}),
+						rest
 					];
 				} else if (next._name === 'Message') {
 					let message = this.parameterList(context, next, rest);
@@ -364,10 +362,9 @@ let match = {
 	unionType: function(context, node, unparsed) {
 		// Matches a union type literal
 		//
-		//     unionType ::= TYPE[ variant ( Operator('|') variant )* ]
+		//     unionType ::= TYPE[ variant ( OPERATOR['|'] variant )* ]
 		//
-		//     variant ::= identifier
-		//               | identifier LIST[ Identifier + ]
+		//     variant ::= qualifier | qualifier LIST[ Identifier + ]
 		//
 		if (node._name === 'Type') {
 			if (node.exprs.count() !== 1) {
@@ -406,7 +403,7 @@ let match = {
 					}
 				} else if (cont && term._name === 'Operator' && term.label === '|') {
 					cont = false;
-				} else if (!cont && term._name === 'Identifier') {
+				} else if (!cont && term._name === 'Qualifier') {
 					cont = true;
 					variants = variants.push(new AST.Variant({label: term.label}));
 				} else {
@@ -581,16 +578,14 @@ let match = {
 	templateVariant: function(context, node, unparsed) {
 		// Match an unqualified variant fragment
 		//
-		//     variantFrangment ::= OPERATOR['.'] identifier
+		//     templateVariant ::= qualifier MESSAGE[ Identifier + ]
 		//
-		if (!(node._name === 'Operator' && node.label === '.')) { return null; }
-
-		let name = this.identifier(context, unparsed.first(), unparsed.rest());
+		if (node._name !== 'Qualifier') { return null; }
 
 		let values = [];
 
-		if (name[1].count() > 0) {
-			let message = name[1].first();
+		if (unparsed.count() > 0) {
+			let message = unparsed.first();
 
 			if (message._name === 'Message') {
 				for (let expr of message.exprs) {
@@ -612,14 +607,10 @@ let match = {
 			}
 		}
 
-		if (name && name[0].modifier === null) {
-			return [
-				new AST.Variant({label: name[0].label, values: List(values)}),
-				(values.length) ? name[1].rest() : name[1]
-			];
-		} else {
-			return null;
-		}
+		return [
+			new AST.Variant({label: node.label, values: List(values)}),
+			(values.length) ? unparsed.rest() : unparsed
+		];
 	},
 
 	prefixExpression: function(context, node, unparsed) {
