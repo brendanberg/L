@@ -6,7 +6,7 @@ Implementation of Boolean Data Type
 BooleanType (boolValue.) -> Boolean
 -#
 
-Boolean :: << .True | .False >>
+Boolean << .True | .False >>
 
 Boolean p ('!') -> {
 	{{
