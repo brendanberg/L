@@ -67,6 +67,7 @@ expression
 term
 	= identifier
 	/ symbol
+	/ qualifier
 	/ angle_container // type
 	/ brack_container // list
     / paren_container // message
@@ -135,7 +136,6 @@ operator "operator"
 	/ "&"
 	/ "|"
 	/ "^"   // As prefix: [reserved for future use]
-	/ "."
 	/ ":"
 	/ "~"   // Prefix only: [reserved for future use]
 
@@ -205,10 +205,16 @@ angle_container
 		}
 
 /*---------------------------------------------------------------------------
-	Symbols and Identifiers
+	Qualifiers, Symbols, and Identifiers
  ----------------------------------------------------------------------------*/
 
-// $ identifier
+// . label
+qualifier "qualifier"
+	= '.' l:label {
+			return new AST.Qualifier({label: l});
+		}
+
+// $ label
 symbol "symbol"
 	= '$' l:label {
 			return new AST.Symbol({label: l});
