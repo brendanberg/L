@@ -10,9 +10,9 @@ Variant = Record({label: _, values: _list, tags: _map}, 'Variant');
 Variant.prototype.toString = function () {
 	if (this.values.count()) {
 		let values = this.values.map(function(val) { return val.toString(); });
-		return this.label + '(' + values.join(', ') + ')';
+		return '.' + this.label + '(' + values.join(', ') + ')';
 	} else {
-		return this.label;
+		return '.' + this.label;
 	}
 };
 
@@ -20,11 +20,11 @@ Variant.prototype.repr = function(depth, style) {
 	if (this.values.count()) {
 		let values = this.values.map(function(val) { return val.repr(depth, style); });
 		return (
-			style.name(this.label) + style.delimiter('(') +
+			style.name('.' + this.label) + style.delimiter('(') +
 			values.join(style.delimiter(', ')) + style.delimiter(')')
 		);
 	} else {
-		return style.name(this.label);
+		return style.name('.' + this.label);
 	}
 };
 
