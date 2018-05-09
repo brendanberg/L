@@ -547,6 +547,7 @@ let match = {
 		let first = (
 			this.identifier(context, node, unparsed) ||
 			this.symbol(context, node, unparsed) ||
+			this.templateVariant(context, node, unparsed) ||
 			this.text(context, node, unparsed) ||
 			this.integer(context, node, unparsed) ||
 			this.decimal(context, node, unparsed) ||
@@ -574,6 +575,50 @@ let match = {
 			}
 		} else {
 			return first;
+		}
+	},
+
+	templateVariant: function(context, node, unparsed) {
+		// Match an unqualified variant fragment
+		//
+		//     variantFrangment ::= OPERATOR['.'] identifier
+		//
+		if (!(node._name === 'Operator' && node.label === '.')) { return null; }
+
+		let name = this.identifier(context, unparsed.first(), unparsed.rest());
+
+		let values = [];
+
+		if (name[1].count() > 0) {
+			let message = name[1].first();
+
+			if (message._name === 'Message') {
+				for (let expr of message.exprs) {
+					let part = this.templatePart(context, expr.terms.first(), expr.terms.rest());
+
+					if (part && part[1].count() === 0) {
+						values.push(part[0]);
+					} else if (part) {
+						values.push(new AST.Error({
+							message: 'did not consume all tokens',
+							consumed: fn[0],
+							encountered: fn[0]
+						}));
+					} else {
+						console.log('this is a parse error @ match.templateVariant');
+						return null;
+					}
+				}
+			}
+		}
+
+		if (name && name[0].modifier === null) {
+			return [
+				new AST.Variant({label: name[0].label, values: List(values)}),
+				(values.length) ? name[1].rest() : name[1]
+			];
+		} else {
+			return null;
 		}
 	},
 

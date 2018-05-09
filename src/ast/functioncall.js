@@ -2,17 +2,16 @@
    Function Call AST node
  */
 
-let I = require('immutable');
-
-let Evaluate = require('./evaluate');
-let Bottom = require('./bottom');
-
+const { List, Map, Record } = require('immutable');
+const Evaluate = require('./evaluate');
+const Bottom = require('./bottom');
+const { TypeError } = require('../error');
 const _ = null;
-const _map = I.Map({});
-const _list = I.List([]);
+const _map = Map({});
+const _list = List([]);
 
 
-let FunctionCall = I.Record({args: _list, target: _, tags: _map}, 'FunctionCall');
+let FunctionCall = Record({args: _list, target: _, tags: _map}, 'FunctionCall');
 
 FunctionCall.prototype.toString = function() {
     return this.target.toString() + '(' + this.args.items.map(function(it) {
@@ -65,11 +64,17 @@ FunctionCall.prototype.eval = function(ctx) {
         }
 
         return target.update('ctx', function (ctx) {
-            return I.Map(properties);
+            return Map(properties);
         }).update('tags', function(tags) {
             return tags.set('name', target.label);
         });
-    }
+    } else if (target._name === 'Variant') {
+		if (target.values.count() === this.args.items.count()) {
+			return target.set('values', this.args.items);
+		} else {
+			throw new TypeError('mismatched associated values');
+		}
+	}
 
 	if (context) {
 		return (new Evaluate({target: block})).eval(context);

@@ -1,14 +1,16 @@
-const { MatchError } = require('./error');
+const { MatchError, NotImplemented } = require('./error');
 const { Map, Record } = require('immutable');
 const Bottom = require('./ast/bottom');
-//const Message = require('./ast/message');
 const Invocation = require('./ast/invocation');
+const Operator = require('./ast/operator');
+const KeyValuePair = require('./ast/keyvaluepair');
 const _ = null;
 const _map = Map({});
 
 const builtins = Map({
 	'Integer': require('./impl/integer'),
 	//'Decimal': _,
+	//'Boolean': require('./impl/boolean'),
 	'Text': require('./impl/text'),
 	'List': require('./impl/list'),
 	//'Map': _,
@@ -45,119 +47,65 @@ Context.prototype.match = function(pattern, value) {
 		// let decompose = function(a, b) { ... }
 		if (ctx === null) { return null; }
 
-		if (pattern._name === 'List') {
-			// TODO: Eventually add support for maps. (How?)
-			if (value._name !== 'List') { return null; }
+		if (pattern._name === 'List' || pattern._name === 'Block') {
+			if (value._name !== pattern._name) { return null; }
+			let field = (pattern._name === 'List') ? 'items' : 'exprs';
 
 			// Test the first value.
-			let [first, rest] = [pattern.items.first(), pattern.items.rest()];
+			let [first, rest] = [pattern.get(field).first(), pattern.get(field).rest()];
 
 			// capture([], []) -> {}
 			// capture([], [V]) -> <NO MATCH>
 			if (!first) {
-				return value.items.count() ? null : ctx;
+				return value.get(field).count() ? null : ctx;
 			}
 
-			// capture([a..., b], [V1]) -> capture([a...], []) + {b: V1}
-			// capture([a..., b], [V1, V2, ..., Vn-1, Vn]) -> 
-			//                   capture([a...], [V1, V2, ..., Vn-1]) + {b: Vn}
-
-			// capture([a...], []) -> {a: []}
-			// capture([a...], [V1]) -> {a: [V1]}
-			// capture([a...], [V1, V2, ..., Vn]) -> {a: [V1, V2, ..., Vn]}
 			if (first._name === 'Identifier' && first.getIn(['tags', 'collect'], false)) {
+				// The first item is an identifier splat
 				if (rest.isEmpty()) {
+					// We've reached the end of the pattern
+					//
+					// capture([a...], []) -> {a: []}
+					// capture([a...], [V1]) -> {a: [V1]}
+					// capture([a...], [V1, V2, ..., Vn]) -> {a: [V1, V2, ..., Vn]}
 					return ctx.set(first.label, value);
-					// The same as `capture(first, value)`
 				} else {
-					// Pick the last item off the list and go deeper
-					let last = pattern.items.last();
+					// We need to match from the last item forward
+					//
+					// capture([a..., b], [V1]) -> capture([a...], []) + {b: V1}
+					// capture([a..., b], [V1, V2, ..., Vn-1, Vn]) -> 
+					//           capture([a...], [V1, V2, ..., Vn-1]) + {b: Vn}
+					let innerCtx = capture(pattern.get(field).last(), value.get(field).last(), ctx);
 
-					if (last._name === 'Identifier' && last.getIn(['tags', 'collect'], false)) {
-						// TODO: Should this really be an exception?
-						return null;
-					}
-
-					let innerCtx = capture(last, value.set('items', value.items.last()), ctx);
 					return innerCtx && capture(
-						pattern.set('items', pattern.items.butLast()),
-						value.set('items', value.items.butLast()),
+						pattern.set(field, pattern.get(field).butLast()),
+						value.set(field, value.get(field).butLast()),
 						innerCtx
 					);
 				}
-			}
-
-			// capture([a], [V1]) ->                                    {a: V1}
-			// capture([a, b], [V1, V2]) ->        capture([b], [V2]) + {a: V1}
-			// capture([a, b...], [V1]) ->        capture([b...], []) + {a: V1}
-			// capture([a, b..., c], [V1, V2, ..., Vn]) ->
-			//                      capture([b..., c], [V2, ..., Vn]) + {a: V1}
-			if (rest.isEmpty() && value.items.count() === 1) {
-				return capture(first, value.items.first(), ctx);
-			} else if (rest.isEmpty()) {
-				return null;
 			} else {
-				let innerCtx = capture(first, value.set('items', value.items.first()), ctx);
+				// The first item is literally anything else
+				//
+				// capture([a], [V1]) -> capture(a, V1)
+				// capture([a, b], [V1, V2]) ->
+				//                          capture(a, V1) + capture([b], [V2])
+				// capture([a, b...], [V1]) ->
+				//                         capture(a, V1) + capture([b...], [])
+				// capture([a, b...], [V1, V2, ... Vn]) ->
+				//              capture(a, V1) + capture([b...], [V2, ..., Vn])
+				// capture([a, b..., c], [V1, V2, ..., Vn]) ->
+				//           capture(a, V1) + capture([b..., c], [V2, ..., Vn])
+				//
+				let innerCtx = capture(first, value.get(field).first(), ctx);
 				return innerCtx && capture(
-					pattern.set('items', rest),
-					value.set('items', value.items.rest()),
+					pattern.set(field, rest),
+					value.set(field, value.get(field).rest()),
 					innerCtx
 				);
 			}
-		} else if (pattern._name === 'Block') {
-			if (value._name !== 'Block') { return null; }
-
-			// Test the first value.
-			let [first, rest] = [pattern.exprs.first(), pattern.exprs.rest()];
-
-			// capture({}, {}) -> {}
-			// capture({}, {V1}) -> <NO MATCH>
-			if (!first) {
-				return value.exprs.count() ? null : ctx;
-			}
-
-			// capture({a..., b}, {V1}) ->        capture({a...}, {}) + {b: V1}
-			// capture({a..., b}, {V1, V2, ..., Vn-1, Vn}) ->
-			//                   capture({a...}, {V1, V2, ..., Vn-1}) + {b: Vn}
-
-			// capture({a...}, {}) -> {a: {}}
-			// capture({a...}, {V1}) -> {a: {V1}}
-			// capture({a...}, {V1, V2, ..., V3}) -> {a: {V1, V2, ..., V3}}
-			if (first._name === 'Identifier' && first.getIn(['tags', 'collect'], false)) {
-				if (rest.isEmpty()) {
-					return ctx.set(first.label, value);
-				} else {
-					let last = pattern.exprs.last();
-
-					if (last._name === 'Identifier' && last.getIn(['tags', 'collect'], false)) {
-						return null;
-					}
-
-					let innerCtx = capture(last, value.set('exprs', value.exprs.last()), ctx);
-					return innerCtx && capture(
-						pattern.set('exprs', pattern.exprs.butLast()),
-						value.set('exprs', value.exprs.butLast()),
-						innerCtx
-					);
-				}
-			}
-
-			// capture({a}, {V1}) -> {a: V1}
-			// capture({a, b}, {V1, V2}) -> capture({b}, {V2}) + {a: V1}
-			// capture({a, b...}, {V1}) -> capture({b...}, {}) + {a: V1}
-			// capture({a, b..., c}, {V1, V2, ..., V3}) -> capture({b..., c}, {V2, ..., V3}) + {a: V1}
-			if (rest.isEmpty() && value.exprs.count() === 1) {
-				return capture(first, value, ctx);
-			} else if (rest.isEmpty()) {
-				return null;
-			} else {
-				let innerCtx = capture(first, value.set('exprs', value.exprs.first()), ctx);
-				return innerCtx && capture(
-					pattern.set('exprs', rest),
-					value.set('exprs', value.exprs.rest()),
-					innerCtx
-				);
-			}
+		} else if (pattern._name === 'Map') {
+			// TODO: Eventually add support for maps. (How?)
+			return null;
 		} else if (pattern._name === 'Identifier') {
 			let type = pattern.getIn(['tags', 'type'], null);
 			// TODO: Type check here.
@@ -168,6 +116,19 @@ Context.prototype.match = function(pattern, value) {
 			if (value._name === 'Symbol' && value.label === pattern.label) {
 				return ctx;
 			} else { 
+				return null;
+			}
+		} else if (pattern._name === 'Record') {
+
+		} else if (pattern._name === 'Variant') {
+			if (value._name === 'Variant' && value.label === pattern.label) {
+				// TODO: Match on pattern inner values
+				if (pattern.values.count() !== value.values.count()) { return null; }
+
+				return pattern.values.zip(value.values).reduce(function(result, value) {
+					return capture(value[0], value[1], result);
+				}, ctx);
+			} else {
 				return null;
 			}
 		} else if (pattern._name === 'Text') {
@@ -207,13 +168,15 @@ Context.prototype.match = function(pattern, value) {
 				return null;
 			}
 		} else {
+			throw new NotImplemented(
+				"`" + pattern + "('==': " + value + ")` is not yet implemented"
+			);
 			// This is where we test value equivalence
 			// TODO: This should maybe call the equality method on the value
 			// (but which side is the target and which is the argument?)
 			let isEqual = (new Invocation({
-				target: value, plist: new AST.Message({
-					___: _,
-					___: pattern
+				target: pattern, plist: new KeyValuePair({
+					key: new Operator({label: '=='}), val: value
 				})
 			})).eval(ctx);
 

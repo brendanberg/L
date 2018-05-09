@@ -4,7 +4,7 @@
 
 const { Map, List, Record } = require('immutable');
 const Value = require('./value');
-const { NameError } = require('../error');
+const { NameError, NotImplemented } = require('../error');
 
 const _ = null;
 const _map = Map({});
@@ -28,16 +28,17 @@ Invocation.prototype.repr = function(depth, style) {
 
 Invocation.prototype.eval = function(ctx) {
 	let target = this.target.eval(ctx);
+
 	// This is a method invocation LOL
 	// Take the selector keys and string em together.
 	// Dispatch will select on the type signature so get that right
 	// when you define the ctx
 	// > Thing :: << Text s >>
-	// > Thing t (reverse!) -> { t.s(reverse!) }
+	// > Thing t (reverse.) -> { t.s(reverse.) }
 	// > t :: Thing(s: "stressed")
-	// > t(reverse!)
+	// > t(reverse.)
 	// 'desserts'
-	// var context = new Context(_, ctx);//clone(ctx);
+
 	var selector = '(' + this.plist.map(function(x) {
 		if (x._name === 'KeyValuePair') {
 			if (x.key._name === 'Identifier') {
@@ -55,6 +56,8 @@ Invocation.prototype.eval = function(ctx) {
 	}).join('') + ')';
 	var method;
 
+	// Invocations on Records instantiate a value with field values
+	// mapped to named parameters in the message
 	if (target._name === 'Record') {
 		return new Value({
 			label: target.label,
@@ -64,13 +67,17 @@ Invocation.prototype.eval = function(ctx) {
 		});
 	}
 
+	// Invocations on Variants redirect to the Union that defined them
+	if (target._name === 'Variant') {
+		// ...
+		
+	}
+
 	var method = ctx.lookup(target._name).get(selector);
 
-	/*if (method === undefined) {
-		method = target.ctx.lookup(selector);
-	}*/
-
 	if (method && typeof method === 'function') {
+		// The selector is implemented as a built-in function.
+
 		params = this.plist.filter(function (x) {
 			return x._name === 'KeyValuePair';
 		}).map(function(x) {
@@ -78,10 +85,20 @@ Invocation.prototype.eval = function(ctx) {
 		}).toArray();
 		//target.ctx.__proto__ = ctx;
 		return method.apply(target, params) || new AST.Bottom();
+
 	} else if (method && method.type === 'Function') {
 		//target.ctx[selector].type === 'Function') {
-		return new AST.Text({value: 'Whoa! Not implemented!'});
+		throw new NotImplemented(
+			"The Function '" + target.name + selector + " cannot be invoked"
+		);
+
 	} else if (method && method.type === 'Method') {
+		// The selector's implementation is a declared method
+		throw new NotImplemented(
+			"The Method '" + target.name + selector + " cannot be invoked"
+		);
+
+		/*
 		// (target.ctx[selector].type === 'Method') {
 		if (target.type === 'Record' || target.type === 'Option') {
 			throw new error.NotImplemented(
@@ -107,15 +124,26 @@ Invocation.prototype.eval = function(ctx) {
 		});
 
 		return func.block.expressionList.eval(local);
+		*/
 	} else {
-		console.log('method', method);
-		console.log('selector', selector);
 		var msg = (
-			"'" + target.name + "' does not have a method " +
+			"'" + target.label + "' does not have a method " +
 			"matching the selector '" + selector + "'"
 		);
 		throw new NameError(msg);
 	}
-}
+};
+
+Invocation.prototype.transform = function(xform) {
+	return xform(this.update('target', function(target) {
+		return (target && 'transform' in target) ? target.transform(xform) : xform(target);
+	}).update('plist', function(plist) {
+		return plist.map(function(kvp) {
+			return kvp.update('val', function(val) {
+				return (val && 'transform' in val) ? val.transform(xform) : xform(val);
+			});
+		});
+	}));
+};
 
 module.exports = Invocation;
