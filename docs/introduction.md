@@ -148,7 +148,7 @@ There is a unary plus operator that returns the unmodified value,
 
 ```
 minusFive :: -5           # minusFive is -5
-alsoMinusFive +minusFive  # alsoMinusFive is -5 because +(-5) is still -5
+alsoMinusFive :: +minusFive  # alsoMinusFive is -5 because +(-5) is still -5
 ```
 
 The binary arithmetic operators behave similarly to a standard pocket calculator.
