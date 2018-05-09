@@ -102,8 +102,8 @@ The logical operators create logical statements that are true or false depending
 
 __L__ supports the following logical operators:
 - Logical 'not' (`!p`)
-- Logical 'and' (`/\`)
-- Logical 'or' (`\/`)
+- Logical 'and' (`p /\ q`)
+- Logical 'or' (`p \/ q`)
 
 The logical not prefix operator returns a boolean negation of a logical value.
 
