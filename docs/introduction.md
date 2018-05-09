@@ -61,7 +61,7 @@ Control characters and certain formatting characters must be escaped.
 
 Quotes only need to be escaped if they are the same style as the delimiting quote marks.
 The double quotes in the text `'The novelist said, "read my new book!"'` do not need to be escaped,
-but in the text `"\"They told me, 'it can't be done,'\" exclaimed the visionary."`
+but in the text `"\"It works!\" exclaimed the scientist, \"yet they told me, 'it can't be done.'\""`
 the double quotes (but not the single quotes) must be escaped.
 
 ## Basic Types and Operators
