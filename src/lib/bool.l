@@ -2,40 +2,40 @@
 Implementation of Boolean Data Type
 -#
 
-# This needs more work.
-BooleanType :: Protocol([
-	(boolValue) -> Boolean
-])
+#- Protocol declarations need more work.
+BooleanType (boolValue.) -> Boolean
+-#
 
-Boolean :: < True | False >
+Boolean :: << True | False >>
 
-@(True) => { Boolean.True }
-@(False) => { Boolean.False }
+Boolean p ('!') -> {
+	{{
+		(.True) -> { Boolean.False }
+		(.False) -> { Boolean.True }
+	}} (p)
+}
 
-Boolean x ('!') -> (match: x, in:) [
-	# Note that `(selector:) { block }` is a special
-	# form of `(selector: { block })`
+Boolean p ('/\\': q) -> {
+	{{
+		(.True) -> { q }
+		(.False) -> { Boolean.False }
+	}} (p)
+}
 
-	(True) -> { False }
-	(False) -> { True }
-]
+Boolean p ('\\/': q) -> {
+	{{
+		(.True) -> { Boolean.True }
+		(.False) -> { q }
+	}} (p)
+}
 
-Boolean x ('/\\': y) -> (match: x, in:) [
-	(True) -> { y }
-	(False) -> { False }
-]
+Boolean p ('==': q) -> {
+	{{
+		(.True) -> { q(boolValue.) }
+		(.False) -> { !(q(boolValue.)) }
+	}} (p)
+}
 
-Boolean x ('\\/': y) -> (match: x, in:) [
-	(True) -> { True }
-	(False) -> { y }
-]
+Boolean p ('!=': q) -> { !(p == q) }
 
-Boolean x ('==': y) -> (match: x, in:) [
-	(True) -> { y(boolValue) }
-	(False) -> { !(y(boolValue) }
-]
-
-Boolean x ('!=': y) -> { !(x == y) }
-
-Boolean x (boolValue) -> { x }
-
+Boolean p (boolValue.) -> { p }
