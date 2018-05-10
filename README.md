@@ -20,9 +20,11 @@ make it easy to write distributed concurrent programs.
 
 - __Pattern Matching:__
   One of the first surprising features of __L__ is that it does not have an assignment operator.
-  Instead, it uses the `::` "match" operator to structurally map values onto their corresponding variables.
-  For example, `[x, y..., z] :: [16, 25, 36, 49, 64]` would set `x` to the integer `16`, `z` to `64`,
-  and `y` to the list `[25, 36, 49]`.
+  Instead, it uses a "match" operator to structurally map values onto their corresponding variables.
+  
+  ```
+  [x, y..., z] :: [16, 25, 36, 49, 64]`    # `x` == `16`, `y` == `[25, 36, 49]`, and `z` == `64`
+  ```
 
 - __Gradual Typing:__
   Variables are not required to explicitly state the data type of the value they contain.
