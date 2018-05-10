@@ -160,18 +160,186 @@ The binary arithmetic operators behave similarly to a standard pocket calculator
 6 / 8                     # equals the fraction ³⁄₄
 ```
 
+## The Match Operator
+
+Instead of the more familiar assignment operator,
+__L__ uses structural pattern matching to map values onto corresponding variables.
+Pattern matching is written as an expression using the `::` operator,
+where values on the right hand side are mapped onto identifiers specified in the pattern on the left hand side.
+
+### Basic Pattern Matching
+
+A single identifier on the left-hand side of a match will bind to any value on the right.
+
+```
+a :: 5                        # 'a' gets the value 5
+list :: [1, 2, 3]             # 'list' gets the value [1, 2, 3]
+sum :: a + 7                  # 'sum' gets the value 12 because 'a' is evaluated 
+                              #    to the previously assigned value of 5
+```
+
+### Destructuring
+
+A list on the left-hand side will only match with a list value on the right.
+If each item in the list is an identifier, both sides must have the same length.
+
+```
+[p, q, r] :: [3, 4, 5]        # 'p' gets the value 3, 'q' gets 4, and 'r' is 5
+[x, y] :: [2, 3, 4]           # Error, because both sides are not the same length
+```
+
+Patterns may contain literal values,
+which must equal the value in the corresponding position on the right-hand side.
+
+```
+[0, uno, dos] :: [0, 1, 2]    # 'uno' is 1 and 'dos' is 2
+[1, fizz, buzz] :: [0, 0, 0]  # Error, because 1 does not equal 0
+```
+
+To match a variable number of items,
+use the `...` operator after an indentifier to collect the remaining values into a list.
+The pattern may contain identifiers or literals on either side of the `...`,
+but may only contain one collection identifier.
+
+```
+[empty...] :: []              # 'empty' is []
+[full...] :: [16, 25, 36]     # 'full' is [16, 25, 36]
+[c, d...] :: [9, 8, 7]        # 'c' is 9 and 'd' is [8, 7]
+[0, f..., g] :: [0, 1, 1, 2]  # 'f' is [1, 1] and 'g' is 2
+```
+
+Additional destructuring features are supported on other data types discussed later in this intruduction.
+
 ## The Text Type
 
 ## Collection Types
 
+__L__ provides two primary data types for storing collections of values.
+Lists are ordered sequences of values that may be accessed by their numeric index.
+Maps are collections of key-value associations.
+Both lists and maps provide syntax for accessing values and modifying contents.
+
 ### Lists
+
+The most common way to create a list in __L__ is to use a list literal,
+which is written as a list of comma-separated values enclosed in square brackets:
+
+```
+[ 'a', 'b', 'c' ]
+```
+
+The length of a list can be queried using the `(.count)` selector.
+
+<pre>
+>> <b>ls :: ['a', 'b', 'c']</b>
+>> <b>ls(.count)</b>
+3
+</pre>
+
+To retrieve an item from a list, use the `(itemAtIndex:)` selector,
+passing the index of the value you want to retrieve.
+Indexes are integer values starting at 0 up to one less than the length of the list.
+A negative index will retrieve counting backwards from the end of the list.
+
+<pre>
+>> <b>ls(itemAtIndex: 1)</b>
+'b'
+>> <b>ls(itemAtIndex: -2)</b>
+'a'
+</pre>
 
 ### Maps
 
+Maps are collections of relationships from keys to values.
+A map literal is written as a list of key-value pairs, with a colon separating the key from the value.
+
+```
+numbers :: [ 'one': 'uno', 'two': 'dos', 'three': 'tres', 'four': 'quatro']
+```
+
+The `numbers` map is initialized with four key-value pairs, the first ...
+
+An empty map literal is written as `[:]` in order to distinguish from an empty list.
+
+The `(itemForKey:)` selector is used to query the map for the value associated with a specified key.
+If the map does not contain a value for the given key, the query returns `_`. 
+
+<pre>
+>> <b>numbers(itemForKey: 'one')</b>
+'uno'
+>> <b>numbers(itemForKey: 'five')</b>
+_
+</pre>
+
 ## Records and Unions
+
+In addition to lists and maps,
+__L__ supports two additional types that allow programmers to define their own data structures.
+
+### Records
+
+A record is a data type consisting of a group of named fields.
+Record declarations are written as a type identifier
+followed by a comma separated list of field declarations enclosed in double angle brackets.
+
+Here, a record type called `Point` is created with two integer fields, `x` and `y`.
+
+```
+Point << Integer x, Integer y >>
+```
+
+Once defined, a record type may be referenced through its type identifier.
+Creating an instance of a record can be done by providing values for each of its fields.
+
+```
+Point(x: 4, y: 7)      # returns a value of type `Point` where x == 4 and y == 7
+```
+
+Field values are accessed using attribute lookup notation.
+If a new point were assigned to the variable `p`,
+the expression `p.x` would return the value associated with that field in the record.
+
+### Unions
+
+A union is a data type consisting of two or more variants associated with a type identifier.
+Union declarations are written as a type identifier
+followed by a pipe-separated list of symbols enclosed in double angle brackets.
+
+Unions are useful when representing values that can be one of a finite number of options.
+For example, when simulating a coin toss, we could use a union called `Coin` with symbols for heads and tails.
+
+```
+Coin << .Heads | .Tails >>
+```
+
+A value of type `Coin` must be exactly one of either heads or tails.
+Creating a value of a union is written using attribute lookup notation,
+In this example, `Coin.Heads` and `Coin.Tails` are the only two values of type `Coin`.
+
+Additionally, any symbols in a union may declare associated data,
+written as a list of type identifiers in parentheses.
+In the example below, each of the `Shape` union's three symbols declares associated values.
+The `.Circle` symbol is associated with a decimal value to represent its radius,
+the `.Square` symbol has an associated decimal value to represent its width,
+and the `.Rectangle` symbol has two associated values: one to represent width and the other to represent height.
+
+```
+Shape << .Circle(Decimal) | .Square(Decimal) | .Rectangle(Decimal, Decimal) >>
+```
+
+Symbols with associated values behave as functions,
+so a union value with associated data is created by calling the symbol with a parenthesized list of values.
+
+```
+A4 :: Shape.Rectangle(21.0, 29.7)
+```
+
+Accessing associated values can be done with pattern matching.
+
+```
+.Rectangle(x, y) :: A4      # after matching, x is 21.0 and y is 29.7
+```
 
 ## Functions
 
-## The Match Operator
-
-## Pattern Matching in Functions
+### Pattern Matching in Functions
