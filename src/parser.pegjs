@@ -73,26 +73,8 @@ term
     / paren_container // message
 	/ brace_container // block
 	/ number
-	/ '"' v:(!'"' !'\n' ch:. { return ch; })* '"' {
-            let value = v.join('').replace(/\\[tn\\]/g, function(match) {
-                return ({
-                    "\\n": "\n",
-                    "\\t": "\t",
-                    "\\\\": "\\"
-                })[match];
-            });
-			return new AST.Text({value: value});
-		}
-	/ "'" v:(!"'" !'\n' ch:. { return ch; })* "'" {
-            let value = v.join('').replace(/\\[tn\\]/g, function(match) {
-                return ({
-                    "\\n": "\n",
-                    "\\t": "\t",
-                    "\\\\": "\\"
-                })[match];
-            });
-			return new AST.Text({value: value});
-		}
+	/ "'" t:single_quote_string* "'" { return new AST.Text({value: t.join('')}); }
+	/ '"' t:double_quote_string* '"' { return new AST.Text({value: t.join('')}); }
 	/ op:operator { return new AST.Operator({label: op}); }
 
 
@@ -136,6 +118,7 @@ operator "operator"
 	/ "&"
 	/ "|"
 	/ "^"   // As prefix: [reserved for future use]
+	// "."
 	/ ":"
 	/ "~"   // Prefix only: [reserved for future use]
 
@@ -205,7 +188,7 @@ angle_container
 		}
 
 /*---------------------------------------------------------------------------
-	Qualifiers, Symbols, and Identifiers
+	Tags, Symbols, and Identifiers
  ----------------------------------------------------------------------------*/
 
 // . label
@@ -313,6 +296,29 @@ imaginary
 
 
 /*---------------------------------------------------------------------------
+  Text Literals
+ ---------------------------------------------------------------------------*/
+
+single_quote_string "text"
+  = !("'" / "\\" / "\n") char:. { return char; }
+  / "\\" seq:escape_sequence { return seq; }
+
+double_quote_string "text"
+  = !('"' / "\\" / "\n") char:. { return char; }
+  / "\\" seq:escape_sequence { return seq; }
+
+escape_sequence
+  = "'"
+  / '"'
+  / '\\'
+  / 'b'  { return "\b";   }
+  / 'f'  { return "\f";   }
+  / 'n'  { return "\n";   }
+  / 'r'  { return "\r";   }
+  / 't'  { return "\t";   }
+  / 'v'  { return "\x0B"; }
+
+/*---------------------------------------------------------------------------
   Convenience Shorthand for Whitespaces and Separators
  ---------------------------------------------------------------------------*/
 
@@ -337,10 +343,10 @@ Linespace
 	= [ \t\n]+
 
 Comment "comment"
-	= '#' t:(!'\n' .)* '\n' {
+	= '#' t:(!'\n' .)* '\n' { console.log('comment'); return null; }/*{
 			return Skel.Comment({text: t.join(''), tags: Map({source: 'trailing'})});
-		}
-	/ '#-' t:(!'-#' .)* '-#' {
+		}*/
+	/ '#-' t:(!'-#' .)* '-#' { return null; }/*{
 			return Skel.Comment({text: t.join(''), tags: Map({source: 'inline'})});
-		}
+		}*/
 

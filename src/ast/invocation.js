@@ -46,7 +46,10 @@ Invocation.prototype.eval = function(ctx) {
 			} else if (x.key._name === 'Operator') {
 				return "'" + x.key.label + "':";
 			}
+		} else if (x._name === 'Qualifier') {
+			return '.' + x.label;
 		} else {
+			// TODO: Evaluate whether we really need this block
 			if (x._name === 'Identifier') {
 				return x.label;
 			} else if (x._name === 'Operator') {
@@ -138,10 +141,14 @@ Invocation.prototype.transform = function(xform) {
 	return xform(this.update('target', function(target) {
 		return (target && 'transform' in target) ? target.transform(xform) : xform(target);
 	}).update('plist', function(plist) {
-		return plist.map(function(kvp) {
-			return kvp.update('val', function(val) {
-				return (val && 'transform' in val) ? val.transform(xform) : xform(val);
-			});
+		return plist.map(function(item) {
+			if (item._name === 'KeyValuePair') {
+				return item.update('val', function(val) {
+					return (val && 'transform' in val) ? val.transform(xform) : xform(val);
+				});
+			} else {
+				return (item && 'transform' in item) ? item.transform(xform) : xform(item);
+			}
 		});
 	}));
 };

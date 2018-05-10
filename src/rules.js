@@ -141,7 +141,11 @@ let match = {
 						rest
 					];
 				} else if (next._name === 'Message') {
-					let message = this.parameterList(context, next, rest);
+					let message = (
+						this.namedParameterList(context, next, rest) ||
+						this.positionalParameterList(context, next, rest) ||
+						this.qualifierMessage(context, next, rest)
+					);
 
 					if (message && message[0].getIn(['tags', 'messageType']) === 'named') {
 						expr = [
@@ -177,41 +181,87 @@ let match = {
 		return target;
 	},
 
-	parameterList: function(context, node, unparsed) {
-		// Matches a list of parameters for a function or method call
+	qualifierMessage: function(context, node, unparsed) {
+		// Matches a message containing a qualifier which is a special form
+		// to allow zero-argument method calls
 		//
-		//     parameterList ::= MESSAGE[ expressionNoAssign* ]
-		//                     | MESSAGE[ namedParameterPart+ ]
+		//     qualifierMessage ::= MESSAGE[ qualifier ]
 		//
 		if (node._name === 'Message') {
-			let exprs = [];
-			let mode;
+			let [first, rest] = [node.exprs.first(), node.exprs.rest()];
 
-			for (let expr of node.exprs) {
+			if (!first || rest.count() !== 0) { return null; }
+
+			let qualifier = this.qualifier(context, first.terms.first(), first.terms.rest());
+
+			if (qualifier && qualifier[1].count() === 0) {
+				return [
+					new AST.List({items: List(qualifier), tags: Map({messageType: 'named'})}),
+					rest
+				];
+			}
+		}
+
+		return null;
+	},
+
+	namedParameterList: function(context, node, unparsed) {
+		// Matches a list of named parameters for a method invocation
+		// 
+		//     namedParameterList ::= MESSAGE[ namedParameterPart+ ]
+		//
+		if (node._name === 'Message') {
+			let self = this;
+			let exprs = node.exprs.reduce(function(result, expr) {
+				if (!result) { return null; }
+
 				let [first, rest] = [expr.terms.first(), expr.terms.rest()];
-				let exp = (
-					this.namedParameterPart(context, first, rest) ||
-					this.expressionNoAssign(context, first, rest)
-				);
+				let exp = self.namedParameterPart(context, first, rest);
 
 				if (!(exp && exp[1].count() === 0)) {
 					return null;
 				}
 
-				if (mode == undefined) {
-					mode = exp[0]._name;
-				} else if (mode !== exp[0]._name || exp[1].count() !== 0) {
+				return result.push(exp[0]);
+			}, List([]));
+
+			if (exprs && exprs.count() > 0) {
+				return [
+					new AST.List({items: exprs, tags: Map({messageType: 'named'})}),
+					unparsed
+				];
+			}
+		}
+
+		return null;
+	},
+
+	positionalParameterList: function(context, node, unparsed) {
+		// Matches a list of expressions to be evaluated for a function call
+		//
+		//     positionalParameterList ::= MESSAGE[ expressionNoAssign* ]
+		//
+		if (node._name === 'Message') {
+			let self = this;
+			let exprs = node.exprs.reduce(function(result, expr) {
+				if (!result) { return null; }
+
+				let [first, rest] = [expr.terms.first(), expr.terms.rest()];
+				let exp = self.expressionNoAssign(context, first, rest);
+
+				if (!(exp && exp[1].count() === 0)) {
 					return null;
 				}
 
-				exprs.push(exp[0]);
-			}
+				return result.push(exp[0]);
+			}, List([]));
 
-			let type = (mode === 'KeyValuePair') ? 'named' : 'positional';
-			return [
-				new AST.List({items: List(exprs), tags: Map({messageType: type})}),
-				unparsed
-			];
+			if (exprs) {
+				return [
+					new AST.List({items: exprs, tags: Map({messageType: 'positional'})}),
+					unparsed
+				];
+			}
 		}
 
 		return null;
@@ -245,7 +295,7 @@ let match = {
 	assignmentExpression: function(context, node, unparsed) {
 		// Matches assignment expressions
 		//
-		//     assignmentExpression ::= template Operator(::) expressionNoAssign
+		//     assignmentExpression ::= template OPERATOR['::'] expressionNoAssign
 		//
 		let dest = this.template(context, node, unparsed);
 		if (!dest) { return null; }
@@ -867,6 +917,18 @@ let match = {
 		//     postfixModifier ::= [?!]
 		//
 		if (node._name === 'Identifier') {
+			return [node, unparsed];
+		} else {
+			return null;
+		}
+	},
+
+	qualifier: function(context, node, unparsed) {
+		// Matches a qualifier
+		//
+		//     qualifier ::= '.' [a-zA-Z0-9_-]+
+		//
+		if (node._name === 'Qualifier') {
 			return [node, unparsed];
 		} else {
 			return null;

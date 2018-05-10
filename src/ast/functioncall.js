@@ -69,8 +69,8 @@ FunctionCall.prototype.eval = function(ctx) {
             return tags.set('name', target.label);
         });
     } else if (target._name === 'Variant') {
-		if (target.values.count() === this.args.items.count()) {
-			return target.set('values', this.args.items);
+		if (target.values.count() === args.items.count()) {
+			return target.set('values', args.items);
 		} else {
 			throw new TypeError('mismatched associated values');
 		}

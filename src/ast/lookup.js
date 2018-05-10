@@ -10,14 +10,13 @@ const _map = Map({});
 const Lookup = Record({target: _, term: _, tags: _map}, 'Lookup');
 
 Lookup.prototype.toString = function() {
-	return this.target.toString() + '.' + this.term.toString();
+	return this.target.toString() + this.term.toString();
 };
 
 Lookup.prototype.repr = function(depth, style) {
 	return (
-		this.target.repr(depth, fmt) +
-		style.operator('.') +
-		this.term.repr(depth, fmt)
+		this.target.repr(depth, style) +
+		this.term.repr(depth, style)
 	);
 };
 
