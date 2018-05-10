@@ -52,7 +52,7 @@ A rational number is the result of an expression combining two integers with the
 Rational numbers are stored in simplified form, so `7 / 42` becomes the fraction ⅙.
 Complex numbers are the sum of a real component and an imaginary component,
 where the imaginary part is followed by `i`, `j`, or `J`.
-The expression `3 + 2i` evaluates to the complex number 3 + 2i.
+The expression `3 + 2i` evaluates to the complex number 3 + 2*i*.
 
 ### Text
 
