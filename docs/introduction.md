@@ -44,12 +44,12 @@ For example, `$empty`, `$𓄿`, `$먼저`, and `$🐶🐮` are valid symbols.
 
 Numeric literals can represent integers, decimals, and complex numbers.
 Integers are positive and negative whole numbers,
-and may be represented in both decimal (`1138`) and hexadecimal (`0xBADF00D`).
+and may be represented in both decimal (`1138`) and hexadecimal (`0xb7d7e8` or `0x92A8D1`).
 Fractional values may be written as floating-point decimals (`0.875`) or using scientific notation (`8.75e-1`).
 
 Additional numeric types may be constructed by combining atomic values.
 A rational number is the result of an expression combining two integers with the `/` operator.
-Rational numbers are stored in simplified form, so `7 / 42` becomes the fraction ¹⁄₆.
+Rational numbers are stored in simplified form, so `7 / 42` becomes the fraction ⅙.
 Complex numbers are the sum of a real component and an imaginary component,
 where the imaginary part is followed by `i`, `j`, or `J`.
 The expression `3 + 2i` evaluates to the complex number 3 + 2i.
@@ -147,7 +147,7 @@ plusFive :: -minusFive    # plusFive is -(-5), or 5
 There is a unary plus operator that returns the unmodified value, 
 
 ```
-minusFive :: -5           # minusFive is -5
+minusFive :: -5              # minusFive is -5
 alsoMinusFive :: +minusFive  # alsoMinusFive is -5 because +(-5) is still -5
 ```
 
@@ -157,7 +157,7 @@ The binary arithmetic operators behave similarly to a standard pocket calculator
 2 + 3                     # equals 5
 8 - 3                     # equals 5
 6 * 7                     # equals 42
-6 / 8                     # equals the fraction ³⁄₄
+6 / 8                     # equals the fraction ¾
 ```
 
 ## The Match Operator
@@ -331,13 +331,13 @@ Symbols with associated values behave as functions,
 so a union value with associated data is created by calling the symbol with a parenthesized list of values.
 
 ```
-A4 :: Shape.Rectangle(21.0, 29.7)
+paper :: Shape.Rectangle(21.0, 29.7)
 ```
 
 Accessing associated values can be done with pattern matching.
 
 ```
-.Rectangle(x, y) :: A4      # after matching, x is 21.0 and y is 29.7
+.Rectangle(x, y) :: paper      # after matching, x is 21.0 and y is 29.7
 ```
 
 ## Functions
