@@ -59,7 +59,7 @@ npm run metal
 
 The `npm run metal` command starts the interactive shell.
 
-You can learn more about -- in the [Contribution Guidelines][contrib].
+You can learn more about the internal workings of the language and interactive shell in the [Contribution Guidelines][contrib].
 
 [contrib]: docs/contributing.md
 
@@ -88,6 +88,6 @@ Here's a simple example of an __L__ program:
 2
 </pre>
 
-The [Intruduction to the L Programming Language][intro] describes additional shell interactions.
+The [Intruduction to the L Programming Language][intro] is a good place to learn about what the shell can do.
 
 [intro]: docs/introduction.md
