@@ -11,9 +11,14 @@ function make_bool(exp) {
 }
 
 module.exports = Map({
-	'(length)': function() {
-		return new Integer({value: this.items.length});
+	'(.count)': function() {
+		return new Integer({value: this.items.count()});
 	},
+	'(itemAtIndex:)': dispatch({
+		'Integer': function(idx) {
+			return this.items.get(idx.value) || new Bottom();
+		}
+	}),
 	"('+':)": dispatch({
 		'List': function(s) {
 			return this.update('items', function(v) { return v.concat(s.items); });
