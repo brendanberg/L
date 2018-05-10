@@ -22,9 +22,9 @@ make it easy to write distributed concurrent programs.
   One of the first surprising features of __L__ is that it does not have an assignment operator.
   Instead, it uses a "match" operator to structurally map values onto their corresponding variables.
   
-  <pre class="highlight highlight-source-shell">
+  <div class="highlight highlight-source-shell"><pre>
   [x, y..., z] :: [16, 25, 36, 49, 64]    <span class="pl-c"># x == 16, y == [25, 36, 49], and z == 64</span>
-  </pre>
+  </pre></div>
 
 - __Gradual Typing:__
   Variables are not required to explicitly state the data type of the value they contain.
