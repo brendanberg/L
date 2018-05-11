@@ -343,10 +343,10 @@ Linespace
 	= [ \t\n]+
 
 Comment "comment"
-	= '#' t:(!'\n' .)* '\n' { console.log('comment'); return null; }/*{
-			return Skel.Comment({text: t.join(''), tags: Map({source: 'trailing'})});
-		}*/
-	/ '#-' t:(!'-#' .)* '-#' { return null; }/*{
+	= '#-' t:(!'-#' .)* '-#' {
 			return Skel.Comment({text: t.join(''), tags: Map({source: 'inline'})});
-		}*/
+		}
+	/ '#' t:(!'\n' .)* '\n' {
+			return Skel.Comment({text: t.join(''), tags: Map({source: 'trailing'})});
+		}
 

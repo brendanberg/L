@@ -1,4 +1,5 @@
 const { Map, List: IList } = require('immutable');
+const Type = require('../ast/type');
 const Variant = require('../ast/variant');
 const Text = require('../ast/text');
 const Integer = require('../ast/integer');
@@ -11,8 +12,10 @@ function make_bool(exp) {
 	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
 }
 
-module.exports = Map({
-	'(length)': function() {
+let _Text = new Type({label: 'Text'});
+
+_Text.methods = {
+	'(.count)': function() {
 		return new Integer({value: this.value.length});
 	},
 	"('+':)": dispatch({
@@ -30,7 +33,7 @@ module.exports = Map({
 			return make_bool(this.value != s.value);
 		}
 	}),
-	'(characterAt:)': dispatch({
+	"('@':)": dispatch({
 		'Integer': function(n) {
 			let idx = n.value < 0 ? this.value.length + n.value : n.value;
 			let ch = this.value[idx];
@@ -47,5 +50,6 @@ module.exports = Map({
 			});
 		}
 	}),
-});
+};
 
+module.exports = _Text;

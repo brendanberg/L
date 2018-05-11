@@ -3,7 +3,7 @@ Implementation of Boolean Data Type
 -#
 
 #- Protocol declarations need more work.
-BooleanType (boolValue.) -> Boolean
+BooleanType (.boolValue) -> Boolean
 -#
 
 Boolean << .True | .False >>
@@ -31,11 +31,10 @@ Boolean p ('\\/': q) -> {
 
 Boolean p ('==': q) -> {
 	{{
-		(.True) -> { q(boolValue.) }
-		(.False) -> { !(q(boolValue.)) }
+		(.True) -> { q }
+		(.False) -> { !q }
 	}} (p)
 }
 
 Boolean p ('!=': q) -> { !(p == q) }
 
-Boolean p (boolValue.) -> { p }

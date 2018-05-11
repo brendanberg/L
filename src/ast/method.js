@@ -3,71 +3,80 @@
  */
 
 const { Map, List, Record } = require('immutable');
-
+const { TypeError } = require('../error');
+const _Function = require('./function');
+const Template = require('./template');
+const _List = require('./list');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
 
 
-let Method = Record({type: _, target: _, selector: _list, block: _, ctx: _, tags: _map}, 'Method');
+let Method = Record({target: _, selector: _list, block: _, ctx: _, tags: _map}, 'Method');
 
-/*
+
 Method.prototype.toString = function() {
-    let arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
-
-    return (
-        '(' + this.teplate.match.items.map(stringify).join(', ') + ')' +
-        arrow + this.block.toString()
-    );
+	return (
+		this.target.toString() + ' (' + this.selector.map(function(it) {
+			return it.toString();
+		}).join(', ') + ') -> ' + this.block.toString()
+	);
 };
 
 Method.prototype.repr = function(depth, style) {
-	let arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
-
 	return (
-		style.delimiter('(') +
-		this.template.match.items.map(stringify).join(style.separator(', ')) + 
-		style.delimiter(')') + style.delimiter(arrow) + this.block.repr(depth, style)
-    );
-}*/
+		this.target.repr(depth, style) + style.delimiter(' (') +
+		this.selector.map(function(it) { return it.repr(depth, style); }).join(', ') +
+		style.delimiter(') -> ') + this.block.repr(depth, style)
+	);
+}
 
 Method.prototype.eval = function(ctx) {
-		// This is kind of a weird one because methods are declarative and
-		// operate on a type defined in the package context. Importing the
-		// type will also import its context I guess
+	// Do some basic type checking (the target type must already exist).
+	let typeStr = this.target.getIn(['tags', 'type']);
+	let type = ctx.lookup(typeStr);
 
-		// 1. Find the type identifier in the current context. 
-		//    (if it doesn't exist, create it.)
-		// 2. Update the type's context with the method's selector
-		//    and body.
+	if (!(type && 'registerSelector' in type)) {
+		throw new TypeError("There is no type '" + typeStr + "'");
+	}
 
-		var typeId = this.typeId.eval(ctx);
-		var selector = '(' + this.plist.list.map(function(x) {
-			return x[0].name + (x[1] ? ':' : '')
-		}).join('') + ')';
-
-		var type = ctx.lookup(typeId.name);
-
-		if (type && type.has('ctx')) {
-			type = type.update('ctx', function(ctx) {
-				ctx.local[selector] = this;
-				return ctx;
-			});
+	// Build the selector string.
+	let selector = '(' + this.selector.reduce(function(result, x) {
+		if (x._name === 'KeyValuePair') {
+			if (x.key._name === 'Identifier') {
+				return result + x.key.label + ':';
+			} else if (x.key._name === 'Text') {
+				return result + "'" + x.key.value + "':";
+			} else if (x.key._name === 'Operator') {
+				return result + "'" + x.key.label + "':";
+			}
+		} else if (x._name === 'Qualifier') {
+			return result + '.' + x.label;
+		} else if (x._name === 'Text') {
+			return result + "'" + x.value + "'";
 		}
-		// self = self.update('block', function(block) {
-		// 	return block.eval(ctx);
-		// });
-		
-		//return this;
-};
-/*
-Method.prototype.transform = function(func) {
-    let transform = function(node) {
-        return (node && 'transform' in node) ? node.transform(func) : func(node);
-    };
+	}, '') + ')';
 
-    return func(this.update('plist', transform).update('block', transform));
+	// Build the method implementation
+	let templateItems = List([this.target]).concat(this.selector.filter(function(item) {
+		return (item._name === 'KeyValuePair');
+	}).map(function(item) {
+		return item.val;
+	}));
+
+	let impl = new _Function({
+		template: new Template({match: new _List({items: templateItems})}),
+		block: this.block
+	});
+
+	// Associate the method implementation with the selector
+	type.registerSelector(selector, impl);
+	return this;
 };
-*/
+
+Method.prototype.transform = function(xform) {
+	return this;
+};
+
 module.exports = Method;
 

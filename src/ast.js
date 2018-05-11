@@ -15,7 +15,7 @@ module.exports = {
 	Evaluate: require('./ast/evaluate'),
 	Block: require('./ast/block'),
 	List: require('./ast/list'),
-//	Type: require('./ast/type'), //TODO????? ALSO UPDATE SKEL NODE?
+	Type: require('./ast/type'), // Currently only used for defining built-in types
 	Map: require('./ast/map'),
 	Assignment: require('./ast/assignment'),
 	Template: require('./ast/template'),

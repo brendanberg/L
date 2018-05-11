@@ -34,7 +34,6 @@ Record.prototype.eval = function(ctx) {
 
 	let newCtx = {};
 	newCtx[this.label] = this;
-
 	ctx.local = ctx.local.merge(newCtx);
 	return this;
 };
@@ -42,6 +41,23 @@ Record.prototype.eval = function(ctx) {
 Record.prototype.transform = function(context, match) {
 	// Note: This rule should be unreachable if the grammar rules are correct
 	return this;
+};
+
+Record.prototype.methodForSelector = function(selector) {
+	if ('methods' in this) {
+		return this.methods[selector];
+	} else {
+		return null;
+	}
+};
+
+Record.prototype.registerSelector = function(selector, impl) {
+	if ('methods' in this) {
+		this.methods[selector] = impl;
+	} else {
+		this.methods = {};
+		this.methods[selector] = impl;
+	}
 };
 
 module.exports = Record;

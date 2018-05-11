@@ -11,7 +11,7 @@ Union.prototype.toString = function () {
 	let variants = this.variants.map(function(node) {
 		return node.toString();
 	});
-	return this.label + '<< ' + variants.valueSeq().join(' | ') + ' >>';
+	return this.label + ' << ' + variants.valueSeq().join(' | ') + ' >>';
 };
 
 Union.prototype.repr = function(depth, style) {
@@ -37,6 +37,23 @@ Union.prototype.eval = function(ctx) {
 Union.prototype.transform = function(context, match) {
 	// Note: This rule should be unreachable if the grammar rules are correct
 	return this;
+};
+
+Union.prototype.methodForSelector = function(selector) {
+	if ('methods' in this) {
+		return this.methods[selector];
+	} else {
+		return null;
+	}
+};
+
+Union.prototype.registerSelector = function(selector, impl) {
+	if ('methods' in this) {
+		this.methods[selector] = impl;
+	} else {
+		this.methods = {};
+		this.methods[selector] = impl;
+	}
 };
 
 module.exports = Union;

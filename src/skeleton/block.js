@@ -18,20 +18,18 @@ Block.prototype.transform = function(context, match) {
 	// expression. A macro defined in a block is accessible
 	// anywhere in the block, so this needs two passes basically.
 
-    //console.log(this.exprs);
 	let subcontext = new Context({local: _map, outer: context});
-	let exprs = [];
 	// TODO: Currently the context and match are mutable, but
 	// they should probably be made immutable.
+	let exprs = this.exprs.reduce(function(result, expr)  {
+		if (result === null) { return null; }
 
-	for (let expr of this.exprs) {
 		let exp = expr.transform(subcontext, match);
-		if (exp) { exprs.push(exp); }
-		else { return null; }
-	}
+		return exp ? result.push(exp) : null;
+	}, List([]));
 
 	return new AST.Block({
-		exprs: List(exprs),
+		exprs: exprs,
 		ctx: subcontext,
 		tags: this.tags
 	});

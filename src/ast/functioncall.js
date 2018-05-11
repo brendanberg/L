@@ -14,16 +14,16 @@ const _list = List([]);
 let FunctionCall = Record({args: _list, target: _, tags: _map}, 'FunctionCall');
 
 FunctionCall.prototype.toString = function() {
-    return this.target.toString() + '(' + this.args.items.map(function(it) {
-        return it.toString();
-    }).toArray().join(', ') + ')';
+	return this.target.toString() + '(' + this.args.items.map(function(it) {
+		return it.toString();
+	}).toArray().join(', ') + ')';
 };
 
 FunctionCall.prototype.repr = function(depth, style) {
-    return this.target.repr(depth, style) + '(' +
-        this.args.items.map(function(it) {
-            return it.repr(depth, style);
-        }).toArray().join(', ') + ')';
+	return this.target.repr(depth, style) + '(' +
+		this.args.items.map(function(it) {
+			return it.repr(depth, style);
+		}).toArray().join(', ') + ')';
 };
 
 FunctionCall.prototype.eval = function(ctx) {
@@ -33,10 +33,8 @@ FunctionCall.prototype.eval = function(ctx) {
 	let context;
 
 	if (target._name === 'Function') {
-		//console.log('eval ctx', ctx);
-		//console.log('body ctx', target.ctx);
 		context = target.ctx.extend(target.template.match, args);
-        // TODO: Perhaps the context needs to get attached to the block?
+		// TODO: Perhaps the context needs to get attached to the block?
 		block = target.block; // target.block.set('ctx', context);
 	} else if (target._name === 'Match') {
 		// TODO: Implement a more efficient pattern matching algorithm
@@ -51,24 +49,23 @@ FunctionCall.prototype.eval = function(ctx) {
 			}
 		}
 	} else if (target._name === 'Record') {
-	console.log('Record constructor');
-        context = target.ctx;
-        if (target.members.count() != args.count()) {
-            throw ArgumentError('');
-        }
-        let properties = {};
-        let members = target.members.map(function(x) { return x.label; });
+		context = target.ctx;
+		if (target.members.count() != args.count()) {
+			throw ArgumentError('');
+		}
+		let properties = {};
+		let members = target.members.map(function(x) { return x.label; });
 
-        for (let [key, val] of members.zip(args.items)) {
-            properties[key] = val;
-        }
+		for (let [key, val] of members.zip(args.items)) {
+			properties[key] = val;
+		}
 
-        return target.update('ctx', function (ctx) {
-            return Map(properties);
-        }).update('tags', function(tags) {
-            return tags.set('name', target.label);
-        });
-    } else if (target._name === 'Variant') {
+		return target.update('ctx', function (ctx) {
+			return Map(properties);
+		}).update('tags', function(tags) {
+			return tags.set('name', target.label);
+		});
+	} else if (target._name === 'Variant') {
 		if (target.values.count() === args.items.count()) {
 			return target.set('values', args.items);
 		} else {
@@ -85,7 +82,7 @@ FunctionCall.prototype.eval = function(ctx) {
 }
 
 FunctionCall.prototype.transform = function(func) {
-    return func(this);
+	return func(this);
 };
 
 module.exports = FunctionCall;
