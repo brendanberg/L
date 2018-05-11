@@ -236,15 +236,15 @@ The length of a list can be queried using the `(.count)` selector.
 3
 </pre>
 
-To retrieve an item from a list, use the `(itemAtIndex:)` selector,
-passing the index of the value you want to retrieve.
+To retrieve an item from a list, use the `@` operator,
+where the left-hand side is the index of the value you want to retrieve.
 Indexes are integer values starting at 0 up to one less than the length of the list.
 A negative index will retrieve counting backwards from the end of the list.
 
 <pre>
->> <b>ls(itemAtIndex: 1)</b>
+>> <b>ls @ 1</b>
 'b'
->> <b>ls(itemAtIndex: -2)</b>
+>> <b>ls @ -2</b>
 'a'
 </pre>
 
@@ -261,13 +261,13 @@ The `numbers` map is initialized with four key-value pairs, the first ...
 
 An empty map literal is written as `[:]` in order to distinguish from an empty list.
 
-The `(itemForKey:)` selector is used to query the map for the value associated with a specified key.
+The `@` operator is used to query the map for the value associated with a specified key.
 If the map does not contain a value for the given key, the query returns `_`. 
 
 <pre>
->> <b>numbers(itemForKey: 'one')</b>
+>> <b>numbers @ 'one'</b>
 'uno'
->> <b>numbers(itemForKey: 'five')</b>
+>> <b>numbers @ 'five'</b>
 _
 </pre>
 
