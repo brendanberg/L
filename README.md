@@ -22,7 +22,7 @@ make it easy to write distributed concurrent programs.
   One of the first surprising features of __L__ is that it does not have an assignment operator.
   Instead, it uses a "match" operator to structurally map values onto their corresponding variables.
   
-  ```python
+  ```io
   [x, y..., z] :: [16, 25, 36, 49, 64]    # x == 16, y == [25, 36, 49], and z == 64
   ```
 
