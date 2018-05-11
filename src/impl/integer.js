@@ -103,6 +103,9 @@ _Integer.methods = {
 		'Rational': function(q) {
 			return make_bool(q.denominator == 1 && this.value == q.numerator);
 		},
+		'Decimal': function(d) {
+			return make_bool(d.exponent == 0 && d.numerator == this.value);
+		},
 	}),
 	"('!=':)": dispatch({
 		'Integer': function(n) {
@@ -111,26 +114,47 @@ _Integer.methods = {
 		'Rational': function(q) {
 			return make_bool(!(q.denominator == 1 && this.value == q.numerator));
 		},
+		'Decimal': function(d) {
+			return make_bool(!(d.exponent == 0 && d.numerator == this.value));
+		},
 	}),
 	"('<':)": dispatch({
 		'Integer': function(n) {
 			return make_bool(this.value < n.value);
-		}
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, d.exponent);
+			return make_bool(exponent * this.value < d.numerator);
+		},
 	}),
 	"('<=':)": dispatch({
 		'Integer': function(n) {
 			return make_bool(this.value <= n.value);
-		}
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, d.exponent);
+			return make_bool(exponent * this.value < d.numerator || (
+				d.exponent == 0 && this.value == d.numerator));
+		},
 	}),
 	"('>':)": dispatch({
 		'Integer': function(n) {
 			return make_bool(this.value > n.value);
-		}
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, d.exponent);
+			return make_bool(exponent * this.value > d.numerator);
+		},
 	}),
 	"('>=':)": dispatch({
 		'Integer': function(n) {
 			return make_bool(this.value >= n.value);
-		}
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, d.exponent);
+			return make_bool(exponent * this.value > d.numerator || (
+				d.exponent == 0 && this.value == d.numerator));
+		},
 	}),
 };
 

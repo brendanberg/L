@@ -90,23 +90,45 @@ _Decimal.methods = {
 	}),
 	"('<':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value < n.value);
-		}
+			let exponent = Math.pow(10, this.exponent);
+			return make_bool(this.numerator < n.value * exponent);
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, this.exponent - d.exponent);
+			return make_bool(this.numerator < d.numerator * exponent);
+		},
 	}),
 	"('<=':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value <= n.value);
-		}
+			let exponent = Math.pow(10, this.exponent);
+			return make_bool(this.numerator < n.value * exponent || (
+				this.exponent == 0 && this.numerator == n.value));
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, this.exponent - d.exponent);
+			return make_bool(this.numerator <= d.numerator * exponent);
+		},
 	}),
 	"('>':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value > n.value);
-		}
+			let exponent = Math.pow(10, this.exponent);
+			return make_bool(this.numerator > n.value * exponent);
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, this.exponent - d.exponent);
+			return make_bool(this.numerator > d.numerator * exponent);
+		},
 	}),
 	"('>=':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value >= n.value);
-		}
+			let exponent = Math.pow(10, this.exponent);
+			return make_bool(this.numerator > n.value * exponent || (
+				this.exponent == 0 && this.numerator == n.value));
+		},
+		'Decimal': function(d) {
+			let exponent = Math.pow(10, this.exponent - d.exponent);
+			return make_bool(this.numerator >= d.numerator * exponent);
+		},
 	}),
 };
 
