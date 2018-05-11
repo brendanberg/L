@@ -24,7 +24,7 @@ Rational.prototype.repr = function(depth, style) {
     return style.number(this.toString());
 };
 
-Rational.prototype.simplify = function(ctx) {
+Rational.prototype.simplify = function() {//ctx) {
 	var x = gcd(this.numerator, this.denominator);
 	return this.merge({
 		numerator: this.numerator / x,
