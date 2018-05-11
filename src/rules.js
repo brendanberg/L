@@ -15,7 +15,7 @@ let match = {
 		let exp = (
 			this.assignmentExpression(context, node, unparsed) ||
 			this.typeDeclaration(context, node, unparsed) ||
-			// this.methodDeclaration(context, node, unparsed) ||
+			this.methodDeclaration(context, node, unparsed) ||
 			this.expressionNoAssign(context, node, unparsed)
 		);
 
@@ -141,7 +141,11 @@ let match = {
 						rest
 					];
 				} else if (next._name === 'Message') {
-					let message = this.parameterList(context, next, rest);
+					let message = (
+						this.namedParameterList(context, next, rest) ||
+						this.positionalParameterList(context, next, rest) ||
+						this.qualifierMessage(context, next, rest)
+					);
 
 					if (message && message[0].getIn(['tags', 'messageType']) === 'named') {
 						expr = [
@@ -177,41 +181,87 @@ let match = {
 		return target;
 	},
 
-	parameterList: function(context, node, unparsed) {
-		// Matches a list of parameters for a function or method call
+	qualifierMessage: function(context, node, unparsed) {
+		// Matches a message containing a qualifier which is a special form
+		// to allow zero-argument method calls
 		//
-		//     parameterList ::= MESSAGE[ expressionNoAssign* ]
-		//                     | MESSAGE[ namedParameterPart+ ]
+		//     qualifierMessage ::= MESSAGE[ qualifier ]
 		//
 		if (node._name === 'Message') {
-			let exprs = [];
-			let mode;
+			let [first, rest] = [node.exprs.first(), node.exprs.rest()];
 
-			for (let expr of node.exprs) {
+			if (!first || rest.count() !== 0) { return null; }
+
+			let qualifier = this.qualifier(context, first.terms.first(), first.terms.rest());
+
+			if (qualifier && qualifier[1].count() === 0) {
+				return [
+					new AST.List({items: List(qualifier), tags: Map({messageType: 'named'})}),
+					rest
+				];
+			}
+		}
+
+		return null;
+	},
+
+	namedParameterList: function(context, node, unparsed) {
+		// Matches a list of named parameters for a method invocation
+		// 
+		//     namedParameterList ::= MESSAGE[ namedParameterPart+ ]
+		//
+		if (node._name === 'Message') {
+			let self = this;
+			let exprs = node.exprs.reduce(function(result, expr) {
+				if (!result) { return null; }
+
 				let [first, rest] = [expr.terms.first(), expr.terms.rest()];
-				let exp = (
-					this.namedParameterPart(context, first, rest) ||
-					this.expressionNoAssign(context, first, rest)
-				);
+				let exp = self.namedParameterPart(context, first, rest);
 
 				if (!(exp && exp[1].count() === 0)) {
 					return null;
 				}
 
-				if (mode == undefined) {
-					mode = exp[0]._name;
-				} else if (mode !== exp[0]._name || exp[1].count() !== 0) {
+				return result.push(exp[0]);
+			}, List([]));
+
+			if (exprs && exprs.count() > 0) {
+				return [
+					new AST.List({items: exprs, tags: Map({messageType: 'named'})}),
+					unparsed
+				];
+			}
+		}
+
+		return null;
+	},
+
+	positionalParameterList: function(context, node, unparsed) {
+		// Matches a list of expressions to be evaluated for a function call
+		//
+		//     positionalParameterList ::= MESSAGE[ expressionNoAssign* ]
+		//
+		if (node._name === 'Message') {
+			let self = this;
+			let exprs = node.exprs.reduce(function(result, expr) {
+				if (!result) { return null; }
+
+				let [first, rest] = [expr.terms.first(), expr.terms.rest()];
+				let exp = self.expressionNoAssign(context, first, rest);
+
+				if (!(exp && exp[1].count() === 0)) {
 					return null;
 				}
 
-				exprs.push(exp[0]);
-			}
+				return result.push(exp[0]);
+			}, List([]));
 
-			let type = (mode === 'KeyValuePair') ? 'named' : 'positional';
-			return [
-				new AST.List({items: List(exprs), tags: Map({messageType: type})}),
-				unparsed
-			];
+			if (exprs) {
+				return [
+					new AST.List({items: exprs, tags: Map({messageType: 'positional'})}),
+					unparsed
+				];
+			}
 		}
 
 		return null;
@@ -245,7 +295,7 @@ let match = {
 	assignmentExpression: function(context, node, unparsed) {
 		// Matches assignment expressions
 		//
-		//     assignmentExpression ::= template Operator(::) expressionNoAssign
+		//     assignmentExpression ::= template OPERATOR['::'] expressionNoAssign
 		//
 		let dest = this.template(context, node, unparsed);
 		if (!dest) { return null; }
@@ -434,7 +484,31 @@ let match = {
 		//     methodDeclaration ::=
 		//             identifier identifier selector functionBody
 		//
-		return null;
+		if (node._name !== 'Identifier' || unparsed.count() < 3) { return null; }
+
+		let name = this.identifier(context, unparsed.first(), unparsed.rest());
+		if (!(name && name[1].count() > 0)) { return null; }
+
+		let selector = (
+			this.selector(context, name[1].first(), name[1].rest()) ||
+			this.unarySelector(context, name[1].first(), name[1].rest())
+		);
+
+		if (!(selector && selector[1].count() > 0)) { return null; }
+
+		let [first, rest] = [selector[1].first(), selector[1].rest()];
+		let body = this.functionBody(context, first, rest);
+
+		if (!body) { return null; }
+
+		return [
+			new AST.Method({
+				target: name[0].setIn(['tags', 'type'], node.label),
+				selector:selector[0],
+				block: body[0]
+			}),
+			body[1]
+		];
 	},
 
 	selector: function(context, node, unparsed) {
@@ -443,7 +517,62 @@ let match = {
 		//
 		//     selectorPart ::= identifier OPERATOR[':'] identifier? identifier
 		//
-		return null;
+		if (node._name !== 'Message') { return null; }
+
+		let self = this;
+		let parts = node.exprs.reduce(function(result, expr) {
+			if (result === null) { return null; }
+
+			let id = (
+				self.identifier(context, expr.terms.first(), expr.terms.rest()) ||
+				self.text(context, expr.terms.first(), expr.terms.rest())
+			);
+
+			if (!(id && id[1].count() > 1)) { return null; }
+
+			let op = self.operator(context, id[1].first(), id[1].rest());
+			if (!(op && op[0].label === ':')) { return null; }
+
+			let first = self.identifier(context, op[1].first(), op[1].rest());
+			let name;
+
+			if (!(first && first[1].count() < 2)) {
+				return null;
+			} else if (first[1].count() === 1) {
+				let second = self.identifier(context, first[1].first(), first[1].rest());
+				if (!second) {
+					return null;
+				} else {
+					name = first[0].setIn(['tags', 'type'], second[0].label);
+				}
+			} else {
+				name = first[0];
+			}
+
+			return result.push(new AST.KeyValuePair({key: id[0], val: name}));
+		}, List([]));
+
+		return parts && [parts, unparsed];
+	},
+
+	unarySelector: function(context, node, unparsed) {
+		if (node._name !== 'Message') { return null; }
+
+		let self = this;
+		let parts = node.exprs.reduce(function(result, expr) {
+			if (result === null) { return null; }
+
+			let qual = (
+				self.text(context, expr.terms.first(), expr.terms.rest()) ||
+				self.qualifier(context, expr.terms.first(), expr.terms.rest())
+			);
+
+			if (!(qual && qual[1].count() === 0)) { return null; }
+
+			return result.push(qual[0]);
+		}, List([]));
+
+		return parts && [parts, unparsed];
 	},
 
 	template: function(context, node, unparsed) {
@@ -859,6 +988,18 @@ let match = {
 		return null;
 	},
 
+	operator: function(context, node, unparsed) {
+		// Matches an operator
+		//
+		//     operator ::= '+' | '-' | '*' | '/' | ...
+		//
+		if (node._name === 'Operator') {
+			return [node, unparsed];
+		} else {
+			return null;
+		}
+	},
+
 	identifier: function(context, node, unparsed) {
 		// Matches an identifier
 		//
@@ -867,6 +1008,18 @@ let match = {
 		//     postfixModifier ::= [?!]
 		//
 		if (node._name === 'Identifier') {
+			return [node, unparsed];
+		} else {
+			return null;
+		}
+	},
+
+	qualifier: function(context, node, unparsed) {
+		// Matches a qualifier
+		//
+		//     qualifier ::= '.' [a-zA-Z0-9_-]+
+		//
+		if (node._name === 'Qualifier') {
 			return [node, unparsed];
 		} else {
 			return null;

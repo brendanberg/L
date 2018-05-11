@@ -9,17 +9,16 @@ const _map = Map({});
 
 const builtins = Map({
 	'Integer': require('./impl/integer'),
-	//'Decimal': _,
-	//'Boolean': require('./impl/boolean'),
+	'Rational': require('./impl/rational'),
+	'Decimal': require('./impl/decimal'),
 	'Text': require('./impl/text'),
 	'List': require('./impl/list'),
-	//'Map': _,
-	//'Block': _,
-	//'Record': _,
+	//'Map': require('./impl/map'),
+	//'Block': require('./impl/block'),
+	// TODO: Are there built-in methods that all records and unions use?
 });
 
 
-//const Context = Record({local: _map, outer: _}, 'Context');
 function Context(values) {
 	this.local = (values && values.local) || builtins;
 	this.outer = (values && values.outer) || _;
@@ -51,13 +50,16 @@ Context.prototype.match = function(pattern, value) {
 			if (value._name !== pattern._name) { return null; }
 			let field = (pattern._name === 'List') ? 'items' : 'exprs';
 
+			let pat = pattern.get(field);
+			let val = value.get(field);
+
 			// Test the first value.
-			let [first, rest] = [pattern.get(field).first(), pattern.get(field).rest()];
+			let [first, rest] = [pat.first(), pat.rest()];
 
 			// capture([], []) -> {}
 			// capture([], [V]) -> <NO MATCH>
 			if (!first) {
-				return value.get(field).count() ? null : ctx;
+				return val.count() ? null : ctx;
 			}
 
 			if (first._name === 'Identifier' && first.getIn(['tags', 'collect'], false)) {
@@ -75,11 +77,11 @@ Context.prototype.match = function(pattern, value) {
 					// capture([a..., b], [V1]) -> capture([a...], []) + {b: V1}
 					// capture([a..., b], [V1, V2, ..., Vn-1, Vn]) -> 
 					//           capture([a...], [V1, V2, ..., Vn-1]) + {b: Vn}
-					let innerCtx = capture(pattern.get(field).last(), value.get(field).last(), ctx);
+					let innerCtx = capture(pat.last(), val.last(), ctx);
 
 					return innerCtx && capture(
-						pattern.set(field, pattern.get(field).butLast()),
-						value.set(field, value.get(field).butLast()),
+						pattern.set(field, pat.butLast()),
+						value.set(field, val.butLast()),
 						innerCtx
 					);
 				}
@@ -96,10 +98,10 @@ Context.prototype.match = function(pattern, value) {
 				// capture([a, b..., c], [V1, V2, ..., Vn]) ->
 				//           capture(a, V1) + capture([b..., c], [V2, ..., Vn])
 				//
-				let innerCtx = capture(first, value.get(field).first(), ctx);
+				let innerCtx = capture(first, val.first(), ctx);
 				return innerCtx && capture(
 					pattern.set(field, rest),
-					value.set(field, value.get(field).rest()),
+					value.set(field, val.rest()),
 					innerCtx
 				);
 			}

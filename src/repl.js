@@ -14,7 +14,7 @@ let path = require('path');
 
 let basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
 let filenames = fs.readdirSync(basepath).filter(function(filename) {
-	return filename.match(/^[^\.].+\.ell$/) ? true : false;
+	return filename.match(/^[^\.].+\.l$/) ? true : false;
 });
 let contents, ast = null;
 
@@ -25,7 +25,7 @@ for (let i = 0, len = filenames.length; i < len; i++) {
 	contents = fs.readFileSync(path.join(basepath, filenames[i]), 'utf-8');
 
 	try {
-		//ast = L.Parser.parse(contents).transform(ctx, L.Rules);
+		ast = L.Parser.parse(contents).transform(ctx, L.Rules);
 	} catch (e) {
 		var result = e.toString();
 		
@@ -39,11 +39,11 @@ for (let i = 0, len = filenames.length; i < len; i++) {
 	}
 
 	if (ast) {
-		ast.eval(ctx);
+		(new L.AST.Evaluate({target: ast})).eval(ctx);
 	}
 }
 
-console.log(style.operator('The L Programming Language, Meta-L v' + L.version));
+console.log(style.operator('The L Programming Language, Meta.L v' + L.version));
 
 rep = repl.start({
 	ignoreUndefined: true,
@@ -184,6 +184,8 @@ function eval(cmd, context, filename, callback) {
 		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
+		//console.log(e.toString());
+		//console.log(e.stack.replace(/^[^\n]+\n/, ''));
 		L.log.info(function() { return e.toString(); });
 		if (e.found == null) {
 			str = command + '\n';

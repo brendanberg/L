@@ -9,7 +9,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let _Function = Record({template: _, plist: _list, block: _, ctx: _, tags: _map}, 'Function');
+let _Function = Record({template: _, block: _, ctx: _, tags: _map}, 'Function');
 
 _Function.prototype.toString = function() {
     let arrow = ({fat: ' => ', thin: ' -> '})[this.tags['type'] || 'thin'];
@@ -47,7 +47,7 @@ _Function.prototype.transform = function(func) {
         return (node && 'transform' in node) ? node.transform(func) : func(node);
     };
 
-    return func(this.update('plist', transform).update('block', transform));
+    return func(this.update('block', transform));
 };
 
 module.exports = _Function;

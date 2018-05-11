@@ -18,17 +18,12 @@ Message.prototype.repr = function(depth, style) {
 };
 
 Message.prototype.transform = function(context, match) {
-	let exprs = [];
-	let type;
-
-	for (let expr of this.exprs) {
+	/*
+	let exprs = this.exprs.reduce(function(result, expr) {
 		let exp = match.messageItem(context, expr.terms.first(), expr.terms.rest());
-		if (exp) { exprs.push(exp); }
-	}
-
-	//return new 
-	//	if (x && type && type === x._name
-
+		return exp ? result.push(exp) : result;
+	}, List([]));
+	*/
 	return null;
 };
 
