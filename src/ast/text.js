@@ -2,14 +2,14 @@
    Text AST node
  */
 
-let I = require('immutable');
-
+const { List, Map, Record } = require('immutable');
+const punycode = require('punycode');
 const _ = null;
-const _map = I.Map({});
-const _list = I.List([]);
+const _map = Map({});
+const _list = List([]);
 
 
-let Text = I.Record({value: _, tags: _map}, 'Text');
+let Text = Record({value: _, tags: _map}, 'Text');
 
 Text.prototype.toString = function() {
 	// Returns a quoted, escaped string suitable for input into the parser
@@ -20,7 +20,7 @@ Text.prototype.toString = function() {
 	// the string is single quote, we escape any instances of double quotes
 	// and use double quotes as delimiters.
 
-	let repr = this.value.replace(/[\n\t\\]/g, function(match) {
+	let repr = punycode.ucs2.encode(this.value).replace(/[\n\t\\]/g, function(match) {
 		return ({
 			"\n": "\\n",
 			"\t": "\\t",
@@ -28,8 +28,8 @@ Text.prototype.toString = function() {
 		})[match];
 	});
 
-	if (this.value.indexOf("'") !== -1) {
-		if (this.value.indexOf('"') !== -1) {
+	if (repr.indexOf("'") !== -1) {
+		if (repr.indexOf('"') !== -1) {
 			// String contains both ' and ".
 			return "'" + repr.replace(/'/g, "\\'") + "'";
 		} else {

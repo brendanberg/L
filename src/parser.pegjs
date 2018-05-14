@@ -1,5 +1,6 @@
 {
 	const { Map, List } = require('immutable');
+	const punycode = require('punycode');
 	const { AST, Skel } = require('./l')
 }
 
@@ -49,7 +50,7 @@ expressionList
 
 	 Atomic terms are literals, identifiers, symbols, and operators.
 
-	 Container terms are lists, messages, types and blocks.
+	 Container terms are lists, messages, types, and blocks.
 
  */
 
@@ -73,8 +74,14 @@ term
     / paren_container // message
 	/ brace_container // block
 	/ number
-	/ "'" t:single_quote_string* "'" { return new AST.Text({value: t.join('')}); }
-	/ '"' t:double_quote_string* '"' { return new AST.Text({value: t.join('')}); }
+	/ "'" t:single_quote_string* "'" {
+			let chars = punycode.ucs2.decode(t.join(''));
+			return new AST.Text({value: chars});
+		}
+	/ '"' t:double_quote_string* '"' {
+			let chars = punycode.ucs2.decode(t.join(''));
+			return new AST.Text({value: chars});
+		}
 	/ op:operator { return new AST.Operator({label: op}); }
 
 
@@ -108,6 +115,7 @@ operator "operator"
 	/ "+"   // As prefix: arithmetic no-op
 	/ "-"   // As prefix: arithmetic negation
 	/ "!"   // Prefix only: logical not
+	/ "**"
 	/ "*"
 	/ "/"
 	/ "%"

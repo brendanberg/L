@@ -1,4 +1,5 @@
 const { Map, List: IList } = require('immutable');
+const punycode = require('punycode');
 const Type = require('../ast/type');
 const Variant = require('../ast/variant');
 const Text = require('../ast/text');
@@ -20,28 +21,35 @@ _Text.methods = {
 	},
 	"('+':)": dispatch({
 		'Text': function(s) {
-			return this.update('value', function(v) { return v + s.value; });
+			return this.update('value', function(v) { return v.concat(s.value); });
 		}
 	}),
 	"('==':)": dispatch({
 		'Text': function(s) {
-			return make_bool(this.value === s.value);
+			let equal = this.value.reduce(function(value, ch, idx) {
+				return value && (ch === s.value[idx]); 
+			}, true);
+			return make_bool(equal);
 		}
 	}),
 	"('!=':)": dispatch({
 		'Text': function(s) {
-			return make_bool(this.value != s.value);
+			let equal = this.value.reduce(function(value, ch, idx) {
+				return value && (ch === s.value[idx]); 
+			}, true);
+			return make_bool(!equal);
 		}
 	}),
 	"('@':)": dispatch({
 		'Integer': function(n) {
 			let idx = n.value < 0 ? this.value.length + n.value : n.value;
-			let ch = this.value.codePointAt(idx);//[idx];
-			return ch ? new Text({value: ch}) : new Bottom();
+			let ch = this.value[idx];
+			return ch ? new Text({value: [ch]}) : new Bottom();
 		}
 	}),
 	'(split:)': dispatch({
 		'Text': function(s) {
+		//TODO
 			let ls = this.value.split(s.value);
 			return new List({
 				items: IList(ls.map(function(x) {
