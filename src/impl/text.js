@@ -36,7 +36,7 @@ _Text.methods = {
 	"('@':)": dispatch({
 		'Integer': function(n) {
 			let idx = n.value < 0 ? this.value.length + n.value : n.value;
-			let ch = this.value[idx];
+			let ch = this.value.codePointAt(idx);//[idx];
 			return ch ? new Text({value: ch}) : new Bottom();
 		}
 	}),

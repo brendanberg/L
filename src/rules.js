@@ -900,13 +900,15 @@ let match = {
 		//
 		//     functionBody ::= block
 		//                    | functionDefn
+		//                    | matchDefn
 		//
 		let block;
 
-		if (node._name === 'Block') {
+		if (node._name === 'Block' && node.getIn(['tags', 'envelopeShape']) === '{}') {
 			block = [node.transform(context, this), unparsed];
 		} else {
-			block = this.functionDefn(context, node, unparsed);
+			block = (this.functionDefn(context, node, unparsed) ||
+				this.matchDefn(context, node, unparsed));
 		}
 
 		return block;
