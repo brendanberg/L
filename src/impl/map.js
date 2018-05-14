@@ -4,6 +4,7 @@ const Variant = require('../ast/variant');
 const Text = require('../ast/text');
 const Integer = require('../ast/integer');
 const List = require('../ast/list');
+const KeyValuePair = require('../ast/keyvaluepair');
 const Bottom = require('../ast/bottom');
 const FunctionCall = require('../ast/functioncall');
 const dispatch = require('../dispatch');
@@ -12,31 +13,39 @@ function make_bool(exp) {
 	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
-let _List = new Type({label: 'List'});
+let _Map = new Type({label: 'Map'});
 
-_List.methods = {
+_Map.methods = {
 	'(.count)': function() {
 		return new Integer({value: this.items.count()});
 	},
-	"('@':)": dispatch({
-		'Integer': function(idx) {
-			return this.items.get(idx.value) || new Bottom();
-		}
-	}),
+	'(.isEmpty)': function() {
+		return make_bool(this.items.isEmpty());
+	},
+	"('@':)": function(key) {
+		let item = this.items.get(key);
+		return item ? item.val : new Bottom();
+	},
 	"('+':)": dispatch({
-		'List': function(s) {
-			return this.update('items', function(v) { return v.concat(s.items); });
+		// This is a dictionary merge.
+		'Map': function(s) {
+			return this.update('items', function(v) { return v.merge(s.items); });
 		}
 	}),
-	'(join:)': dispatch({
-		'Text': function(s) {
-			return new Text({value: this.items.map(function(node) {
-				return node.value;
-			}).toArray().join(s.value)});
-		}
-	}),
-	'(append:)': function(v) {
-		return this.set('items', this.items.push(v));
+	'(contains:)': function(v) {
+		return make_bool(this.items.includes(v));
+	},
+	'(.items)': function() {},
+	'(.keys)': function() {},
+	'(.values)': function() {},
+	'(merge:usingMerger:)': function() {},
+	'(setKey:value:)': function(k, v) {
+		return this.set('items', this.items.set(k, new KeyValuePair({
+			key: k, val: v
+		})));
+	},
+	'(updateKey:updater:)': function(k, func) {
+
 	},
 	'(map:)': dispatch({
 		'Function': function(f) {
@@ -74,6 +83,22 @@ _List.methods = {
 			}));
 		},
 	}),
+	'(compactMap:)': dispatch({
+		'Function': function(f) {
+			return this.set('items', this.items.map(function(item) {
+				return (new FunctionCall({
+					target: f, args: newList({items: IList([item])})
+				})).eval(f.ctx);
+			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+		},
+		'Match': function (f) {
+			return this.set('items', this.items.map(function(item) {
+				return (new FunctionCall({
+					target: f, args: newList({items: IList([item])})
+				})).eval(f.ctx);
+			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+		},
+	}),
 	'(reduce:)': dispatch({
 		'Function': function(f) {
 			return this.items.reduce(function(init, item) {
@@ -102,4 +127,4 @@ _List.methods = {
 	},
 };
 
-module.exports = _List;
+module.exports = _Map;

@@ -1,12 +1,14 @@
-const { Map } = require('immutable');
+const { Map, Range } = require('immutable');
 const Type = require('../ast/type');
+const List = require('../ast/list');
+const Integer = require('../ast/integer');
 const Rational = require('../ast/rational');
 const Variant = require('../ast/variant');
 const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
+	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
 let _Integer = new Type({label: 'Integer'});
@@ -14,6 +16,13 @@ let _Integer = new Type({label: 'Integer'});
 _Integer.methods = {
 	"('+')": function() { return this },
 	"('-')": function() { return this.update('value', function(v) { return -v; }); },
+	"('..':)": dispatch({
+		'Integer': function(n) {
+			return new List({items: Range(this.value, n.value).map(function(n) {
+				return new Integer({value: n});			
+			})});
+		},
+	}),
 	"('+':)": dispatch({
 		'Integer': function(n) {
 			return this.update('value', function(v) { return v + n.value; });

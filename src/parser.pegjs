@@ -118,7 +118,6 @@ operator "operator"
 	/ "&"
 	/ "|"
 	/ "^"   // As prefix: [reserved for future use]
-	// "."
 	/ ":"
 	/ "~"   // Prefix only: [reserved for future use]
 
@@ -193,15 +192,18 @@ angle_container
 
 // . label
 qualifier "qualifier"
-	= '.' l:label {
+	= '.' l:sigilLabel {
 			return new AST.Qualifier({label: l});
 		}
 
 // $ label
 symbol "symbol"
-	= '$' l:label {
+	= '$' l:sigilLabel {
 			return new AST.Symbol({label: l});
 		}
+
+sigilLabel
+	= label:[a-zA-Z0-9_-]+ { return label.join(''); }
 
 identifier "identifier"
 	= l:label mod:postfixModifier? {
@@ -281,12 +283,12 @@ scientific
 		}
 
 hex
-	= '0x0' {
-			return new AST.Integer({value: 0, tags: Map({'source_base': 16})});
-		}
-	/ '0x' first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
+	= '0x' pad:'0'* first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
 			var val = parseInt(first + rest.join(''), 16);
 			return new AST.Integer({value: val, tags: Map({'source_base': 16})});
+		}
+	/ '0x0' {
+			return new AST.Integer({value: 0, tags: Map({'source_base': 16})});
 		}
 
 imaginary
@@ -317,6 +319,17 @@ escape_sequence
   / 'r'  { return "\r";   }
   / 't'  { return "\t";   }
   / 'v'  { return "\x0B"; }
+  / 'u{' ch:codepoint '}' { return ch; }
+
+codepoint "codepoint"
+	= ch:( X X X X X X X X / X X X X X X X / X X X X X X / X X X X X
+			/ X X X X / X X X / X X / X ) {
+		return String.fromCodePoint(parseInt(ch.join(''), 16));
+	}
+
+
+X "hex"
+	= ch:[0-9a-fA-F]
 
 /*---------------------------------------------------------------------------
   Convenience Shorthand for Whitespaces and Separators

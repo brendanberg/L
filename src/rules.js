@@ -368,7 +368,7 @@ let match = {
 			this.unionType(context, first, rest)
 		);
 		
-		return type && [type[0].set('label', ident[0]), type[1]];
+		return type && [type[0].set('label', ident[0].label), type[1]];
 	},
 
 	recordType: function(context, node, unparsed) {
@@ -482,7 +482,7 @@ let match = {
 	methodDeclaration: function(context, node, unparsed) {
 		//
 		//     methodDeclaration ::=
-		//             identifier identifier selector functionBody
+		//             identifier identifier selector OPERATOR['->'] functionBody
 		//
 		if (node._name !== 'Identifier' || unparsed.count() < 3) { return null; }
 
@@ -496,8 +496,11 @@ let match = {
 
 		if (!(selector && selector[1].count() > 0)) { return null; }
 
-		let [first, rest] = [selector[1].first(), selector[1].rest()];
-		let body = this.functionBody(context, first, rest);
+		let op = this.operator(context, selector[1].first(), selector[1].rest());
+
+		if (!(op && op[0].label === '->')) { return null; }
+
+		let body = this.functionBody(context, op[1].first(), op[1].rest());
 
 		if (!body) { return null; }
 
@@ -852,7 +855,7 @@ let match = {
 	functionDefn: function(context, node, unparsed) {
 		// Matches a function definition
 		//
-		//     functionDefn ::= idList functionBody
+		//     functionDefn ::= idList OPERATOR['->'] guard? functionBody
 		//
 		if (node._name !== 'Message') {
 			return null;
@@ -869,12 +872,25 @@ let match = {
 		let idList = this.template(context, listNode, unparsed);
 		if (!(idList && idList[1].count() > 0)) { return null; }
 
-		let [first, rest] = [idList[1].first(), idList[1].rest()];
+		let op = this.operator(context, idList[1].first(), idList[1].rest());
+		if (!(op && op[0].label === '->')) { return null; }
+
+		let guard = this.guard(context, op[1].first(), op[1].rest());
+		let first, rest;
+
+		if (guard) {
+			[first, rest] = [guard[1].first(), guard[1].rest()];
+		} else {
+			[first, rest] = [op[1].first(), op[1].rest()];
+		}
+
 		let body = this.functionBody(context, first, rest);
 
 		if (!body) { return null; }
 		return [
-			new AST.Function({template: idList[0], block: body[0]}),
+			new AST.Function({
+				template: idList[0], block: body[0], guard: (guard && guard[0])
+			}),
 			body[1]
 		];
 	},
@@ -882,23 +898,34 @@ let match = {
 	functionBody: function(context, node, unparsed) {
 		// Match a function body
 		//
-		//     functionBody ::= OPERATOR('->') block
-		//                    | OPERATOR('->') functionDefn
+		//     functionBody ::= block
+		//                    | functionDefn
+		//                    | matchDefn
 		//
-		if (node._name !== 'Operator' || node.label !== '->') {
-			return null;
-		}
-
-		let [first, rest] = [unparsed.first(), unparsed.rest()];
 		let block;
 
-		if (first._name === 'Block') {
-			block = [first.transform(context, this), rest];
+		if (node._name === 'Block' && node.getIn(['tags', 'envelopeShape']) === '{}') {
+			block = [node.transform(context, this), unparsed];
 		} else {
-			block = this.functionDefn(context, first, rest);
+			block = (this.functionDefn(context, node, unparsed) ||
+				this.matchDefn(context, node, unparsed));
 		}
 
 		return block;
+	},
+
+	guard: function(context, node, unparsed) {
+		// Match a guard clause
+		//
+		//     guard ::= parenthesized OPERATOR['??']
+		//
+		let expr = this.parenthesized(context, node, unparsed);
+		if (!(expr && expr[1].count() > 1)) { return null; }
+
+		let op = this.operator(context, expr[1].first(), expr[1].rest());
+		if (!(op && op[0].label === '??')) { return null; }
+
+		return [expr[0], op[1]];
 	},
 
 	list: function(context, node, unparsed) {
@@ -942,7 +969,7 @@ let match = {
 					&& node.exprs.first().terms.count() === 1) {
 				let op = node.exprs.first().terms.first();
 				if (op._name === 'Operator' && op.label === ':') {
-					return [new AST.Map({items: List([])}), unparsed];
+					return [new AST.Map({items: Map({})}), unparsed];
 				} else {
 					return null;
 				}
@@ -982,7 +1009,8 @@ let match = {
 					return null;
 				}
 			}
-			return [new AST.Map({items: List(kvps)}), unparsed];
+			let items = Map(kvps.map(function(kvp) { return [kvp.key, kvp]; }));
+			return [new AST.Map({items: items}), unparsed];
 		}
 
 		return null;

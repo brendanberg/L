@@ -43,9 +43,19 @@ FunctionCall.prototype.eval = function(ctx) {
 		for (let predicate of target.predicates) {
 			let testCtx = target.ctx.extend(predicate.template.match, args);
 			if (testCtx) {
-				context = testCtx;
-				block = predicate.block;
-				break;
+				if (predicate.guard) {
+					let guard = predicate.guard.eval(testCtx);
+
+					if (guard._name === 'Variant' && guard.label === 'True') {
+						context = testCtx;
+						block = predicate.block;
+						break;
+					}
+				} else {
+					context = testCtx;
+					block = predicate.block;
+					break;
+				}
 			}
 		}
 	} else if (target._name === 'Record') {
