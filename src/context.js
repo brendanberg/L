@@ -13,7 +13,7 @@ const builtins = Map({
 	'Decimal': require('./impl/decimal'),
 	'Text': require('./impl/text'),
 	'List': require('./impl/list'),
-	//'Map': require('./impl/map'),
+	'Map': require('./impl/map'),
 	//'Block': require('./impl/block'),
 	// TODO: Are there built-in methods that all records and unions use?
 });

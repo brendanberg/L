@@ -6,7 +6,7 @@ const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
+	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
 let _Rational = new Type({label: 'Integer'});

@@ -281,12 +281,12 @@ scientific
 		}
 
 hex
-	= '0x0' {
-			return new AST.Integer({value: 0, tags: Map({'source_base': 16})});
-		}
-	/ '0x' first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
+	= '0x' pad:'0'* first:[1-9a-fA-F] rest:[0-9a-fA-F]* {
 			var val = parseInt(first + rest.join(''), 16);
 			return new AST.Integer({value: val, tags: Map({'source_base': 16})});
+		}
+	/ '0x0' {
+			return new AST.Integer({value: 0, tags: Map({'source_base': 16})});
 		}
 
 imaginary

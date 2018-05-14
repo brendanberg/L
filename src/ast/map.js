@@ -8,7 +8,8 @@ const _ = null;
 const _list = List([]);
 const _map = IMap({});
 
-const Map = Record({items: _list, ctx: _, tags: _map}, 'Map');
+// TODO: Remove ctx field
+const Map = Record({items: _map, ctx: _, tags: _map}, 'Map');
 
 Map.prototype.toString = function() {
 	let delims = ['[',']']; //this.getIn(['tags', 'source'], 'list')];
@@ -16,9 +17,12 @@ Map.prototype.toString = function() {
     if (this.items.count() == 0) {
         return delims[0] + ':' + delims[1];
     } else {
+		let items = this.items;
         return (
             delims[0] + 
-            this.items.map(function(x) { return x.toString(); }).join(', ') +
+            items.keySeq().map(function(key) {
+				return items.get(key).key.toString() + ': ' + items.get(key).val.toString();
+			}).join(', ') +
             delims[1]
         );
     }
@@ -30,33 +34,21 @@ Map.prototype.repr = function(depth, style) {
     if (this.items.count() == 0) {
         return style.delimiter(delims[0]) + ':' + style.delimiter(delims[1]);
     } else {
+		let items = this.items;
         return (
             style.delimiter(delims[0]) +
-            this.items.map(function(x) { return x.repr(depth, style); }).join(
-                style.delimiter(', ')) +
-            style.delimiter(delims[1])
+            items.keySeq().map(function(key) {
+				return (
+					items.get(key).key.repr(depth, style) + style.delimiter(': ') +
+					items.get(key).val.repr(depth, style)
+				);
+			}).join(style.delimiter(', ')) + style.delimiter(delims[1])
         );
     }
 };
 
 Map.prototype.eval = function(ctx) {
-	let newContext = {};
-
-	return this.update('items', function(items) {
-		//TODO: is there a more straightforward way to update each item?
-		return items.map(function(kvp) {
-			let newKeyVal = kvp.eval(ctx);
-			newContext[newKeyVal.key] = newKeyVal.val;
-			return newKeyVal;
-		});
-	}).update('ctx', function(ctx) {
-		if (ctx) {
-		    ctx.local.merge(newContext);
-		} else {
-			ctx = new Context({local: IMap(newContext)});
-		}
-		return ctx;
-	});
+	return this;
 };
 
 Map.prototype.transform = function(func) {
