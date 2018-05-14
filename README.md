@@ -61,10 +61,6 @@ npm run metal
 
 The `npm run metal` command starts the interactive shell.
 
-You can learn more about the internal workings of the language and interactive shell in the [Contribution Guidelines][contrib].
-
-[contrib]: docs/contributing.md
-
 ## Using the Interactive Shell
 
 __L__ comes with an interactive shell.
@@ -86,10 +82,10 @@ and anything the programmer would type is in bold.
 Here's a simple example of an __L__ program:
 
 <pre>
->> <b>1 + 1</b>
-2
+>> <b>['Hello', 'world'](join: ', ') + '!'</b>
+'Hello, world!'
 </pre>
 
-The [Intruduction to the L Programming Language][intro] is a good place to learn about what the shell can do.
+Now that you've made it this far, check out the [Intruduction to the L Programming Language][intro] to learn more!
 
 [intro]: docs/introduction.md
