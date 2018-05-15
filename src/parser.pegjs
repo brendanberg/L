@@ -272,7 +272,7 @@ integer
 		}
 
 decimal
-	= int:integer '.' digits:[0-9]* {
+	= int:integer '.' !'.' digits:[0-9]* {
 			var fraction = parseInt(digits.join(''), 10) || 0;
 			var factor = Math.pow(10, digits.length);
 
