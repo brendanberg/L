@@ -27,6 +27,7 @@ _Text.methods = {
 	"('==':)": dispatch({
 		'Text': function(s) {
 			// TODO: Normalize before comparison
+			// https://github.com/walling/unorm
 			let equal = this.value.reduce(function(value, ch, idx) {
 				return value && (ch === s.value[idx]); 
 			}, true);
@@ -36,6 +37,7 @@ _Text.methods = {
 	"('!=':)": dispatch({
 		'Text': function(s) {
 			// TODO: Normalize before comparison
+			// https://github.com/walling/unorm
 			let equal = this.value.reduce(function(value, ch, idx) {
 				return value && (ch === s.value[idx]); 
 			}, true);

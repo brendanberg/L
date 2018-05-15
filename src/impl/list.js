@@ -60,6 +60,22 @@ _List.methods = {
 			}));
 		},
 	}),
+	'(compactMap:)': dispatch({
+		'Function': function(f) {
+			return this.set('items', this.items.map(function(item) {
+				return (new FunctionCall({
+					target: f, args: new List({items: IList([item])})
+				})).eval(f.ctx);
+			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+		},
+		'Match': function (f) {
+			return this.set('items', this.items.map(function(item) {
+				return (new FunctionCall({
+					target: f, args: new List({items: IList([item])})
+				})).eval(f.ctx);
+			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+		},
+	}),
 	'(filter:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.filter(function(item) {
