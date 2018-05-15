@@ -3,6 +3,7 @@
  */
 
 const { Map, List, Record } = require('immutable');
+const punycode = require('punycode');
 const { TypeError } = require('../error');
 const _Function = require('./function');
 const Template = require('./template');
@@ -46,14 +47,14 @@ Method.prototype.eval = function(ctx) {
 			if (x.key._name === 'Identifier') {
 				return result + x.key.label + ':';
 			} else if (x.key._name === 'Text') {
-				return result + "'" + x.key.value + "':";
+				return result + "'" + punycode.ucs2.encode(x.key.value) + "':";
 			} else if (x.key._name === 'Operator') {
 				return result + "'" + x.key.label + "':";
 			}
 		} else if (x._name === 'Qualifier') {
 			return result + '.' + x.label;
 		} else if (x._name === 'Text') {
-			return result + "'" + x.value + "'";
+			return result + "'" + punycode.ucs2.encode(x.value) + "'";
 		}
 	}, '') + ')';
 

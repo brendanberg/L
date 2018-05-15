@@ -30,9 +30,13 @@ _List.methods = {
 	}),
 	'(join:)': dispatch({
 		'Text': function(s) {
-			return new Text({value: this.items.map(function(node) {
-				return node.value;
-			}).toArray().join(s.value)});
+			let joinedChars = this.items.reduce(function(result, node) {
+				return result.concat([node.value]);
+			}, []).reduce(function(result, chars) {
+				return result.concat(s.value).concat(chars);
+			});
+
+			return new Text({value: joinedChars});
 		}
 	}),
 	'(append:)': function(v) {
