@@ -55,8 +55,8 @@ expressionList
  */
 
 /*---------------------------------------------------------------------------
-	Expressions
-	--------------------------------------------------------------------------*/
+  Expressions
+ --------------------------------------------------------------------------*/
 
 expression
 	= first:term rest:(_ t:term { return t; })* _ {
@@ -131,10 +131,9 @@ operator "operator"
 
 
 /*---------------------------------------------------------------------------
-	Parenthesized List
+  Parenthesized List   ( exprs... )
  ---------------------------------------------------------------------------*/
 
-// ( exprs... )
 paren_container
     = '(' __ exp:expression __ ')' {
 			return new Skel.Message({
@@ -151,10 +150,9 @@ paren_container
 
 
 /*---------------------------------------------------------------------------
-	Braced List
+  Braced List   { exprs... }
  ----------------------------------------------------------------------------*/
 
-// { exprs... }
 brace_container
 	= '{{' __ expList:expressionList ? __ '}}' {
 			return new Skel.Block({
@@ -169,11 +167,11 @@ brace_container
 			});
 		}
 
+
 /*---------------------------------------------------------------------------
-	Square Bracketed List
+  Square Bracketed List   [ exprs... ]
  ----------------------------------------------------------------------------*/
 
-// [ exprs... ]
 brack_container
 	= '[' __ expList:expressionList ? __ ']' {
 			return new Skel.List({
@@ -182,8 +180,9 @@ brack_container
 			});
 		}
 
+
 /*---------------------------------------------------------------------------
-  Angle Bracketed List
+  Angle Bracketed List   << exprs... >>
  ---------------------------------------------------------------------------*/
 
 angle_container
@@ -193,6 +192,7 @@ angle_container
 				tags: Map({envelopeShape: '<<>>'})
 			});
 		}
+
 
 /*---------------------------------------------------------------------------
 	Tags, Symbols, and Identifiers
@@ -335,9 +335,9 @@ codepoint "codepoint"
 		return String.fromCodePoint(parseInt(ch.join(''), 16));
 	}
 
-
 X "hex"
 	= ch:[0-9a-fA-F]
+
 
 /*---------------------------------------------------------------------------
   Convenience Shorthand for Whitespaces and Separators

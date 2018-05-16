@@ -18,6 +18,12 @@ _List.methods = {
 	'(.count)': function() {
 		return new Integer({value: this.items.count()});
 	},
+	'(.isEmpty)': function() {
+		return make_bool(this.items.isEmpty());
+	},
+	'(.reverse)': function() {
+		return this.update('items', function(items) { return items.reverse(); });
+	},
 	"('@':)": dispatch({
 		'Integer': function(idx) {
 			return this.items.get(idx.value) || new Bottom();

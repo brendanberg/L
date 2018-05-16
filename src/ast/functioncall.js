@@ -35,6 +35,7 @@ FunctionCall.prototype.eval = function(ctx) {
 	if (target._name === 'Function') {
 		context = target.ctx.extend(target.template.match, args);
 		// TODO: Perhaps the context needs to get attached to the block?
+		// TODO: The block behavior seems more correct. Enable closures!
 		block = target.block; // target.block.set('ctx', context);
 	} else if (target._name === 'Match') {
 		// TODO: Implement a more efficient pattern matching algorithm
@@ -58,6 +59,9 @@ FunctionCall.prototype.eval = function(ctx) {
 				}
 			}
 		}
+	} else if (target._name === 'Block') {
+		context = target.ctx;
+		block = target;
 	} else if (target._name === 'Record') {
 		context = target.ctx;
 		if (target.members.count() != args.count()) {

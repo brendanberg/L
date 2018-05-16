@@ -111,10 +111,10 @@ let match = {
 	expressionNoInfix: function(context, node, unparsed) {
 		// Match any expression that is not an `infixExpression`
 		//
-		//     expressionNoInfix ::= call (invocation)
+		//     expressionNoInfix ::= prefixExpression
+		//                         | call (invocation)
 		//                         | lookup
 		//                         | accessor
-		//                         | prefixExpression
 		//                         | value
 		//
 		let pfxMatch = this.prefixExpression(context, node, unparsed);
@@ -748,12 +748,12 @@ let match = {
 	prefixExpression: function(context, node, unparsed) {
 		// Match a prefix expression
 		//
-		//     prefixExpression ::= operator value
+		//     prefixExpression ::= operator expressionNoInfix
 		//
 		const prefixOperators = List(['+', '-', '!', '~', '^', '\\']);
 		if (node._name !== 'Operator' || !prefixOperators.contains(node.label)) { return null; }
 
-		let exp = this.value(context, unparsed.first(), unparsed.rest());
+		let exp = this.expressionNoInfix(context, unparsed.first(), unparsed.rest());
 
 		if (exp && node.label === '\\') {
 			return [new AST.Evaluate({target: exp[0]}), exp[1]];
@@ -901,6 +901,7 @@ let match = {
 		//     functionBody ::= block
 		//                    | functionDefn
 		//                    | matchDefn
+		//                    | matchRemap (TODO) 
 		//
 		let block;
 

@@ -14,7 +14,8 @@ const builtins = Map({
 	'Text': require('./impl/text'),
 	'List': require('./impl/list'),
 	'Map': require('./impl/map'),
-	//'Block': require('./impl/block'),
+	'Block': require('./impl/block'),
+	'Symbol': require('./impl/symbol'),
 	// TODO: Are there built-in methods that all records and unions use?
 });
 
@@ -111,7 +112,7 @@ Context.prototype.match = function(pattern, value) {
 		} else if (pattern._name === 'Identifier') {
 			let type = pattern.getIn(['tags', 'type'], null);
 			// TODO: Type check here.
-			return ctx.set(pattern.label, value);
+			return (pattern.label == '_') ? ctx : ctx.set(pattern.label, value);
 		} else if (pattern._name === 'Symbol') {
 			// TODO: Replace each of these test cases with an equality
 			// method defined on each AST node
