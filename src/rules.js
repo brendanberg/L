@@ -61,8 +61,8 @@ let match = {
 		// expressions; the single colon operator is only permitted in map
 		// literals and messages with named parameters. The dot operator is
 		// handled in the lookup rule of `expressionNoInfix`, and the
-		// exclamation and tilde oprators are only permitted as prefix ops.
-		let disallowed = List(['::', ':', '!', '~', '.']);
+		// tilde operator is only permitted as a prefix.
+		let disallowed = List(['::', ':', '~', '.']);
 
 		if (op && op._name === 'Operator' && !disallowed.contains(op.label)
 														&& terms.count() > 0) {

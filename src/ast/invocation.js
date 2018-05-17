@@ -95,6 +95,8 @@ Invocation.prototype.eval = function(ctx) {
 			return x.val.eval(ctx);
 		}).toArray();
 
+		// Nasty hack to get method invocations to work within method built-ins
+		if (!target.has('ctx')) { target.ctx = ctx };
 		return method.apply(target, params) || new Bottom();
 
 	} else if (method && method._name === 'Function') {

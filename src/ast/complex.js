@@ -11,14 +11,14 @@ let Complex = Record({real: _, imaginary: _, tags: _map}, 'Complex');
 
 Complex.prototype.toString = function() {
 	let real = this.get('real', null);
-	return (real ? real.toString() + "+" : '') + this.imaginary.toString() + 'j';
+	return (real ? real.toString() + " + " : '') + this.imaginary.toString() + 'j';
 };
 
 Complex.prototype.repr = function(depth, style) {
 	let real = this.get('real', null);
 	let repr = '';
 	if (real) {
-		repr = style.number(real.toString()) + style.operator('+');
+		repr = style.number(real.toString()) + style.number(' + ');
 	}
 	return repr + style.number(this.imaginary.toString() + 'j');
 };
@@ -32,4 +32,3 @@ Complex.prototype.transform = function(func) {
 };
 
 module.exports = Complex;
-

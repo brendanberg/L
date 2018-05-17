@@ -21,14 +21,6 @@ Block.methods = {
 	'(append:)': function(exp) {
 		return this.update('exprs', function(e) { return e.push(exp); });
 	},
-
-
-	// Concurrency methods
-
-	'(.run)': function() {
-		console.log('Do the thread thing.');
-		return new Type({label: 'Fillament'});
-	},
 };
 
 module.exports = Block;

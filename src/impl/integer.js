@@ -40,6 +40,14 @@ _Integer.methods = {
 				return num + self.value * factor;
 			});
 		},
+		'Complex': function(c) {
+			return c.update('real', (r) => {
+				// Invoke r('+': this)
+				r.ctx = this.ctx;
+				let method = this.ctx.lookup(r._name).methodForSelector("('+':)");
+				return method.apply(r, [this]);
+			});
+		},
 	}),
 	"('-':)": dispatch({
 		'Integer': function(n) {
@@ -58,6 +66,16 @@ _Integer.methods = {
 				return num - self.value * factor;
 			});
 		},
+		'Complex': function(c) {
+			return c.update('real', (r) => {
+				// Invoke this('-': r)
+				let method = this.ctx.lookup(this._name).methodForSelector("('-':)");
+				return method.apply(this, [r]);
+			}).update('imaginary', (j) => {
+				let method = this.ctx.lookup(j._name).methodForSelector("('-')");
+				return method.apply(j, []);
+			});
+		},
 	}),
 	"('*':)": dispatch({
 		'Integer': function(n) {
@@ -73,6 +91,18 @@ _Integer.methods = {
 			let self = this;
 			return d.update('numerator', function(num) {
 				return num * self.value;
+			});
+		},
+		'Complex': function(c) {
+			// (a+bi)(c+di) = (ac−bd) + (ad+bc)i
+			return c.update('real', (r) => {
+				// Invoke this('*': r)
+				let method = this.ctx.lookup(this._name).methodForSelector("('*':)");
+				return method.apply(this, [r]);
+			}).update('imaginary', (j) => {
+				// Invoke this('*': j)
+				let method = this.ctx.lookup(this._name).methodForSelector("('*':)");
+				return method.apply(this, [j]);
 			});
 		},
 	}),

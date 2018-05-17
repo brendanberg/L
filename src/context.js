@@ -11,12 +11,15 @@ const builtins = Map({
 	'Integer': require('./impl/integer'),
 	'Rational': require('./impl/rational'),
 	'Decimal': require('./impl/decimal'),
+	'Complex': require('./impl/complex'),
 	'Text': require('./impl/text'),
 	'List': require('./impl/list'),
 	'Map': require('./impl/map'),
 	'Block': require('./impl/block'),
 	'Symbol': require('./impl/symbol'),
 	// TODO: Are there built-in methods that all records and unions use?
+	// Experimental Concurrency Type
+	// 'Filament': require('./impl/filament'),
 });
 
 

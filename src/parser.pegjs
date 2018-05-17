@@ -114,7 +114,7 @@ operator "operator"
 	/ "@"
 	/ "+"   // As prefix: arithmetic no-op
 	/ "-"   // As prefix: arithmetic negation
-	/ "!"   // Prefix only: logical not
+	/ "!"   // As prefix: logical not; as infix: message send
 	/ "**"
 	/ "*"
 	/ "/"
@@ -301,7 +301,8 @@ hex
 
 imaginary
 	= num:(scientific / hex / decimal / integer) [ijJ] {
-			return new AST.Complex({imaginary: num});
+			let zero = AST.Integer({value: 0, tags: Map({'source_base': 10})});
+			return new AST.Complex({real: zero, imaginary: num});
 		}
 
 
@@ -321,12 +322,13 @@ escape_sequence
   = "'"
   / '"'
   / '\\'
-  / 'b'  { return "\b";   }
-  / 'f'  { return "\f";   }
-  / 'n'  { return "\n";   }
-  / 'r'  { return "\r";   }
-  / 't'  { return "\t";   }
-  / 'v'  { return "\x0B"; }
+  / 'a'  { return "\x07"; }  // bell
+  / 'b'  { return "\b"; }    // backspace
+  / 'f'  { return "\f"; }    // form feed
+  / 'n'  { return "\n"; }    // line feed
+  / 'r'  { return "\r"; }    // carriage return
+  / 't'  { return "\t"; }    // horizontal tab
+  / 'v'  { return "\x0B"; }  // vertical tab
   / 'u{' ch:codepoint '}' { return ch; }
 
 codepoint "codepoint"
