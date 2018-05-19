@@ -15,6 +15,16 @@ let _Decimal = new Type({label: 'Integer'});
 _Decimal.methods = {
 	"('+')": function() { return this },
 	"('-')": function() { return this.update('numerator', function(v) { return -v; }); },
+	'(.sqrt)': function() {
+		// WARNING! There's a loss of precision here!
+		let inexact = Math.sqrt(this.numerator * Math.pow(10, -this.exponent));
+		let precision = 12;
+
+		return new Decimal({
+			numerator: Math.floor(inexact * Math.pow(10, precision)),
+			exponent: precision
+		});
+	},
 	"('+':)": dispatch({
 		'Integer': function(n) {
 			let factor = Math.pow(10, this.exponent);
@@ -68,6 +78,24 @@ _Decimal.methods = {
 				numerator: this.value * q.denominator + q.numerator,
 				exponent: q.denominator
 			});
+		},
+	}),
+	"('^':)": dispatch({
+		'Integer': function(n) {
+			if (n.value < 0) {
+				// WARNING! There's a loss of precision here!
+				let inexact = 1 / Math.pow(this.numerator, -n.value);
+				let precision = 12;
+
+				return new Decimal({
+					numerator: Math.floor(inexact * Math.pow(10, precision - n.value)),
+					exponent: precision
+				});
+			} else {
+				return this.update('numerator', (v) => {
+					return Math.pow(v, n.value);
+				}).update('exponent', (e) => { return e * n.value; });
+			}
 		},
 	}),
 	"('==':)": dispatch({

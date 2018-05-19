@@ -3,6 +3,7 @@ const Type = require('../ast/type');
 const List = require('../ast/list');
 const Integer = require('../ast/integer');
 const Rational = require('../ast/rational');
+const Decimal = require('../ast/decimal');
 const Variant = require('../ast/variant');
 const dispatch = require('../dispatch');
 
@@ -16,6 +17,16 @@ let _Integer = new Type({label: 'Integer'});
 _Integer.methods = {
 	"('+')": function() { return this },
 	"('-')": function() { return this.update('value', function(v) { return -v; }); },
+	'(.sqrt)': function() {
+		// WARNING! There's a loss of precision here!
+		let inexact = Math.sqrt(this.value);
+		let precision = 12;
+
+		return new Decimal({
+			numerator: Math.floor(inexact * Math.pow(10, precision)),
+			exponent: precision
+		});
+	},
 	"('..':)": dispatch({
 		'Integer': function(n) {
 			return new List({items: IList(Range(this.value, n.value).map(function(n) {
@@ -129,6 +140,18 @@ _Integer.methods = {
 		'Integer': function(n) {
 			return this.update('value', function(v) { return Math.floor(v / n.value); });
 		}
+	}),
+	"('^':)": dispatch({
+		'Integer': function(n) {
+			if (n.value < 0) {
+				return new Rational({
+					numerator: 1,
+					denominator: Math.pow(this.value, -n.value)
+				});
+			} else {
+				return this.update('value', (v) => { return Math.pow(v, n.value); });
+			}
+		},
 	}),
 	"('%':)": dispatch({
 		'Integer': function(n) {
