@@ -196,7 +196,9 @@ let match = {
 
 			if (qualifier && qualifier[1].count() === 0) {
 				return [
-					new AST.List({items: List(qualifier), tags: Map({messageType: 'named'})}),
+					new AST.List({
+						items: List([qualifier[0]]),
+						tags: Map({messageType: 'named'})}),
 					rest
 				];
 			}
