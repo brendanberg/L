@@ -878,8 +878,6 @@ let match = {
 		let first, rest;
 
 		if (guard) {
-		console.log(guard[0]);
-		console.log(guard[0]._name);
 			[first, rest] = [guard[1].first(), guard[1].rest()];
 		} else {
 			[first, rest] = [idList[1].first(), idList[1].rest()];
