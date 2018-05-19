@@ -12,23 +12,24 @@ const _list = List([]);
 let _Function = Record({template: _, guard: _, block: _, ctx: _, tags: _map}, 'Function');
 
 _Function.prototype.toString = function() {
-	let guard = this.guard ? this.guard.toString() + ' ?? ' : '';
+	let guard = this.guard ? ' & ' + this.guard.toString() : '';
     return (
         '(' + this.template.match.items.map(function(node) {
 			return node.toString();
-		}).join(', ') + ') -> ' + guard + this.block.toString()
+		}).join(', ') + ')' + guard + ' -> ' + this.block.toString()
     );
 };
 
 _Function.prototype.repr = function(depth, style) {
-	let guard = this.guard ? this.guard.repr(depth, style) + style.operator(' ?? ') : '';
+	let guard = this.guard ? style.delimiter(' & ') + this.guard.repr(depth, style) : '';
 
 	return (
 		style.delimiter('(') +
 		this.template.match.items.map(function(node) {
-			return node.toString();
+			return node.repr(depth, style);
 		}).join(style.delimiter(', ')) + 
-		style.delimiter(') -> ') + guard + this.block.repr(depth, style)
+		style.delimiter(')') + guard + style.delimiter(' -> ') + 
+		this.block.repr(depth, style)
     );
 }
 

@@ -13,6 +13,7 @@ function make_bool(exp) {
 	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
+
 let _Text = new Type({label: 'Text'});
 
 _Text.methods = {
@@ -28,7 +29,7 @@ _Text.methods = {
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			let equal = this.value.reduce(function(value, ch, idx) {
+			let equal = (this.value.length == s.value.length) && this.value.reduce((value, ch, idx) => {
 				return value && (ch === s.value[idx]); 
 			}, true);
 			return make_bool(equal);
@@ -38,10 +39,30 @@ _Text.methods = {
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			let equal = this.value.reduce(function(value, ch, idx) {
+			let equal = (this.value.length == s.value.length) && this.value.reduce(function(value, ch, idx) {
 				return value && (ch === s.value[idx]); 
 			}, true);
 			return make_bool(!equal);
+		}
+	}),
+	"('<':)": dispatch({
+		'Text': function(txt) {
+			let comp = IList(this.value).zip(txt.value).reduce((comparison, chars) => {
+				if (comparison !== 0) { return comparison; }
+				return Math.sign(chars[0] - chars[1]);
+			}, 0);
+
+			return make_bool((comp === 0) ? (this.value.length < txt.value.length) : (comp < 0));
+		},
+	}),
+	"('>':)": dispatch({
+		'Text': function(txt) {
+			let comp = IList(this.value).zip(txt.value).reduce((comparison, chars) => {
+				if (comparison !== 0) { return comparison; }
+				return Math.sign(chars[0] - chars[1]);
+			}, 0);
+
+			return make_bool((comp === 0) ? (this.value.length > txt.value.length) : (comp > 0));
 		}
 	}),
 	"('@':)": dispatch({
@@ -112,6 +133,11 @@ _Text.methods = {
 			};
 		}
 	}),
+	/*
+	'(rangeOfText:)'
+	'(rangeOfCharacterFromSet:)'
+	'()'
+	*/
 };
 
 module.exports = _Text;

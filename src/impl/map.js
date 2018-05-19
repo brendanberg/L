@@ -47,6 +47,9 @@ _Map.methods = {
 	'(updateKey:updater:)': function(k, func) {
 
 	},
+	"('=>':)": dispatch({
+
+	}),
 	'(map:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.map(function(item) {

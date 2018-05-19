@@ -13,7 +13,9 @@ let Identifier = Record({label: _, modifier: _, tags: _map}, 'Identifier');
 
 Identifier.prototype.toString = function() {
 	let type = this.getIn(['tags', 'type'], '');
-	return (type && type + ' ') + this.label + (this.modifier || '');
+	let collect = this.getIn(['tags', 'collect'], false) ? '...' : '';
+	let modifier = this.get('modifier') || '';
+	return (type && type + ' ') + this.label + modifier + collect;
 };
 
 Identifier.prototype.repr = function(depth, style) {

@@ -36,6 +36,14 @@ FunctionCall.prototype.eval = function(ctx) {
 		context = target.ctx.extend(target.template.match, args);
 		// TODO: Perhaps the context needs to get attached to the block?
 		// TODO: The block behavior seems more correct. Enable closures!
+		if (target.guard) {
+			let guard = target.guard.eval(context);
+
+			if (!(guard._name == 'Variant' && guard.label == 'True')) {
+				return new Bottom({});
+			}
+		}
+
 		block = target.block; // target.block.set('ctx', context);
 	} else if (target._name === 'Match') {
 		// TODO: Implement a more efficient pattern matching algorithm

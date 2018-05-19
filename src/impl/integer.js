@@ -1,4 +1,4 @@
-const { Map, Range } = require('immutable');
+const { Map, Range, List: IList } = require('immutable');
 const Type = require('../ast/type');
 const List = require('../ast/list');
 const Integer = require('../ast/integer');
@@ -18,9 +18,9 @@ _Integer.methods = {
 	"('-')": function() { return this.update('value', function(v) { return -v; }); },
 	"('..':)": dispatch({
 		'Integer': function(n) {
-			return new List({items: Range(this.value, n.value).map(function(n) {
+			return new List({items: IList(Range(this.value, n.value).map(function(n) {
 				return new Integer({value: n});			
-			})});
+			}))});
 		},
 	}),
 	"('+':)": dispatch({

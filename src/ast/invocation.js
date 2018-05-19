@@ -79,7 +79,7 @@ Invocation.prototype.eval = function(ctx) {
 	if (target._name === 'Value') {
 		// TODO: When do you invoke a value?
 		// A Value's label is an identifier, so you need to use target.label.label
-		method = ctx.lookup(target.label.label).methodForSelector(selector);
+		method = ctx.lookup(target.label).methodForSelector(selector);
 	} else if (target._name === 'Variant') {
 		method = ctx.lookup(target.getIn(['tags', 'type'])).methodForSelector(selector);
 	} else {
