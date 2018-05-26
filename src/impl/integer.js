@@ -1,6 +1,6 @@
-const { Map, Range, List: IList } = require('immutable');
+const { Map, Range, List } = require('immutable');
 const Type = require('../ast/type');
-const List = require('../ast/list');
+const List_ = require('../ast/list');
 const Integer = require('../ast/integer');
 const Rational = require('../ast/rational');
 const Decimal = require('../ast/decimal');
@@ -12,9 +12,9 @@ function make_bool(exp) {
 	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
-let _Integer = new Type({label: 'Integer'});
+let Integer_ = new Type({label: 'Integer'});
 
-_Integer.methods = {
+Integer_.methods = {
 	"('+')": function() { return this },
 	"('-')": function() { return this.update('value', function(v) { return -v; }); },
 	'(sqrt.)': function() {
@@ -29,7 +29,7 @@ _Integer.methods = {
 	},
 	"('..':)": dispatch({
 		'Integer': function(n) {
-			return new List({items: IList(Range(this.value, n.value).map(function(n) {
+			return new List_({items: List(Range(this.value, n.value).map(function(n) {
 				return new Integer({value: n});			
 			}))});
 		},
@@ -220,4 +220,4 @@ _Integer.methods = {
 	}),
 };
 
-module.exports = _Integer;			
+module.exports = Integer_;			

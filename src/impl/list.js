@@ -76,7 +76,9 @@ ListType.methods = {
 	'(zip:)': dispatch({
 		'List': function(l) {
 			return this.update('items', (items) => {
-				return items.zip(l.items).map((it) => { return new List_({items: it}) });
+				return items.zip(l.items).map((it) => {
+					return new List_({items: List(it)})
+				});
 			});
 		},
 	}),
