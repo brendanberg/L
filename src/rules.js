@@ -7,13 +7,13 @@ let match = {
 	expression: function(context, node, unparsed) {
 		// Match any expression
 		// 
-		//     expression ::= assignmentExpression
+		//     expression ::= bindExpression
 		//                  | typeDeclaration
 		//                  | methodDeclaration
 		//                  | expressionNoAssign
 		//
 		let exp = (
-			this.assignmentExpression(context, node, unparsed) ||
+			this.bindExpression(context, node, unparsed) ||
 			this.typeDeclaration(context, node, unparsed) ||
 			this.methodDeclaration(context, node, unparsed) ||
 			this.expressionNoAssign(context, node, unparsed)
@@ -21,7 +21,7 @@ let match = {
 
 		if (exp && exp[1].count() > 0) {
 			let ret = [new AST.Error({
-				message: 'did not consume all tokens',
+				message: 'did not consume all tokens in expression',
 				consumed: exp[0],
 				encountered: exp[1]
 			}), List([])];
@@ -62,7 +62,7 @@ let match = {
 		// literals and messages with named parameters. The dot operator is
 		// handled in the lookup rule of `expressionNoInfix`, and the
 		// tilde operator is only permitted as a prefix.
-		let disallowed = List(['::', ':', '~', '.']);
+		let disallowed = List(['::', ':', '~', '.', '?']);
 
 		if (op && op._name === 'Operator' && !disallowed.contains(op.label)
 														&& terms.count() > 0) {
@@ -71,7 +71,8 @@ let match = {
 			let infixExp;
 
 			if (rightMatch) {
-				if (rightMatch[0]._name === 'InfixExpression') {
+				if (rightMatch[0]._name === 'InfixExpression' &&
+						!rightMatch[0].getIn(['tags', 'parenthesized'], false)) {
 					// The grammar definition requires the lefthand side of an
 					// infix expression to be an `expressionNoInfix` to avoid
 					// left recursion. In order to have infix expressions be
@@ -117,13 +118,39 @@ let match = {
 		//                         | accessor
 		//                         | value
 		//
+		let selectorFromMessage = function(message) {
+			return '(' + message.map(function(arg) {
+				if (arg._name === 'KeyValuePair') {
+					if (arg.key._name === 'Identifier') {
+						return arg.key.label + ':';
+					} else if (arg.key._name === 'Text') {
+						return arg.key.value + ':';
+					}
+				} else if (arg._name === 'Symbol') {
+					return arg.label + '.';
+				} else if (arg._name === 'Text') {
+					return arg.value;
+				}
+			}).join('') + ')';
+		};
+
+		let signatureFromMessage = function(message) {
+			return '(' + message.map(function(arg) { return ':'; }).join('') + ')';
+		};
+
+		let argsFromMessage = function(message) {
+			return message.map(function(arg) {
+				return (arg._name === 'KeyValuePair') ? arg.val : arg;
+			});
+		};
+
 		let pfxMatch = this.prefixExpression(context, node, unparsed);
 		if (pfxMatch) { return pfxMatch; }
 
 		var expr = this.value(context, node, unparsed);
 		if (!expr) { return null; }
 
-		var target = expr;
+		var target;
 
 		while (expr) {
 			// We need to explicitly test for compound expressions. They are
@@ -132,75 +159,65 @@ let match = {
 			// Chaining operations in any order (`func(value)[index].property`)
 			// is permitted. Compound expressions are left associative
 			let [next, rest] = [expr[1].first(), expr[1].rest()];
+			target = expr;
 			expr = null;
 
 			if (next) {
-				if (next._name === 'Qualifier') {
+				// If we find a clarification operation, we assign it to target.
+				// If there was no match, target remains the previous value, and
+				// we break out of the while loop and return the previous value.
+				if (next._name === 'Symbol') {
 					expr = [
-						new AST.Lookup({target: target[0], term: next}),
+						new AST.SymbolLookup({target: target[0], term: next}),
 						rest
 					];
 				} else if (next._name === 'Message') {
 					let message = (
+						this.symbolMessage(context, next, rest) ||
 						this.namedParameterList(context, next, rest) ||
-						this.positionalParameterList(context, next, rest) ||
-						this.qualifierMessage(context, next, rest)
+						this.positionalParameterList(context, next, rest)
 					);
 
-					if (message && message[0].getIn(['tags', 'messageType']) === 'named') {
+					if (message) {
 						expr = [
-							new AST.Invocation({target: target[0], plist: message[0].items}),
+							new AST.Invocation({
+								target: target[0],
+								selector: selectorFromMessage(message[0]),
+								args: message[0]
+							}),
 							message[1]
 						];
-					} else if (message) {
-						expr = [
-							new AST.FunctionCall({target: target[0], args: message[0]}),
-							message[1]
-						];
-					} else {
-						expr = null;
 					}
 				} else if (next._name === 'List') {
 					let lookup = this.list(context, next, rest);
 
 					expr = lookup && [
-						new AST.Accessor({target: target[0], terms: lookup[0].items}),
+						new AST.SequenceAccess({target: target[0], terms: lookup[0].items}),
 						lookup[1]
 					];
 				}
-			}
-
-			if (expr) {
-				// If we found a clarification operation, we assign it to target.
-				// If there was no match, target remains the previous value, and
-				// we break out of the while loop and return the previous value.
-				target = expr;
 			}
 		}
 
 		return target;
 	},
 
-	qualifierMessage: function(context, node, unparsed) {
-		// Matches a message containing a qualifier which is a special form
+	symbolMessage: function(context, node, unparsed) {
+		// Matches a message containing a symbol which is a special form
 		// to allow zero-argument method calls
 		//
-		//     qualifierMessage ::= MESSAGE[ qualifier ]
+		//     symbolMessage ::= MESSAGE[ symbol ]
 		//
 		if (node._name === 'Message') {
 			let [first, rest] = [node.exprs.first(), node.exprs.rest()];
 
 			if (!first || rest.count() !== 0) { return null; }
 
-			let qualifier = this.qualifier(context, first.terms.first(), first.terms.rest());
+			let symbol = this.symbol(context, first.terms.first(), first.terms.rest());
 
-			if (qualifier && qualifier[1].count() === 0) {
-				return [
-					new AST.List({
-						items: List([qualifier[0]]),
-						tags: Map({messageType: 'named'})}),
-					rest
-				];
+			if (symbol && symbol[0].getIn(['tags', 'nullary'], false)
+					&& symbol[1].count() === 0) {
+				return [List([symbol[0]]), rest];
 			}
 		}
 
@@ -213,12 +230,11 @@ let match = {
 		//     namedParameterList ::= MESSAGE[ namedParameterPart+ ]
 		//
 		if (node._name === 'Message') {
-			let self = this;
-			let exprs = node.exprs.reduce(function(result, expr) {
+			let exprs = node.exprs.reduce((result, expr) => {
 				if (!result) { return null; }
 
 				let [first, rest] = [expr.terms.first(), expr.terms.rest()];
-				let exp = self.namedParameterPart(context, first, rest);
+				let exp = this.namedParameterPart(context, first, rest);
 
 				if (!(exp && exp[1].count() === 0)) {
 					return null;
@@ -228,10 +244,7 @@ let match = {
 			}, List([]));
 
 			if (exprs && exprs.count() > 0) {
-				return [
-					new AST.List({items: exprs, tags: Map({messageType: 'named'})}),
-					unparsed
-				];
+				return [exprs, unparsed];
 			}
 		}
 
@@ -259,10 +272,7 @@ let match = {
 			}, List([]));
 
 			if (exprs) {
-				return [
-					new AST.List({items: exprs, tags: Map({messageType: 'positional'})}),
-					unparsed
-				];
+				return [exprs, unparsed];
 			}
 		}
 
@@ -294,10 +304,10 @@ let match = {
 		return null;
 	},
 
-	assignmentExpression: function(context, node, unparsed) {
+	bindExpression: function(context, node, unparsed) {
 		// Matches assignment expressions
 		//
-		//     assignmentExpression ::= template OPERATOR['::'] expressionNoAssign
+		//     bindExpression ::= template OPERATOR['::'] expressionNoAssign
 		//
 		let dest = this.template(context, node, unparsed);
 		if (!dest) { return null; }
@@ -307,7 +317,7 @@ let match = {
 			let source = this.expressionNoAssign(context, rest.first(), rest.rest());
 
 			if (source) {
-				return [new AST.Assignment({template: dest[0], value: source[0]}), source[1]];
+				return [new AST.Bind({template: dest[0], value: source[0]}), source[1]];
 			}
 		}
 
@@ -406,7 +416,8 @@ let match = {
 					members.push(first[0]);
 				}
 			}
-			return [new AST.Record({members: List(members)}), unparsed];
+
+			return [new AST.RecordType({members: List(members)}), unparsed];
 		}
 		return null;
 	},
@@ -416,7 +427,7 @@ let match = {
 		//
 		//     unionType ::= TYPE[ variant ( OPERATOR['|'] variant )* ]
 		//
-		//     variant ::= qualifier | qualifier LIST[ Identifier + ]
+		//     variant ::= symbol | symbol LIST[ Identifier + ]
 		//
 		if (node._name === 'Type') {
 			if (node.exprs.count() !== 1) {
@@ -425,17 +436,19 @@ let match = {
 
 			let expr = node.exprs.first();
 
-			var cont = false;
-			var variants = List([]);
+			// Split the variants on the '|' operator, then reduce each sublist
+			// into either a symbol or a tuple.
+			let variants = expr.terms.reduce((result, term) => {
+				if (result === null) { return null; }
 
-			for (let term of expr.terms) {
-				if (cont && term._name === 'Message') {
-					// Parse the identifiers in the message
-					let values = term.exprs.reduce(function(vs, v) {
-						if (!(vs instanceof List)) {
+				if (term._name === 'Message') {
+					//Parse the identifiers in the message
+					let values = term.exprs.reduce((vs, v) => {
+						if (vs._name === 'Error') {
 							return vs;
 						} else if (v._name === 'Expression' && v.terms.count() === 1) {
 							let ident = v.terms.first();
+
 							if (ident._name === 'Identifier') {
 								return vs.push(ident);
 							} else {
@@ -446,28 +459,30 @@ let match = {
 						}
 					}, List([]));
 
-					if (values instanceof List) {
-						variants = variants.update(-1, function(v) {
-							return v.set('values', values);
+					if (!(values._name === 'Error')) {
+						// We successfully parsed a tuple
+						return result.update(-1, (symbol) => {
+							return new AST.Tuple({
+								label: symbol.label,
+								values: values
+							});
 						});
 					} else {
-						return values;
+					// TODO: Better error handling here
+						return null; //result.push(values);
 					}
-				} else if (cont && term._name === 'Operator' && term.label === '|') {
-					cont = false;
-				} else if (!cont && term._name === 'Qualifier') {
-					cont = true;
-					variants = variants.push(new AST.Variant({label: term.label}));
+				} else if (term._name === 'Operator' && term.label === '|') {
+					return result;
+				} else if (term._name === 'Symbol') {
+					return result.push(term);
 				} else {
-					return new AST.Error({
-						message: 'Encountered unexpected node'
-					});
+					return null;
 				}
-			}
+			}, List([]));
 
 			if (variants.count() >= 2) {
 				return [
-					new AST.Union({
+					new AST.UnionType({
 						variants: Map(variants.map(function(v) {
 							return [v.label, v];
 						}))
@@ -569,10 +584,13 @@ let match = {
 
 			let qual = (
 				self.text(context, expr.terms.first(), expr.terms.rest()) ||
-				self.qualifier(context, expr.terms.first(), expr.terms.rest())
+				self.symbol(context, expr.terms.first(), expr.terms.rest())
 			);
 
 			if (!(qual && qual[1].count() === 0)) { return null; }
+			if (qual._name == 'Symbol' && !qual.getIn(['tags', 'nullary'], false)) {
+				return null;
+			}
 
 			return result.push(qual[0]);
 		}, List([]));
@@ -608,57 +626,51 @@ let match = {
 		// [BB 2017-08-12]: Currently templates support lists, maps, and blocks
 		if (node._name === 'List') {
 			// If the template is a List or Block, treat each expr as a template.
-			let parts = [];
+			let parts = node.exprs.reduce((result, exp) => {
+				if (result === null) { return null; }
 
-			for (let exp of node.exprs) {
+				let part = this.template(context, exp.terms.first(), exp.terms.rest());
 				// N.B.: If we don't want to allow nesting, just change
 				// `this.template` to `this.templatePart`.
-				let part = this.template(context, exp.terms.first(), exp.terms.rest());
 
 				if (part && part[1].count() > 0) {
-					parts.push(new AST.Error({
-						message: '',
+					return result.push(new AST.Error({
+						message: 'Match error.',
 						consumed: part[0],
 						encountered: part[1]
 					}));
 				} else if (part) {
-					parts.push(part[0].match);
+					return result.push(part[0]);
 				} else {
 					return null;
 				}
-			}
+			}, List([]));
 
-			return [new AST.Template({
-				match: new AST.List({items: List(parts)})
-			}), unparsed];
+			return parts && [new AST.List({items: parts}), unparsed];
 		} else if (node._name === 'Block') {
-			let parts = [];
+			let parts = node.exprs.reduce((result, exp) => {
+				if (result === null) { return null; }
 
-			for (let exp of node.exprs) {
 				let part = this.template(context, exp.terms.first(), exp.terms.rest());
 
 				if (part && part[1].count() > 0) {
-					parts.push(new AST.Error({
+					return result.push(new AST.Error({
 						message: '',
 						consumed: part[0],
 						encountered: part[1]
 					}));
 				} else if (part) {
-					parts.push(part[0].match);
+					return result.push(part[0].match);
 				} else {
 					return null;
 				}
-			}
+			}, List([]));
 
-			return [new AST.Template({
-				match: new AST.Block({exprs: List(parts)})
-			}), unparsed];
+			return parts && [new AST.Block({exprs: parts}), unparsed];
 		} else {
 			// Otherwise, we look for a template part.
 			let template = this.templatePart(context, node, unparsed);
-			return template && [new AST.Template({
-				match: template[0]
-			}), template[1]];
+			return template;
 		}
 
 		return null;
@@ -668,7 +680,7 @@ let match = {
 		// Matches an identifier or scalar literal in a template
 		//
 		//     templatePart ::= [identifier] identifier
-		//                    | symbol
+		//                    | symbol MESSAGE[ templatePart+ ]
 		//                    | text
 		//                    | integer
 		//                    | decimal
@@ -677,8 +689,8 @@ let match = {
 		//
 		let first = (
 			this.identifier(context, node, unparsed) ||
-			this.symbol(context, node, unparsed) ||
-			this.templateVariant(context, node, unparsed) ||
+			this.tuplePart(context, node, unparsed) ||
+			/*this.recordTemplate(context, node, unparsed) ||*/
 			this.text(context, node, unparsed) ||
 			this.integer(context, node, unparsed) ||
 			this.decimal(context, node, unparsed) ||
@@ -709,42 +721,53 @@ let match = {
 		}
 	},
 
-	templateVariant: function(context, node, unparsed) {
+	tuplePart: function(context, node, unparsed) {
 		// Match an unqualified variant fragment
 		//
-		//     templateVariant ::= qualifier MESSAGE[ Identifier + ]
+		//     tupleTemplate ::= symbol MESSAGE[ Identifier + ]
 		//
-		if (node._name !== 'Qualifier') { return null; }
-
-		let values = [];
+		if (node._name !== 'Symbol') { return null; }
 
 		if (unparsed.count() > 0) {
 			let message = unparsed.first();
 
 			if (message._name === 'Message') {
-				for (let expr of message.exprs) {
+				let values = message.exprs.reduce((result, expr) => {
+					if (result === null) { return null; }
+
 					let part = this.templatePart(context, expr.terms.first(), expr.terms.rest());
 
 					if (part && part[1].count() === 0) {
-						values.push(part[0]);
-					} else if (part) {
-						values.push(new AST.Error({
-							message: 'did not consume all tokens',
-							consumed: part[1],
-							encountered: part[0]
-						}));
+						return result.push(part[0]);
 					} else {
-						console.log('this is a parse error @ match.templateVariant');
 						return null;
 					}
-				}
+				}, List([]));
+
+				return (values.count() >= 1) ? [
+					new AST.Tuple({label: node.label, values: List(values)}),
+					unparsed.rest()
+				] : null; // TODO: This should be an error.
 			}
 		}
 
-		return [
-			new AST.Variant({label: node.label, values: List(values)}),
-			(values.length) ? unparsed.rest() : unparsed
-		];
+		return [node, unparsed];
+	},
+
+	recordTemplate: function(context, node, unparsed) {
+		// Match a record value
+		//
+		//     recordTemplate ::= label MESSAGE[ (label OPERATOR[':'] templatePart)+ ]
+		//                      | label MESSAGE[ IDENTIFIER['_'] ]
+		//
+		if (node._name !== 'Identifier') { return null; }
+
+		if (unparsed.count() > 0 && unparsed.first()._name === 'Message') {
+			/// TODO TODO TODO
+			return [new AST.Record(), unparsed.rest()];
+		} else {
+			return null;
+		}
 	},
 
 	prefixExpression: function(context, node, unparsed) {
@@ -758,7 +781,7 @@ let match = {
 		let exp = this.expressionNoInfix(context, unparsed.first(), unparsed.rest());
 
 		if (exp && node.label === '\\') {
-			return [new AST.Evaluate({target: exp[0]}), exp[1]];
+			return [new AST.Immediate({target: exp[0]}), exp[1]];
 		} else if (exp) {
 			return [new AST.PrefixExpression({op: node, expr: exp[0]}), exp[1]];
 		} else {
@@ -769,7 +792,7 @@ let match = {
 	value: function(context, node, unparsed) {
 		// Match a value
 		//
-		//     value ::= block | matchDefn | functionDefn | identifier | symbol
+		//     value ::= block | hybridDefn | functionDefn | identifier | symbol
 		//             | parenthesized | map | list | text | integer | decimal
 		//             | scientific | complex
 		//
@@ -779,7 +802,7 @@ let match = {
 				return [node.transform(context, this), unparsed];
 			} else if (node.getIn(['tags', 'envelopeShape']) === '{{}}') {
 				// Pattern matching function. Parse each 
-				return this.matchDefn(context, node, unparsed);
+				return this.hybridDefn(context, node, unparsed);
 			}
 		}
 
@@ -811,23 +834,25 @@ let match = {
 			let expr = this.expressionNoAssign(context, first, rest);
 			//TODO: add error if there's unparsed?
 
+			if (!expr) { return null; }
 			if (expr[1].count() > 0) {
 				return [new AST.Error({
-					message: 'did not consume all tokens',
+					message: 'did not consume all tokens in parenthesized expression',
 					consumed: expr[0],
 					encountered: expr[1]
 				}), unparsed];
 			}
 
-			return [new AST.Grouping({expr: expr[0]}), unparsed];
+			return [expr[0].setIn(['tags', 'parenthesized'], true), unparsed];
 		}
+
 		return null;
 	},
 
-	matchDefn: function(context, node, unparsed) { // TODO: this doesn't compose with fns
+	hybridDefn: function(context, node, unparsed) { // TODO: this doesn't compose with fns
 		// Matches a pattern match definition
 		//
-		//     matchDefn ::= MATCHLIST[ functionDefn + ]
+		//     hybridDefn ::= MATCHLIST[ functionDefn + ]
 		//
 		if (node._name === 'Block' &&
 				node.getIn(['tags', 'envelopeShape']) === '{{}}') {
@@ -839,7 +864,7 @@ let match = {
 					funcs.push(fn[0]);
 				} else if (fn) {
 					funcs.push(new AST.Error({
-						message: 'did not consume all tokens',
+						message: 'did not consume all tokens in function definition',
 						consumed: fn[0],
 						encountered: fn[0]
 					}));
@@ -848,7 +873,7 @@ let match = {
 				}
 			}
 
-			return [new AST.Match({predicates: funcs}), unparsed];
+			return [new AST.HybridFunction({predicates: funcs}), unparsed];
 		} else {
 			return null;
 		}
@@ -872,6 +897,7 @@ let match = {
 		});
 
 		let idList = this.template(context, listNode, unparsed);
+
 		if (!(idList && idList[1].count() > 0)) { return null; }
 
 		let guard = this.guard(context, idList[1].first(), idList[1].rest());
@@ -889,9 +915,10 @@ let match = {
 		let body = this.functionBody(context, op[1].first(), op[1].rest());
 
 		if (!body) { return null; }
+
 		return [
 			new AST.Function({
-				template: idList[0], block: body[0], guard: (guard && guard[0])
+				template: idList[0], guard: (guard && guard[0]), block: body[0]
 			}),
 			body[1]
 		];
@@ -902,7 +929,7 @@ let match = {
 		//
 		//     functionBody ::= block
 		//                    | functionDefn
-		//                    | matchDefn
+		//                    | hybridDefn
 		//                    | matchRemap (TODO) 
 		//
 		let block;
@@ -911,7 +938,7 @@ let match = {
 			block = [node.transform(context, this), unparsed];
 		} else {
 			block = (this.functionDefn(context, node, unparsed) ||
-				this.matchDefn(context, node, unparsed));
+				this.hybridDefn(context, node, unparsed));
 		}
 
 		return block;
@@ -920,10 +947,10 @@ let match = {
 	guard: function(context, node, unparsed) {
 		// Match a guard clause
 		//
-		//     guard ::= OPERATOR['&'] parenthesized
+		//     guard ::= OPERATOR['?'] parenthesized
 		//
 		let op = this.operator(context, node, unparsed);
-		if (!(op && op[0].label === '&' & op[1].count() > 1)) { return null; }
+		if (!(op && op[0].label === '?' & op[1].count() > 1)) { return null; }
 
 		let expr = this.parenthesized(context, op[1].first(), op[1].rest());
 
@@ -935,24 +962,24 @@ let match = {
 		//
 		//     list ::= LIST[ expressionNoAssign * ]
 		//
-		if (node._name === 'List' && node.getIn(['tags', 'envelopeShape']) === '[]') {
-			let exprs = [];
-
+		if (node._name === 'List'/* && node.getIn(['tags', 'envelopeShape']) === '[]'*/) {
 			if (node.exprs.count() === 0) {
 				return [new AST.List({items: List([])}), unparsed];
 			}
 
-			for (let expr of node.exprs) {
+			let exprs = node.exprs.reduce((result, expr) => {
+				if (result === null) { return null; }
+
 				let exp = this.expressionNoAssign(context, expr.terms.first(), expr.terms.rest());
 
 				if (exp && exp[1].count() === 0) {
-					exprs.push(exp[0]);
+					return result.push(exp[0]);
 				} else {
 					return null;
 				}
-			}
+			}, List([]));
 
-			return [new AST.List({items: List(exprs)}), unparsed];
+			return exprs && [new AST.List({items: exprs}), unparsed];
 		}
 
 		return null;
@@ -965,8 +992,6 @@ let match = {
 		//           | LIST[ OPERATOR[':'] ]
 		//
 		if (node._name === 'List') {
-			let kvps = [];
-
 			if (node.exprs.count() === 1
 					&& node.exprs.first().terms.count() === 1) {
 				let op = node.exprs.first().terms.first();
@@ -979,7 +1004,9 @@ let match = {
 				return null;
 			}
 
-			for (let expr of node.exprs) {
+			let items = node.exprs.reduce((result, expr) => {
+				if (result === null) { return null; }
+
 				let key = this.expressionNoInfix(context, expr.terms.first(), expr.terms.rest());
 
 				if (key) {
@@ -987,7 +1014,7 @@ let match = {
 					
 					if (first && first._name === 'Operator' && first.label === ':') {
 						let val = this.expressionNoAssign(context, rest.first(), rest.rest());
-						kvps.push(new AST.KeyValuePair({key: key[0], val: val[0]}));
+						return result.set(key[0], new AST.KeyValuePair({key: key[0], val: val[0]}));
 					} else {
 						/*
 							[ a : 1 ]
@@ -1010,9 +1037,9 @@ let match = {
 					// we're actually in a list and have to backtrack.
 					return null;
 				}
-			}
-			let items = Map(kvps.map(function(kvp) { return [kvp.key, kvp]; }));
-			return [new AST.Map({items: items}), unparsed];
+			}, Map({}));
+
+			return items && [new AST.Map({items: items}), unparsed];
 		}
 
 		return null;
@@ -1036,20 +1063,9 @@ let match = {
 		//     identifier ::= [a-zA-Z_] [a-zA-Z0-9_-]* postfixModifier?
 		//
 		//     postfixModifier ::= [?!]
+		//     TODO: should '...' also be a postfix mod instead of an op?
 		//
 		if (node._name === 'Identifier') {
-			return [node, unparsed];
-		} else {
-			return null;
-		}
-	},
-
-	qualifier: function(context, node, unparsed) {
-		// Matches a qualifier
-		//
-		//     qualifier ::= '.' [a-zA-Z0-9_-]+
-		//
-		if (node._name === 'Qualifier') {
 			return [node, unparsed];
 		} else {
 			return null;
@@ -1059,9 +1075,21 @@ let match = {
 	symbol: function(context, node, unparsed) {
 		// Matches a symbol
 		//
-		//     symbol ::= '$' [a-zA-Z_] [a-zA-Z0-9_-]*
+		//     symbol ::= '.' [a-zA-Z0-9_-]+
 		//
 		if (node._name === 'Symbol') {
+			return [node, unparsed];
+		} else {
+			return null;
+		}
+	},
+
+	typeVar: function(context, node, unparsed) {
+		// Matches a type variable
+		//
+		//     typevar ::= '$' [a-zA-Z_] [a-zA-Z0-9_-]*
+		//
+		if (node._name === 'TypeVar') {
 			return [node, unparsed];
 		} else {
 			return null;

@@ -4,7 +4,7 @@
 
 const { Map, Record } = require('immutable');
 const { NotImplemented } = require('../error');
-const Evaluate = require('./evaluate');
+const Immediate = require('./immediate');
 const Bottom = require('./bottom');
 const _ = null;
 const _map = Map({});

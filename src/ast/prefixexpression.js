@@ -23,7 +23,10 @@ PrefixExpression.prototype.repr = function(depth, style) {
 
 PrefixExpression.prototype.eval = function(ctx) {
     // TODO: Replace the list / invocation with a message / message send
-    return (new Invocation({target: this.expr, plist: List([this.op])})).eval(ctx);
+    return (new Invocation({
+		target: this.expr, args: List([this.op]),
+		selector: "('" + this.op.label + "')"
+	})).eval(ctx);
 };
 
 PrefixExpression.prototype.transform = function(func) {

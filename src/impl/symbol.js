@@ -1,12 +1,11 @@
 const { Map, List } = require('immutable');
 const Type = require('../ast/type');
+const Symbol = require('../ast/symbol');
 const dispatch = require('../dispatch');
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
-
-let Symbol = new Type({label: 'Symbol'});
 
 Symbol.methods = {
 	// Symbol composition methods

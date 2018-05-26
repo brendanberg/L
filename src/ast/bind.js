@@ -1,5 +1,5 @@
 /*
-   Assignment AST node
+   Bind AST node
  */
 
 let I = require('immutable');
@@ -12,13 +12,13 @@ const _map = I.Map({});
 const _list = I.List([]);
 
 
-let Assignment = I.Record({template: _, value: _, tags: _map}, 'Assignment');
+let Bind = I.Record({template: _, value: _, tags: _map}, 'Bind');
 
-Assignment.prototype.toString = function() {
+Bind.prototype.toString = function() {
     return this.template.toString() + ' :: ' + this.value.toString();
 };
 
-Assignment.prototype.repr = function(depth, style) {
+Bind.prototype.repr = function(depth, style) {
     return (
         this.template.repr(depth, style) +
         style.operator(' :: ') +
@@ -26,11 +26,11 @@ Assignment.prototype.repr = function(depth, style) {
     );
 };
 
-Assignment.prototype.eval = function(ctx) {
+Bind.prototype.eval = function(ctx) {
 	// Recursively descend through the template, matching value equivalence
 	// between template and evaluated right-hand expression and capturing
 	// values into identifier placeholders in the template.
-	let newCtx = ctx.match(this.template.match, this.value.eval(ctx));
+	let newCtx = ctx.match(this.template, this.value.eval(ctx));
 
 	// TODO: Is this really supposed to mutate the current context?
 	ctx.local = ctx.local.merge(newCtx);
@@ -40,9 +40,9 @@ Assignment.prototype.eval = function(ctx) {
 	})});
 };
 
-Assignment.prototype.transform = function(func) {
+Bind.prototype.transform = function(func) {
     return func(this);
 };
 
-module.exports = Assignment;
+module.exports = Bind;
 

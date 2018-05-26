@@ -5,16 +5,16 @@ const _map = Map({});
 const _list = List([]);
 
 
-Union = Record({label: _, variants: _map, tags: _map}, 'Union');
+UnionType = Record({label: _, variants: _map, tags: _map}, 'UnionType');
 
-Union.prototype.toString = function () {
+UnionType.prototype.toString = function () {
 	let variants = this.variants.map(function(node) {
 		return node.toString();
 	});
 	return this.label + ' << ' + variants.valueSeq().join(' | ') + ' >>';
 };
 
-Union.prototype.repr = function(depth, style) {
+UnionType.prototype.repr = function(depth, style) {
 	let variants = this.variants.map(function(node) {
 		return node.repr(depth, style);
 	});
@@ -25,7 +25,7 @@ Union.prototype.repr = function(depth, style) {
 	);
 };
 
-Union.prototype.eval = function(ctx) {
+UnionType.prototype.eval = function(ctx) {
 	// TODO: WARNING: CONTEXT MUTATION
 	let newCtx = {};
 	newCtx[this.label] = this;
@@ -34,12 +34,12 @@ Union.prototype.eval = function(ctx) {
 	return this;
 };
 
-Union.prototype.transform = function(context, match) {
+UnionType.prototype.transform = function(context, match) {
 	// Note: This rule should be unreachable if the grammar rules are correct
 	return this;
 };
 
-Union.prototype.methodForSelector = function(selector) {
+UnionType.prototype.methodForSelector = function(selector) {
 	if ('methods' in this) {
 		return this.methods[selector];
 	} else {
@@ -47,7 +47,7 @@ Union.prototype.methodForSelector = function(selector) {
 	}
 };
 
-Union.prototype.registerSelector = function(selector, impl) {
+UnionType.prototype.registerSelector = function(selector, impl) {
 	if ('methods' in this) {
 		this.methods[selector] = impl;
 	} else {
@@ -56,5 +56,4 @@ Union.prototype.registerSelector = function(selector, impl) {
 	}
 };
 
-module.exports = Union;
-
+module.exports = UnionType;

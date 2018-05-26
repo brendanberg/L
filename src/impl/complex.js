@@ -1,12 +1,12 @@
 const { Map, List } = require('immutable');
 const Type = require('../ast/type');
 const Rational = require('../ast/rational');
-const Variant = require('../ast/variant');
+const Symbol = require('../ast/symbol');
 const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
+	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
 }
 
 let _Complex = new Type({label: 'Complex'});
@@ -22,8 +22,8 @@ _Complex.methods = {
 			return method.apply(j, []);
 		});
 	},
-	'(.real)': function() { return this.real; },
-	'(.imaginary)': function() { return this.imaginary; },
+	'(real.)': function() { return this.real; },
+	'(imaginary.)': function() { return this.imaginary; },
 	"('+':)": dispatch({
 		'Integer': function(n) {
 			return this.update('real', (r) => {

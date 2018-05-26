@@ -13,25 +13,34 @@ const _list = List([]);
 let InfixExpression = Record({op: _, lhs: _, rhs: _, tags: _map}, 'InfixExpression');
 
 InfixExpression.prototype.toString = function() {
+	let grouped = this.getIn(['tags', 'parenthesized'], false);
+	let open = grouped ? '(' : '';
+	let close = grouped ? ')' : '';
     return [
-        this.lhs.toString(), 
+        open + this.lhs.toString(), 
         this.op.label.replace(/^'(.*)'$/, '$1'),
-        this.rhs.toString()
+        this.rhs.toString() + close
     ].join(' ');
 };
 
 InfixExpression.prototype.repr = function(depth, style) {
+	let grouped = this.getIn(['tags', 'parenthesized'], false);
+	let open = grouped ? '(' : '';
+	let close = grouped ? ')' : '';
     return [
-        this.lhs.repr(depth, style),
+        style.delimiter(open) + this.lhs.repr(depth, style),
         style.operator(this.op.label.replace(/^'(.*)'$/, '$1')),
-        this.rhs.repr(depth, style)
+        this.rhs.repr(depth, style) + style.delimiter(close)
     ].join(' ');
 };
 
 InfixExpression.prototype.eval = function(ctx) {
     // TODO: Replace the list / invocation with a message / message send
-    let selector = List([new KeyValuePair({key: this.op, val: this.rhs})]); 
-    return (new Invocation({target: this.lhs, plist: selector})).eval(ctx);
+    let args = List([new KeyValuePair({key: this.op, val: this.rhs})]); 
+    return (new Invocation({
+		target: this.lhs, args: args,
+		selector: "('" + this.op.label + "':)"
+	})).eval(ctx);
 };
 
 InfixExpression.prototype.transform = function(func) {

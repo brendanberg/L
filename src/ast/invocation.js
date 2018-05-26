@@ -3,10 +3,10 @@
  */
 
 const { Map, List, Record } = require('immutable');
-const Value = require('./value');
+const Record_ = require('./record');
 const Bottom = require('./bottom');
-const ASTList = require('./list');
-const Evaluate = require('./evaluate');
+const List_ = require('./list');
+const Immediate = require('./immediate');
 const { NameError, NotImplemented } = require('../error');
 
 const _ = null;
@@ -14,82 +14,126 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Invocation = Record({target: _, plist: _list, tags: _map}, 'Invocation');
+let Invocation = Record({target: _, selector: _, args: _list, tags: _map}, 'Invocation');
 
 Invocation.prototype.toString = function () {
-    return this.target.toString() + '(' + this.plist.map(function(it) {
+    return this.target.toString() + '(' + this.args.map(function(it) {
         return it.toString();
     }).toArray().join(', ') + ')';
 };
 
 Invocation.prototype.repr = function(depth, style) {
     return this.target.repr(depth, style) + style.delimiter('(') +
-        this.plist.map(function(it) {
+        this.args.map(function(it) {
             return it.repr(depth, style);
         }).toArray().join(style.delimiter(', ')) + style.delimiter(')');
 };
 
 Invocation.prototype.eval = function(ctx) {
 	let target = this.target.eval(ctx);
-
+	let context;
 	// This is a method invocation LOL
 	// Take the selector keys and string em together.
 	// Dispatch will select on the type signature so get that right
 	// when you define the ctx
 	// > Thing :: << Text s >>
-	// > Thing t (reverse.) -> { t.s(reverse.) }
+	// > Thing t (.reverse) -> { t.s(.reverse) }
 	// > t :: Thing(s: "stressed")
-	// > t(reverse.)
+	// > t(.reverse)
 	// 'desserts'
-
-	var selector = '(' + this.plist.map(function(x) {
-		if (x._name === 'KeyValuePair') {
-			if (x.key._name === 'Identifier') {
-				return x.key.label + ':';
-			} else if (x.key._name === 'Operator') {
-				return "'" + x.key.label + "':";
-			}
-		} else if (x._name === 'Qualifier') {
-			return '.' + x.label;
-		} else {
-			// TODO: Evaluate whether we really need this block
-			if (x._name === 'Identifier') {
-				return x.label;
-			} else if (x._name === 'Operator') {
-				return "'" + x.label + "'";
-			}
-		}
-	}).join('') + ')';
+	if (this.args._name) {
+		console.log('args', this.args);
+		console.trace('Invocation args are an AST list :(');
+	}
 
 	// Invocations on Records instantiate a value with field values
 	// mapped to named parameters in the message
-	if (target._name === 'Record') {
-		let value = new Value({
+	if (target._name === 'RecordType') {
+		let value = new Record_({
 			label: target.label,
-			fields: Map(this.plist.map(function(kvp) {
+			fields: Map(this.args.map(function(kvp) {
 				return [kvp.key.label, kvp.val.eval(ctx)];
 			}))
 		});
+		// TODO: filter bad values
 		//ctx.register(value.label, value);
 		return value;
+	} else if (target._name === 'Tuple') {
+		// TODO: verify arity and type check...
+		return new Tuple({
+			label: target.label,
+			values: this.args.map((item) => { return item.eval(ctx); })
+		});
 	}
 
 	let method;
 	
-	if (target._name === 'Value') {
+	if (target._name === 'Record') {
 		// TODO: When do you invoke a value?
-		// A Value's label is an identifier, so you need to use target.label.label
-		method = ctx.lookup(target.label).methodForSelector(selector);
-	} else if (target._name === 'Variant') {
-		method = ctx.lookup(target.getIn(['tags', 'type'])).methodForSelector(selector);
+		method = ctx.lookup(target.label).methodForSelector(this.selector);
+	} else if (target._name === 'Symbol') {
+		// TODO: Is this right? I think this is wrong.
+		method = ctx.lookup(target.getIn(['tags', 'type'])).methodForSelector(this.selector);
+	} else if (target._name === 'Function') {
+		let args = new List_({items: this.args.map((item) => { return item.eval(ctx) })});
+
+		context = target.ctx.extend(target.template, args);
+		// TODO: Perhaps the context needs to get attached to the block?
+		// TODO: The block behavior seems more correct. Enable closures!
+		if (target.guard) {
+			let guard = target.guard.eval(context);
+
+			if (!(guard._name == 'Symbol' && guard.label == 'True')) {
+				return new Bottom({});
+			}
+		}
+
+		method = target.block; // target.block.set('ctx', context);
+	} else if (target._name === 'HybridFunction') {
+		// TODO: Implement a more efficient pattern matching algorithm
+		// Currently, we just iterate over the predicates and stop when
+		// we find a template that matches the argument list.
+		let args = new List_({items: this.args.map((item) => { return item.eval(ctx) })});
+
+		for (let predicate of target.predicates) {
+			let testCtx = target.ctx.extend(predicate.template, args);
+			if (testCtx) {
+				if (predicate.guard) {
+					let guard = predicate.guard.eval(testCtx);
+
+					if (guard._name === 'Symbol' && guard.label === 'True') {
+						context = testCtx;
+						method = predicate.block;
+						break;
+					}
+				} else {
+					context = testCtx;
+					method = predicate.block;
+					break;
+				}
+			}
+		}
+
+		if (!method) { return new Bottom({}); }
+	} else if (target._name === 'Block') {
+		context = target.ctx;
+		method = target;
 	} else {
-		method = ctx.lookup(target._name).methodForSelector(selector);
+		method = ctx.lookup(target._name).methodForSelector(this.selector);
 	}
 
-	if (method && typeof method === 'function') {
+	if (method && method._name === 'Block') {
+		// Block invocation (either function, hybrid function, or bare block)
+		if (context) {
+			return (new Immediate({target: method})).eval(context);
+		} else {
+			// TODO: note the reason for the failed match
+			return new Bottom();
+		}
+	} else if (method && typeof method === 'function') {
 		// The selector is implemented as a built-in function.
 
-		let params = this.plist.filter(function (x) {
+		let params = this.args.filter(function (x) {
 			return x._name === 'KeyValuePair';
 		}).map(function(x) {
 			return x.val.eval(ctx);
@@ -105,24 +149,24 @@ Invocation.prototype.eval = function(ctx) {
 
 		let impl = method.eval(ctx);
 
-		let args = new ASTList({items: this.plist.filter(function (x) {
-			return x._name == 'KeyValuePair';
-		}).map(function(x) {
-			return x.val.eval(ctx);
-		}).insert(0, target)});
+		let args = this.args.filter((item) => {
+			return item._name == 'KeyValuePair';
+		}).map((item) => {
+			return item.val.eval(ctx);
+		}).insert(0, target);
 
-		let context = impl.ctx.extend(impl.template.match, args);
+		let context = impl.ctx.extend(impl.template, new List_({items: args}));
 
 		if (context) {
-			let ret = (new Evaluate({target: impl.block}));
+			let ret = (new Immediate({target: impl.block}));
 			return ret.eval(context);
 		} else {
 			return new Bottom();
 		}
 	} else {
 		var msg = (
-			"'" + target.toString() + "' does not have a method " +
-			"matching the selector '" + selector + "'"
+			"the " + target._name + " '" + target.toString() + "' does not have a method " +
+			"matching the selector '" + this.selector + "'"
 		);
 		throw new NameError(msg);
 	}
@@ -131,8 +175,8 @@ Invocation.prototype.eval = function(ctx) {
 Invocation.prototype.transform = function(xform) {
 	return xform(this.update('target', function(target) {
 		return (target && 'transform' in target) ? target.transform(xform) : xform(target);
-	}).update('plist', function(plist) {
-		return plist.map(function(item) {
+	}).update('args', function(args) {
+		return args.map(function(item) {
 			if (item._name === 'KeyValuePair') {
 				return item.update('val', function(val) {
 					return (val && 'transform' in val) ? val.transform(xform) : xform(val);

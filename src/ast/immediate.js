@@ -1,5 +1,5 @@
 /*
-    Evaluate AST node
+    Immediate AST node
     (Really an IR node)
  */
 
@@ -11,21 +11,21 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Evaluate = Record({target: _, tags: _map}, 'Evaluate');
+let Immediate = Record({target: _, tags: _map}, 'Immediate');
 
-Evaluate.prototype.toString = function() {
+Immediate.prototype.toString = function() {
 	return '\\' + this.target.toString();
 };
 
-Evaluate.prototype.repr = function(depth, style) {
+Immediate.prototype.repr = function(depth, style) {
 	return style.operator('\\') + this.target.repr(depth, style);
 };
 
-Evaluate.prototype.eval = function(ctx) {
+Immediate.prototype.eval = function(ctx) {
     let target = this.target.eval(ctx);
 
     if (target._name === 'Block') {
-		return target.exprs.reduce(function(result, exp) {
+		return target.exprs.reduce((result, exp) => {
 			return result.push((exp.eval && exp.eval(ctx)) || new Bottom());
 		}, List([])).last();
     } else {
@@ -33,5 +33,5 @@ Evaluate.prototype.eval = function(ctx) {
     }
 };
 
-module.exports = Evaluate;
+module.exports = Immediate;
 

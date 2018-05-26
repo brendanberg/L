@@ -1,5 +1,5 @@
 /*
-   Match AST node
+   HybridFunction AST node
  */
 
 let I = require('immutable');
@@ -9,9 +9,9 @@ const _map = I.Map({});
 const _list = I.List([]);
 
 
-let Match = I.Record({predicates: _list, ctx:_, tags: _map}, 'Match');
+let HybridFunction = I.Record({predicates: _list, ctx:_, tags: _map}, 'HybridFunction');
 
-Match.prototype.toString = function() {
+HybridFunction.prototype.toString = function() {
 	return (
 		"{{\n    " +
 		this.predicates.map(function(x) {
@@ -21,7 +21,7 @@ Match.prototype.toString = function() {
 	);
 };
 
-Match.prototype.repr = function(depth, style) {
+HybridFunction.prototype.repr = function(depth, style) {
 	//TODO: smart newlines for compact reprs
 	return (
 		style.delimiter('{{') + '\n    ' +
@@ -34,7 +34,7 @@ Match.prototype.repr = function(depth, style) {
 	);
 };
 
-Match.prototype.eval = function(ctx) {
+HybridFunction.prototype.eval = function(ctx) {
 	// Evaluate any eager nodes (???)
 	return this.transform(function(node) {
 		if (node._name === 'Evaluate') {
@@ -45,7 +45,7 @@ Match.prototype.eval = function(ctx) {
 	}).set('ctx', ctx);
 };
 
-Match.prototype.transform = function(func) {
+HybridFunction.prototype.transform = function(func) {
 	return func(this.update('predicates', function(predicates) {
 		return predicates.map(function(node) {
 			return (node && 'transform' in node) ? node.transform(func) : func(node);
@@ -54,5 +54,5 @@ Match.prototype.transform = function(func) {
     return func(this);
 };
 
-module.exports = Match;
+module.exports = HybridFunction;
 

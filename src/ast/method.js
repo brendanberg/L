@@ -6,7 +6,6 @@ const { Map, List, Record } = require('immutable');
 const punycode = require('punycode');
 const { TypeError } = require('../error');
 const _Function = require('./function');
-const Template = require('./template');
 const _List = require('./list');
 const _ = null;
 const _map = Map({});
@@ -51,8 +50,8 @@ Method.prototype.eval = function(ctx) {
 			} else if (x.key._name === 'Operator') {
 				return result + "'" + x.key.label + "':";
 			}
-		} else if (x._name === 'Qualifier') {
-			return result + '.' + x.label;
+		} else if (x._name === 'Symbol') {
+			return result + x.label + '.';
 		} else if (x._name === 'Text') {
 			return result + "'" + punycode.ucs2.encode(x.value) + "'";
 		}
@@ -66,7 +65,7 @@ Method.prototype.eval = function(ctx) {
 	}));
 
 	let impl = new _Function({
-		template: new Template({match: new _List({items: templateItems})}),
+		template: new _List({items: templateItems}),
 		block: this.block
 	});
 

@@ -1,7 +1,7 @@
 const { Map, List: IList } = require('immutable');
 const punycode = require('punycode');
 const Type = require('../ast/type');
-const Variant = require('../ast/variant');
+const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
 const Integer = require('../ast/integer');
 const List = require('../ast/list');
@@ -10,14 +10,14 @@ const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
 
 let _Text = new Type({label: 'Text'});
 
 _Text.methods = {
-	'(.count)': function() {
+	'(count.)': function() {
 		return new Integer({value: this.value.length});
 	},
 	"('+':)": dispatch({
@@ -72,6 +72,11 @@ _Text.methods = {
 			return ch ? new Text({value: [ch]}) : new Bottom();
 		}
 	}),
+	/*'(contains:)': dispatch({
+		'Text': function(txt) {
+			IList(this.value).contains(
+		},	
+	}),*/
 	'(split:)': dispatch({
 		'Text': function(s) {
 			// TODO: This is a naive implementation. Replace with a more
@@ -133,10 +138,15 @@ _Text.methods = {
 			};
 		}
 	}),
+	'(compactSplit:)': dispatch({
+		'Text': function(s) {},
+	}),
 	/*
+	'(contains:)'
 	'(rangeOfText:)'
-	'(rangeOfCharacterFromSet:)'
-	'()'
+	'(indexOfCharacterFrom:)'
+	'(compare:)'
+	'(compare:options:range:)'
 	*/
 };
 

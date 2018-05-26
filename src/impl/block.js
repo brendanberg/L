@@ -1,10 +1,11 @@
 const { Map, List } = require('immutable');
 const Type = require('../ast/type');
+const Symbol = require('../ast/symbol');
 const Bottom = require('../ast/bottom');
 const dispatch = require('../dispatch');
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
 let Block = new Type({label: 'Block'});
@@ -20,6 +21,9 @@ Block.methods = {
 	}),
 	'(append:)': function(exp) {
 		return this.update('exprs', function(e) { return e.push(exp); });
+	},
+	'(evaluateWithContext:)': function(ctx) {
+		// TODO:
 	},
 };
 

@@ -1,6 +1,7 @@
 #! /usr/bin/env node
 
-let repl = require('repl');
+const { List } = require('immutable');
+const repl = require('repl');
 const L = require('./l');
 let util = require('util');
 let debug = util.debuglog('repl');
@@ -39,7 +40,7 @@ for (let i = 0, len = filenames.length; i < len; i++) {
 	}
 
 	if (ast) {
-		(new L.AST.Evaluate({target: ast})).eval(ctx);
+		(new L.AST.Immediate({target: ast, args: new L.AST.List()})).eval(ctx);
 	}
 }
 
@@ -212,7 +213,9 @@ function eval(cmd, context, filename, callback) {
 	}
 
 	try {
-		result = (new L.AST.Evaluate({target: ast})).eval(ctx);
+		result = (new L.AST.Immediate({
+			target: ast, args: List([])
+		})).eval(ctx);
 	} catch (e) {
 		result = style.error(e.toString());
 		

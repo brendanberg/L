@@ -67,8 +67,8 @@ expression
 
 term
 	= identifier
+	/ type_variable
 	/ symbol
-	/ qualifier
 	/ angle_container // type
 	/ brack_container // list
     / paren_container // message
@@ -131,6 +131,7 @@ operator "operator"
 	/ "^"   // As prefix: [reserved for future use]
 	/ ":"
 	/ "~"   // Prefix only: [reserved for future use]
+	/ "?"   // Not legal as infix or prefix operator. Used in guard expressions only.
 
 
 /*---------------------------------------------------------------------------
@@ -138,7 +139,13 @@ operator "operator"
  ---------------------------------------------------------------------------*/
 
 paren_container
-    = '(' __ exp:expression __ ')' {
+	= '(' __ exp:nullaryLabel __ ')' {
+			return new Skel.Message({
+				exprs: List([new Skel.Expression({terms: List([exp])})]),
+				tags: Map({envelopeShape: '()', specialForm: true})
+			});
+		}
+    / '(' __ exp:expression __ ')' {
 			return new Skel.Message({
 				exprs: List([exp]),
 				tags: Map({envelopeShape: '()', specialForm: true})
@@ -202,15 +209,21 @@ angle_container
  ----------------------------------------------------------------------------*/
 
 // . label
-qualifier "qualifier"
+symbol "symbol"
 	= '.' l:labelChar+ {
-			return new AST.Qualifier({label: l.join('')});
+			return new AST.Symbol({label: l.join('')});
+		}
+
+// TODO: AAAAUGHHH A NASTY HACK TO ALLOW (label.) SELECTORS
+nullaryLabel "symbol"
+	= l:labelChar+ '.' {
+			return new AST.Symbol({label: l.join(''), tags: Map({nullary: true})})
 		}
 
 // $ label
-symbol "symbol"
+type_variable "type variable"
 	= '$' l:labelChar+ {
-			return new AST.Symbol({label: l.join('')});
+			return new AST.TypeVar({label: l.join('')});
 		}
 
 identifier "identifier"
@@ -253,13 +266,13 @@ Symbol s (evaluate: Context c) -> { c(getSymbol: s.label) }
 Identifier :: << Text label >>
 Identifier id (evaluate: Context c) -> { c[id.label] }
 
-y :: $y
-items :: [Symbol('x'): 1, y: 2, $z: 3]
+y :: .y
+items :: [Symbol('x'): 1, y: 2, .z: 3]
 
-#- $y is a symbol literal.
+#- .y is a symbol literal.
  - Symbol('x') is the constructor form.
  - In the hashmap literal, y gets evaluated in the current context, and
- - resolves to $y. $z is the symbol literal, which evaluates to iteslf.
+ - resolves to .y. .z is the symbol literal, which evaluates to iteslf.
  -#
 
 Bool :: << True | False >>

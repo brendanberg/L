@@ -5,9 +5,9 @@ const _map = Map({});
 const _list = List([]);
 
 
-Variant = Record({label: _, values: _list, tags: _map}, 'Variant');
+Tuple = Record({label: _, values: _list, tags: _map}, 'Tuple');
 
-Variant.prototype.toString = function () {
+Tuple.prototype.toString = function () {
 	if (this.values.count()) {
 		let values = this.values.map(function(val) { return val.toString(); });
 		return '.' + this.label + '(' + values.join(', ') + ')';
@@ -16,7 +16,7 @@ Variant.prototype.toString = function () {
 	}
 };
 
-Variant.prototype.repr = function(depth, style) {
+Tuple.prototype.repr = function(depth, style) {
 	if (this.values.count()) {
 		let values = this.values.map(function(val) { return val.repr(depth, style); });
 		return (
@@ -28,9 +28,9 @@ Variant.prototype.repr = function(depth, style) {
 	}
 };
 
-Variant.prototype.eval = function(ctx) {
+Tuple.prototype.eval = function(ctx) {
 	return this;
 };
 
-module.exports = Variant;
+module.exports = Tuple;
 

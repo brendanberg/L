@@ -1,27 +1,27 @@
-const { Map, List: IList, Repeat, Seq } = require('immutable');
+const { Map, List, Repeat, Seq } = require('immutable');
 const Type = require('../ast/type');
-const Variant = require('../ast/variant');
+const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
 const Integer = require('../ast/integer');
-const List = require('../ast/list');
+const List_ = require('../ast/list');
 const Bottom = require('../ast/bottom');
-const FunctionCall = require('../ast/functioncall');
+const Invocation = require('../ast/invocation');
 const dispatch = require('../dispatch');
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
-let _List = new Type({label: 'List'});
+let ListType = new Type({label: 'List'});
 
-_List.methods = {
-	'(.count)': function() {
+ListType.methods = {
+	'(count.)': function() {
 		return new Integer({value: this.items.count()});
 	},
-	'(.isEmpty)': function() {
+	'(isEmpty.)': function() {
 		return make_bool(this.items.isEmpty());
 	},
-	'(.reverse)': function() {
+	'(reverse.)': function() {
 		return this.update('items', function(items) { return items.reverse().toList(); });
 	},
 	"('@':)": dispatch({
@@ -37,7 +37,7 @@ _List.methods = {
 	"('*':)": dispatch({
 		'Integer': function(n) {
 			return this.update('items', function(items) {
-				return IList(Repeat(items, n.value)).flatten(1);
+				return List(Repeat(items, n.value)).flatten(1);
 			});
 		}
 	}),
@@ -76,7 +76,7 @@ _List.methods = {
 	'(zip:)': dispatch({
 		'List': function(l) {
 			return this.update('items', (items) => {
-				return items.zip(l.items).map((it) => { return new List({items: it}) });
+				return items.zip(l.items).map((it) => { return new List_({items: it}) });
 			});
 		},
 	}),
@@ -96,17 +96,26 @@ _List.methods = {
 		}
 
 		return this.update('items', (items) => {
-			return left.zip(right).map((it) => { return new List({items: it}) });
+			return left.zip(right).map((it) => { return new List_({items: it}) });
 		});
 	},
-	'(.unzip)': function() {
-		
+	'(unzip.)': function() {
+		let first = [], second = [];
+		this.items.map((item) => {
+			first.push(item.get(0));
+			second.push(item.get(1));
+		});
+
+		return new List_({items: List([
+			new List_({items: List(first)}),
+			new List_({items: List(second)})
+		])});
 	},
-	'(.enumerate)': function() {
+	'(enumerate.)': function() {
 		return this.update('items', (items) => {
 			return items.map((val, key) => {
 				let idx = new Integer({value: key, tags: Map({'source_base': 10})});
-				return new List({items: IList([idx, val])});
+				return new List_({items: List([idx, val])});
 			});
 		});
 	},
@@ -120,9 +129,9 @@ _List.methods = {
 	'(partitionBy:)': dispatch({  // '(partitionOnCondition:)' ?
 		'Function': function(fn) {
 			let partition = this.items.reduce((result, item) => {
-				let is_match = (new FunctionCall({
+				let is_match = (new Invocation({
 					target: fn,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(fn.ctx);
 
 				if (is_match.label === 'True') {
@@ -134,28 +143,28 @@ _List.methods = {
 				return result;
 			}, [[], []]);
 
-			return new List({items: IList([
-				new List({items: IList(partition[0])}),
-				new List({items: IList(partition[1])})
+			return new List_({items: List([
+				new List_({items: List(partition[0])}),
+				new List_({items: List(partition[1])})
 			])});
 		},
-		'Match': function(fn) {
+		'HybridFunction': function(fn) {
 
 		},
 	}),
-	'(.sort)': function() {
+	'(sort.)': function() {
 		return this.update('items', (items) => {
 			return items.sort((a, b) => {
 				// Invoke a('<': b)
 				a.ctx = this.ctx;
 				let lt_method = this.ctx.lookup(a._name).methodForSelector("('<':)");
 				let lt_result = lt_method.apply(a, [b]);
-				let less = (lt_result._name == 'Variant' && lt_result.label == 'True');
+				let less = (lt_result._name == 'Symbol' && lt_result.label == 'True');
 
 				// Invoke a('>': b)
 				let gt_method = this.ctx.lookup(a._name).methodForSelector("('>':)");
 				let gt_result = gt_method.apply(a, [b]);
-				let greater = (gt_result._name == 'Variant' && gt_result.label == 'True');
+				let greater = (gt_result._name == 'Symbol' && gt_result.label == 'True');
 				
 				if (!less && !greater) { return 0; }
 				else if (less) { return -1; }
@@ -167,9 +176,9 @@ _List.methods = {
 		'Function': function(fn) {
 			return this.update('items', (items) => {
 				return items.sort((a, b) => {
-					let result =  (new FunctionCall({
+					let result =  (new Invocation({
 						target: fn,
-						args: new List({items: IList([a, b])})
+						args: List([a, b])
 					})).eval(fn.ctx);
 					if (result.label == 'Same') { return 0; }
 					else if (result.label == 'Ascending') { return -1; }
@@ -177,12 +186,12 @@ _List.methods = {
 				});
 			});
 		},
-		'Match': function(fn) {
+		'HybridFunction': function(fn) {
 			return this.update('items', (items) => {
 				return items.sort((a, b) => {
-					let result =  (new FunctionCall({
+					let result =  (new Invocation({
 						target: fn,
-						args: new List({items: IList([a, b])})
+						args: List([a, b])
 					})).eval(fn.ctx);
 					if (result.label == 'Same') { return 0; }
 					else if (result.label == 'Ascending') { return -1; }
@@ -203,9 +212,9 @@ _List.methods = {
 		// .Ascending if a comes before b, and .Descending if
 		// a comes after b.
 		/*this.update('items', this.items.map((item) => {
-			return (new FunctionCall({
+			return (new Invocation({
 				target: mapper,
-				args: new List({items: IList([item])})
+				args: new List_({items: List([item])})
 			})).eval(mapper.ctx);
 		});*/
 	},
@@ -228,8 +237,8 @@ _List.methods = {
 
 			return this.update('items', (items) => {
 				return items.reduce((result, item) => {
-					let value = (new FunctionCall({
-						target: f, args: new List({items: IList([item])})
+					let value = (new Invocation({
+						target: f, args: List([item])
 					})).eval(f.ctx);
 
 					if (value && value._name === 'List') {
@@ -241,14 +250,14 @@ _List.methods = {
 					} else {
 						return result;
 					}
-				}, IList([]));
+				}, List([]));
 			});
 		},
-		'Match': function (f) {
+		'HybridFunction': function (f) {
 			return this.update('items', (items) => {
 				return items.reduce((result, item) => {
-					let value = (new FunctionCall({
-						target: f, args: new List({items: IList([item])})
+					let value = (new Invocation({
+						target: f, args: List([item])
 					})).eval(f.ctx);
 
 					if (value && value._name === 'List') {
@@ -260,24 +269,24 @@ _List.methods = {
 					} else {
 						return result;
 					}
-				}, IList([]));
+				}, List([]));
 			});
 		},
 	}),
 	'(map:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: f,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(f.ctx);
 			}));
 		},
-		'Match': function(m) {
+		'HybridFunction': function(m) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: m,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(m.ctx);
 			}));
 		},
@@ -285,15 +294,15 @@ _List.methods = {
 	'(compactMap:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
-					target: f, args: new List({items: IList([item])})
+				return (new Invocation({
+					target: f, args: List([item])
 				})).eval(f.ctx);
 			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
 		},
-		'Match': function (f) {
+		'HybridFunction': function (f) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
-					target: f, args: new List({items: IList([item])})
+				return (new Invocation({
+					target: f, args: List([item])
 				})).eval(f.ctx);
 			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
 		},
@@ -301,17 +310,17 @@ _List.methods = {
 	'(filter:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.filter(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: f,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(f.ctx).label === 'True';
 			}));
 		},
-		'Match': function(m) {
+		'HybridFunction': function(m) {
 			return this.set('items', this.items.filter(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: m,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(m.ctx).label === 'True';
 			}));
 		},
@@ -319,29 +328,29 @@ _List.methods = {
 	'(reduce:)': dispatch({
 		'Function': function(f) {
 			return this.items.reduce(function(init, item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: f,
-					args: new List({items: IList([init, item])})
+					args: List([init, item])
 				})).eval(f.ctx);
 			});
 		},
-		'Match': function(m) {
+		'HybridFunction': function(m) {
 			return this.items.reduce(function(init, item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: m,
-					args: new List({items: IList([init, item])})
+					args: List([init, item])
 				})).eval(m.ctx);
 			});
 		},
 	}),
 	'(reduceInto:with:)': function(init, func) {  // '(reduceInto:using:)' ?
 		return this.items.reduce(function(init, item) {
-			return (new FunctionCall({
+			return (new Invocation({
 				target: func,
-				args: new List({items: IList([init, item])})
+				args: List([init, item])
 			})).eval(func.ctx);
 		}, init);
 	},
 };
 
-module.exports = _List;
+module.exports = ListType;
