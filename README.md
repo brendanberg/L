@@ -86,6 +86,6 @@ Here's a simple example of an __L__ program:
 'Hello, world!'
 </pre>
 
-Now that you've made it this far, check out the [Intruduction to the L Programming Language][intro] to learn more!
+You've made it this far, so consider reading the [Intruduction to the L Programming Language][intro] next!
 
 [intro]: docs/introduction.md
