@@ -1,0 +1,25 @@
+>> a :: 'Hello,'
+>> b :: 'world!'
+>> one :: { [a, b](join: ' ') }
+>> one
+{
+	[a, b](join: ' ')
+}
+>> \one
+"Hello, world!"
+
+>> b :: 'everybody!'
+>> \one
+"Hello, everybody!"
+
+>> two :: { [a, \b](join: ' ') }
+>> b :: 'nobody.'
+>> \two
+'Hello, everybody!'
+
+>> ctx :: [
+ -     .a : 'Bonjour,'
+ -     .b : 'monde!'
+ - ]
+>> one(evaluateWithContext: ctx)
+'Bonjour, monde!'

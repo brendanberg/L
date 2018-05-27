@@ -1,10 +1,10 @@
-const { Map, List: IList } = require('immutable');
+const { Map, List } = require('immutable');
 const punycode = require('punycode');
 const Type = require('../ast/type');
 const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
 const Integer = require('../ast/integer');
-const List = require('../ast/list');
+const List_ = require('../ast/list');
 const Bottom = require('../ast/bottom');
 const dispatch = require('../dispatch');
 
@@ -14,11 +14,11 @@ function make_bool(exp) {
 }
 
 
-let _Text = new Type({label: 'Text'});
+let TextType = new Type({label: 'Text'});
 
-_Text.methods = {
+TextType.methods = {
 	'(count.)': function() {
-		return new Integer({value: this.value.length});
+		return new Integer({value: this.value.count()});
 	},
 	"('+':)": dispatch({
 		'Text': function(s) {
@@ -29,52 +29,54 @@ _Text.methods = {
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			let equal = (this.value.length == s.value.length) && this.value.reduce((value, ch, idx) => {
-				return value && (ch === s.value[idx]); 
-			}, true);
-			return make_bool(equal);
+			/*let equal = (this.value.count() == s.value.count())
+						&& this.value.reduce((value, ch, idx) => {
+				return value && (ch === s.value.get(idx)); 
+			}, true);*/
+			return make_bool(this.value.equals(s.value));
 		}
 	}),
 	"('!=':)": dispatch({
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			let equal = (this.value.length == s.value.length) && this.value.reduce(function(value, ch, idx) {
+			/*let equal = (this.value.count() == s.value.count())
+						&& this.value.reduce(function(value, ch, idx) {
 				return value && (ch === s.value[idx]); 
-			}, true);
-			return make_bool(!equal);
+			}, true);*/
+			return make_bool(!this.value.equals(s.value));
 		}
 	}),
 	"('<':)": dispatch({
 		'Text': function(txt) {
-			let comp = IList(this.value).zip(txt.value).reduce((comparison, chars) => {
+			let comp = List(this.value).zip(txt.value).reduce((comparison, chars) => {
 				if (comparison !== 0) { return comparison; }
-				return Math.sign(chars[0] - chars[1]);
+				return Math.sign(chars.get(0) - chars.get(1));
 			}, 0);
 
-			return make_bool((comp === 0) ? (this.value.length < txt.value.length) : (comp < 0));
+			return make_bool((comp === 0) ? (this.value.count() < txt.value.count()) : (comp < 0));
 		},
 	}),
 	"('>':)": dispatch({
 		'Text': function(txt) {
-			let comp = IList(this.value).zip(txt.value).reduce((comparison, chars) => {
+			let comp = List(this.value).zip(txt.value).reduce((comparison, chars) => {
 				if (comparison !== 0) { return comparison; }
 				return Math.sign(chars[0] - chars[1]);
 			}, 0);
 
-			return make_bool((comp === 0) ? (this.value.length > txt.value.length) : (comp > 0));
+			return make_bool((comp === 0) ? (this.value.count() > txt.value.count()) : (comp > 0));
 		}
 	}),
 	"('@':)": dispatch({
 		'Integer': function(n) {
-			let idx = n.value < 0 ? this.value.length + n.value : n.value;
+			let idx = n.value < 0 ? this.value.count() + n.value : n.value;
 			let ch = this.value[idx];
 			return ch ? new Text({value: [ch]}) : new Bottom();
 		}
 	}),
 	/*'(contains:)': dispatch({
 		'Text': function(txt) {
-			IList(this.value).contains(
+			List(this.value).contains(
 		},	
 	}),*/
 	'(split:)': dispatch({
@@ -84,13 +86,13 @@ _Text.methods = {
 			// https://en.wikipedia.org/wiki/Boyer–Moore_string_search_algorithm
 			let items;
 
-			if (s.value.length === 0) {
+			if (s.value.count() === 0) {
 				// The trivial split
 				items = this.value.reduce(function(result, item) {
-					return result.push(new Text({value: [item]}));
-				}, IList([]));
+					return result.append(new Text({value: [item]}));
+				}, List([]));
 
-				return new List({items: items});
+				return new List_({items: items});
 			}
 
 			let splits = this.value.reduce(function(result, item) {
@@ -98,43 +100,43 @@ _Text.methods = {
 
 				if (result[2].count() === 0 && item === s.value[0]) {
 					// Ended a match and started a new one
-					return [result[0].push(IList([])), IList([item]), IList(s.value).rest()];
+					return [result[0].append(List([])), List([item]), List(s.value).rest()];
 				} else if (result[2].count() === 0) {
 					// Ended a match
-					return [result[0].push(IList([item])), IList([]), IList(s.value)];
+					return [result[0].append(List([item])), List([]), List(s.value)];
 				} else if (result[2].get(0) === item) {
 					// Starting or continuing a match
-					return [result[0], result[1].push(item), result[2].slice(1)];
-				} else if (result[2].count() < s.value.length) {
+					return [result[0], result[1].append(item), result[2].slice(1)];
+				} else if (result[2].count() < s.value.count()) {
 					// Reset after a false start
 					res = result[0].update(-1, function(v) {
-						return v.concat(result[1]).push(item);
+						return v.concat(result[1]).append(item);
 					});
-					return [res, IList([]), IList(s.value)];
+					return [res, List([]), List(s.value)];
 				} else {
 					// Continue outside a match
 					res = result[0].update(-1, function(v) {
-						return v.push(item);
+						return v.append(item);
 					});
 					return [res, result[1], result[2]];
 				}
-			}, [IList([IList([])]), IList([]), IList(s.value)]);
+			}, [List([List([])]), List([]), List(s.value)]);
 
 			let texts = splits[0].map(function(item) {
-				return new Text({value: item.toArray()});
+				return new Text({value: item});
 			});
 
 			if (splits[2].count() === 0) {
-				return new List({items: texts.push(new Text({value: []}))});
-			} else if (splits[2].count() < s.value.length) {
+				return new List_({items: texts.append(new Text({value: List([])}))});
+			} else if (splits[2].count() < s.value.count()) {
 				let fixed = texts.update(-1, function(t) {
 					return t.update('value', function(v) {
-						return v.concat(splits[1].toArray());
+						return v.concat(splits.get(1));
 					});
 				});
-				return new List({items: fixed});
+				return new List_({items: fixed});
 			} else {
-				return new List({items: texts});
+				return new List_({items: texts});
 			};
 		}
 	}),
@@ -150,4 +152,4 @@ _Text.methods = {
 	*/
 };
 
-module.exports = _Text;
+module.exports = TextType;

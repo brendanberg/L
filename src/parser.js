@@ -160,7 +160,7 @@ function peg$parse(input, options) {
       peg$c5 = "'",
       peg$c6 = peg$literalExpectation("'", false),
       peg$c7 = function(t) {
-      			let chars = punycode.ucs2.decode(t.join(''));
+      			let chars = List(punycode.ucs2.decode(t.join('')));
       			return new AST.Text({value: chars});
       		},
       peg$c8 = "\"",

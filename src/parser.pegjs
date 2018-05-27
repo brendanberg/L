@@ -75,11 +75,11 @@ term
 	/ brace_container // block
 	/ number
 	/ "'" t:single_quote_string* "'" {
-			let chars = punycode.ucs2.decode(t.join(''));
+			let chars = List(punycode.ucs2.decode(t.join('')));
 			return new AST.Text({value: chars});
 		}
 	/ '"' t:double_quote_string* '"' {
-			let chars = punycode.ucs2.decode(t.join(''));
+			let chars = List(punycode.ucs2.decode(t.join('')));
 			return new AST.Text({value: chars});
 		}
 	/ op:operator { return new AST.Operator({label: op}); }

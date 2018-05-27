@@ -996,7 +996,7 @@ let match = {
 					&& node.exprs.first().terms.count() === 1) {
 				let op = node.exprs.first().terms.first();
 				if (op._name === 'Operator' && op.label === ':') {
-					return [new AST.Map({items: Map({})}), unparsed];
+					return [new AST.Map({items: List([])}), unparsed];
 				} else {
 					return null;
 				}
@@ -1014,7 +1014,7 @@ let match = {
 					
 					if (first && first._name === 'Operator' && first.label === ':') {
 						let val = this.expressionNoAssign(context, rest.first(), rest.rest());
-						return result.set(key[0], new AST.KeyValuePair({key: key[0], val: val[0]}));
+						return result.push(new AST.KeyValuePair({key: key[0], val: val[0]}));
 					} else {
 						/*
 							[ a : 1 ]
@@ -1037,7 +1037,7 @@ let match = {
 					// we're actually in a list and have to backtrack.
 					return null;
 				}
-			}, Map({}));
+			}, List([]));
 
 			return items && [new AST.Map({items: items}), unparsed];
 		}
