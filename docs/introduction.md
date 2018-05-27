@@ -36,9 +36,9 @@ The following are all valid identifiers: `hello`, `thing-one`, `_42`, `ради�
 ### Symbols
 
 Symbols are named entities that may be used as flags to represent a programmer-defined meaning.
-They begin with a dollar sign and otherwise follow the syntax rule for identifiers.
+They begin with a period and otherwise follow the syntax rule for identifiers.
 
-For example, `$empty`, `$𓄿`, `$먼저`, and `$🐶🐮` are valid symbols.
+For example, `.empty`, `.𓄿`, `.먼저`, and `.🐶🐮` are valid symbols.
 
 ### Numbers
 
@@ -160,12 +160,12 @@ The binary arithmetic operators behave similarly to a standard pocket calculator
 6 / 8                     # equals the fraction ¾
 ```
 
-## The Match Operator
+## The Bind Operator
 
 Instead of the more familiar assignment operator,
-__L__ uses structural pattern matching to map values onto corresponding variables.
+__L__ uses structural pattern matching to bind values onto corresponding variables.
 Pattern matching is written as an expression using the `::` operator,
-where values on the right hand side are mapped onto identifiers specified in the pattern on the left hand side.
+where values on the right hand side are bound to identifiers specified in the pattern on the left hand side.
 
 ### Basic Pattern Matching
 
@@ -228,11 +228,11 @@ which is written as a list of comma-separated values enclosed in square brackets
 [ 'a', 'b', 'c' ]
 ```
 
-The length of a list can be queried using the `(.count)` selector.
+The length of a list can be queried using the `(count.)` selector.
 
 <pre>
 >> <b>ls :: ['a', 'b', 'c']</b>
->> <b>ls(.count)</b>
+>> <b>ls(count.)</b>
 3
 </pre>
 
@@ -342,4 +342,81 @@ Accessing associated values can be done with pattern matching.
 
 ## Functions
 
+A function is a sequence of operations grouped with a description of its input.
+When a function is invoked by providing it with input values, it executes the operations and produces a value as output.
+
+Functions in __L__ consist of a list of input parameters in parentheses, followed by the `->` arrow operator,
+and finally a list of expressions in braces that are evaluated when the function is invoked.
+All functions in __L__ are anonymous, and must be bound to a variable if we want to refer to it later in our program.
+
+Here is the definition of a function that calculates the average of two numbers, __*x*__ and __*y*__.
+We assign the function to the variable `average` so we have a way to reference it in the future.
+
+```
+average :: (x, y) -> { (x + y) / 2 }
+```
+
+We can invoke the function passing it a list of values.
+So to calculate the average of, say 42 and 34, we would write `average(42, 34)`.
+Invoking the function creates a new context and binds the parameters to the variable names in the function's definition.
+When `average(42, 34)` is invoked, __*x*__ is assigned the value 42, and __*y*__ is assigned the value 34.
+The body of the function has access to the values passed to it by referencing the input parameter names.
+
 ### Pattern Matching in Functions
+
+A function in __L__ can express more than just the names of its input parameters.
+The input parameters have the same behavior as the bind operator discussed earlier in the introduction.
+This feature gives us more expressive power when defining functions.
+
+Consider a use case where we want to restrict a function to only accept a two-element list as its argument.
+We could write the function in a way that expresses that constraint
+and when the function is called with a value that is not a two-element list,
+the match will fail and the function will return `_`.
+
+```
+([x, y]) -> { #- do something with x and y -# )
+```
+
+### Hybrid Functions
+
+Pattern matching arguments can be useful on its own,
+but its real power is apparent when building hybrid functions.
+A hybrid function is a collection of function definitions that can define different behavior for different conditions of input.
+
+A classic example is defining base cases for recursive functions.
+The factorial function is defined for some positive integer __*n*__
+as __*n*__ times all the integers less than __*n*__ down to 1.
+
+More precisely, we could write:
+
+```
+factorial :: {{
+    (1) -> { 1 },
+    (n) -> { n * factorial(n - 1) }
+}}
+```
+
+When `factorial` is called with the value 1,
+the first component in the definition matches the value and returns 1.
+If the function is called with a value larger than 1,
+the second component matches and returns __*n*__ times the value of `factorial` called with one less than __*n*__.
+This repetion will continue until the value is decremented all the way to 1
+and the call to `factorial` executes the base case.
+
+### Guard Expressions
+
+There's a subtle bug in the implementation of the `factorial` function in the previous section.
+If the function is called with a value *less* than 1,
+the base case will never be called since the value of __*n*__ will continue to decrement towards negative infinity.
+
+We can solve this problem with a guard expression that prevents the recursive case from being matched with nonsense values. 
+A guard expression follows the input parameter list and is announced with a `?`:
+
+```
+factorial :: {{
+    (1) -> { 1 }
+    (n) ? (n > 0) -> { n * factorial(n - 1) }
+}}
+```
+
+Now when we call `factorial(-98)`, none of the function's components match, and we get the value `_` indicating an error.
