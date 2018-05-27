@@ -7,7 +7,9 @@ function make_bool(exp) {
 	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
-Symbol.methods = {
+const SymbolType = new Type({label: 'Symbol'});
+
+SymbolType.methods = {
 	// Symbol composition methods
 	// TODO: These should do the same type checking and compile-time analysis
 	//       done by the parser and type checker :-)
@@ -28,4 +30,4 @@ Symbol.methods = {
 	}),
 };
 
-module.exports = Symbol;
+module.exports = SymbolType;

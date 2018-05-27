@@ -11,10 +11,10 @@
     (n) -> { odd(n + 1) }
 }}]
 >> even(0)
-True
+.True
 >> odd(4)
-False
+.False
 >> even(15)
-False
+.False
 >> odd(-21)
-True
+.True

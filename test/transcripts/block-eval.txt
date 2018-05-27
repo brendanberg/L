@@ -2,19 +2,17 @@
 >> b :: 'world!'
 >> one :: { [a, b](join: ' ') }
 >> one
-{
-	[a, b](join: ' ')
-}
->> \one
-"Hello, world!"
+{ [a, b](join: ' ') }
+>> one()
+'Hello, world!'
 
 >> b :: 'everybody!'
->> \one
-"Hello, everybody!"
+>> one()
+'Hello, everybody!'
 
 >> two :: { [a, \b](join: ' ') }
 >> b :: 'nobody.'
->> \two
+>> two()
 'Hello, everybody!'
 
 >> ctx :: [
@@ -22,4 +20,4 @@
  -     .b : 'monde!'
  - ]
 >> one(evaluateWithContext: ctx)
-'Bonjour, monde!'
+'Hello, nobody.'
