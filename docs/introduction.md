@@ -1,4 +1,4 @@
-# Introduction to the L Programming Language
+# Introduction to the 🅛 Programming Language
 
 Hello.
 

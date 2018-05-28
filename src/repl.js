@@ -23,10 +23,10 @@ const style = require('./format');
 
 
 for (let i = 0, len = filenames.length; i < len; i++) {
-	contents = fs.readFileSync(path.join(basepath, filenames[i]), 'utf-8');
+	let contents = fs.readFileSync(path.join(basepath, filenames[i]), 'utf-8');
 
 	try {
-		ast = L.Parser.parse(contents).transform(ctx, L.Rules);
+		let ast = L.Parser.parse(contents).transform(ctx, L.Rules);
 	} catch (e) {
 		var result = e.toString();
 		

@@ -69,7 +69,6 @@ const test_transcript = (basepath, filename, globals) => {
 
 	it(filename, () => {
 		input.map((elt, idx) => {
-		//console.log('>> ', elt);
 			let ast = L.Parser.parse(elt).transform(ctx, L.Rules);
 			let result = (new L.AST.Immediate({
 				target: ast, args: new L.AST.List()
