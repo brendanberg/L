@@ -1,0 +1,11 @@
+>> if :: (e, c, a)->{ {{ (.True)->{ c() }, (.False)->{ a() } }}(e) }
+[.if: (e, c, a) -> { {{
+        (.True) -> { c() }
+        (.False) -> { a() }
+    }}(e) }]
+>> ok :: 'ok.', fail :: 'fail.', x :: 7
+[.x: 7]
+>> if (x > 3, { ok }, { fail })
+'ok.'
+>> if (x < 3, { ok }, { fail })
+'fail.'

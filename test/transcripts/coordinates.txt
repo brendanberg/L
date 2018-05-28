@@ -1,0 +1,38 @@
+>> coord_info :: {{
+ -   (0, 0) -> { 'at origin' }
+ -   (_, 0) -> { 'on x axis' }
+ -   (0, _) -> { 'on y axis' }
+ -   (x, y) -> { {{
+ -     (.True, .True) -> { 'in quadrant I' }
+ -     (.False, .True) -> { 'in quadrant II' }
+ -     (.False, .False) -> { 'in quadrant III' }
+ -     (.True, .False) -> { 'in quadrant IV' }
+ -   }} (x > 0, y > 0) }
+ - }}
+[.coord_info: {{
+    (0, 0) -> { 'at origin' }
+    (_, 0) -> { 'on x axis' }
+    (0, _) -> { 'on y axis' }
+    (x, y) -> { {{
+            (.True, .True) -> { 'in quadrant I' }
+            (.False, .True) -> { 'in quadrant II' }
+            (.False, .False) -> { 'in quadrant III' }
+            (.True, .False) -> { 'in quadrant IV' }
+        }}(x > 0, y > 0) }
+}}]
+>> coord_info(0, 0)
+'at origin'
+>> coord_info(42, 0)
+'on x axis'
+>> coord_info(-1337, 0)
+'on x axis'
+>> coord_info(0, 4)
+'on y axis'
+>> coord_info(3, 2)
+'in quadrant I'
+>> coord_info(-3, 2)
+'in quadrant II'
+>> coord_info(-3, -2)
+'in quadrant III'
+>> coord_info(3, -2)
+'in quadrant IV'

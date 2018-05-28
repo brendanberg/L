@@ -1,6 +1,6 @@
 {
   "name": "l",
-  "version": "0.2.03",
+  "version": "0.2.04",
   "description": "The L Programming Language",
   "author": "Brendan Berg <brendan@berg.industries>",
   "main": "lib/l.js",
@@ -10,6 +10,7 @@
   },
   "scripts": {
     "build": "rm src/parser.js && pegjs -o src/parser.js src/parser.pegjs",
+    "test": "node_modules/mocha/bin/mocha test/",
     "metal": "src/repl.js"
   },
   "bin": {
@@ -21,8 +22,15 @@
     "punycode": "^2.1.0"
   },
   "devDependencies": {
-    "mocha-testcheck": "0.1.2",
+    "chai": "^2.0.0",
+    "chai-immutable": "^1.6.0",
+    "mocha": "^5.2.0",
+    "mocha-clean": "^1.0.0",
+    "mocha-testcheck": "^0.1.2",
     "pegjs": "^0.10.0"
+  },
+  "directories": {
+    "test": "test/"
   },
   "preferGlobal": true,
   "license": "MIT"

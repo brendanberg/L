@@ -1,0 +1,28 @@
+>> Compares << .Same | .Ascending | .Descending >>
+Compares << .Same | .Ascending | .Descending >>
+>> compare :: {{
+ -   (a, b) ? ((a % 2 == 1) /\ (b % 2 == 0)) -> { Compares.Ascending }
+ -   (a, b) ? ((a % 2 == 0) /\ (b % 2 == 1)) -> { Compares.Descending }
+ -   (a, b) ? (a < b) -> { Compares.Ascending }
+ -   (a, b) ? (a > b) -> { Compares.Descending }
+ -   (_, _) -> { Compares.Same }
+ - }}
+[.compare: {{
+    (a, b) ? ((a % 2 == 1) /\ (b % 2 == 0)) -> { Compares.Ascending }
+    (a, b) ? ((a % 2 == 0) /\ (b % 2 == 1)) -> { Compares.Descending }
+    (a, b) ? (a < b) -> { Compares.Ascending }
+    (a, b) ? (a > b) -> { Compares.Descending }
+    (_, _) -> { Compares.Same }
+}}]
+>> compare(0, 2)
+.Ascending
+>> compare(0, 3)
+.Descending
+>> compare(1, 3)
+.Ascending
+>> compare(3, 2)
+.Ascending
+>> compare(3, 3)
+.Same
+>> (1 .. 11)(sortWith: compare)
+[1, 3, 5, 7, 9, 2, 4, 6, 8, 10]

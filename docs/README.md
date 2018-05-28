@@ -1,43 +1,40 @@
 # Introduction to the 🅛 Programming Language
 
-__L__ is a gradually typed multi-paradigm programming language with gradual typing, [feature], [feature], and intuitive concurrency.
+__L__ is a gradually typed multi-paradigm programming language with actor-model
+concurrency.
 
-## Syntax
+For a high-level overview of __L__'s features and syntax,
+start by reading the [general introduction to the __L__ Programming Language][intro].
 
-```
->> greet :: (entity) -> { 'Hello, ' + entity + '!' }
->> greet('world')
-'Hello, world!'
-```
+## Contents
 
-### Values
+1. Syntax Basics
+  1. Numbers
+  1. Operators
+  1. Identifiers and Symbols
+  1. Data Types
+  1. Functions
+  1. The Bind Operator
+  1. Working with Text
+  1. Lists and Sequences
+  1. Dictionaries
+  1. Records
+  1. Symbolic Unions
+  1. Methods
+  1. Actors and Messages
+1. Concurrency in __L__
+  1. Actors
+  1. Spawn, Send, and Receive
+1. The Standard Library
+  1. Numbers
+  1. Text
+  1. Lists
+  1. Dictionaries
+1. Language Manual
+  1. Syntax
+  1. Semantics
+  1. Type System
+  1. Concurrency
+1. Contributing to __L__
+1. Community Guidelines
 
-Values in __L__ are numbers, text, lists, maps, symbols, functions, and blocks.
-
-__Number Literals__
-
-Valid numbers in __L__ are base 10 and base 16 integers, arbitrary-precision decimals, scientific notation decimals, and complex numbers.
-
-__Unions__
-
-A union is a data type consisting of two or more variants belonging to a name. A value is one of the 
-
-__Functions__
-
-To create a function in __L__, use the arrow operator (`->`) to join a tuple of argument names to a block.
-
-```
-(x, y) -> { x - y }
-```
-
-The argument names are bound to local variables in the block when 
-
-### Pattern Matching
-
-```
-fib :: {{
-    (0) -> { 0 }
-    (1) -> { 1 }
-    (n) -> { fib(n - 1) + fib(n - 2) }
-}}
-```

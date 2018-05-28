@@ -1,8 +1,8 @@
 const { MatchError, NotImplemented } = require('./error');
 const { Map, Record } = require('immutable');
+const Text = require('./ast/text');
 const Bottom = require('./ast/bottom');
 const Invocation = require('./ast/invocation');
-const Operator = require('./ast/operator');
 const KeyValuePair = require('./ast/keyvaluepair');
 const _ = null;
 const _map = Map({});
@@ -11,11 +11,15 @@ const builtins = Map({
 	'Integer': require('./impl/integer'),
 	'Rational': require('./impl/rational'),
 	'Decimal': require('./impl/decimal'),
+	'Complex': require('./impl/complex'),
 	'Text': require('./impl/text'),
 	'List': require('./impl/list'),
 	'Map': require('./impl/map'),
-	//'Block': require('./impl/block'),
+	'Block': require('./impl/block'),
+	'Symbol': require('./impl/symbol'),
 	// TODO: Are there built-in methods that all records and unions use?
+	// Experimental Concurrency Type
+	// 'Filament': require('./impl/filament'),
 });
 
 
@@ -70,7 +74,11 @@ Context.prototype.match = function(pattern, value) {
 					// capture([a...], []) -> {a: []}
 					// capture([a...], [V1]) -> {a: [V1]}
 					// capture([a...], [V1, V2, ..., Vn]) -> {a: [V1, V2, ..., Vn]}
-					return ctx.set(first.label, value);
+					if (first.label === '_') {
+						return ctx;
+					} else {
+						return ctx.set(first.label, value);
+					}
 				} else {
 					// We need to match from the last item forward
 					//
@@ -111,7 +119,7 @@ Context.prototype.match = function(pattern, value) {
 		} else if (pattern._name === 'Identifier') {
 			let type = pattern.getIn(['tags', 'type'], null);
 			// TODO: Type check here.
-			return ctx.set(pattern.label, value);
+			return (pattern.label == '_') ? ctx : ctx.set(pattern.label, value);
 		} else if (pattern._name === 'Symbol') {
 			// TODO: Replace each of these test cases with an equality
 			// method defined on each AST node
@@ -122,8 +130,8 @@ Context.prototype.match = function(pattern, value) {
 			}
 		} else if (pattern._name === 'Record') {
 
-		} else if (pattern._name === 'Variant') {
-			if (value._name === 'Variant' && value.label === pattern.label) {
+		} else if (pattern._name === 'Tuple') {
+			if (value._name === 'Tuple' && value.label === pattern.label) {
 				// TODO: Match on pattern inner values
 				if (pattern.values.count() !== value.values.count()) { return null; }
 
@@ -178,11 +186,11 @@ Context.prototype.match = function(pattern, value) {
 			// (but which side is the target and which is the argument?)
 			let isEqual = (new Invocation({
 				target: pattern, plist: new KeyValuePair({
-					key: new Operator({label: '=='}), val: value
+					key: new Text({value: "'=='"}), val: value
 				})
 			})).eval(ctx);
 
-			if (isEqual._name === 'Member' && isEqual.label === 'True') {
+			if (isEqual._name === 'Symbol' && isEqual.label === 'True') {
 				return ctx;
 			} else {
 				return null;

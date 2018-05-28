@@ -1,47 +1,46 @@
-/*
-	AST Node Definitions
-*/
+
+
 
 module.exports = {
-	Grouping: require('./ast/grouping'),
-	InfixExpression: require('./ast/infixexpression'),
-	PrefixExpression: require('./ast/prefixexpression'),
-	Operator: require('./ast/operator'),
-	Function: require('./ast/function'),
-	FunctionCall: require('./ast/functioncall'),
-	Match: require('./ast/match'),
+	Bind: require('./ast/bind'),
+	RecordType: require('./ast/recordtype'),
+	UnionType: require('./ast/uniontype'),
 	Method: require('./ast/method'),
-	Invocation: require('./ast/invocation'),
-	Evaluate: require('./ast/evaluate'),
-	Block: require('./ast/block'),
-	List: require('./ast/list'),
-	Type: require('./ast/type'), // Currently only used for defining built-in types
-	Map: require('./ast/map'),
-	Assignment: require('./ast/assignment'),
-	Template: require('./ast/template'),
-	Accessor: require('./ast/accessor'),
-	Lookup: require('./ast/lookup'),
-//  Unify: require('./ast/unify'),
-//	Unify: I.Record({lhs: _, rhs: _, tags: _map}, 'Unify'),
-//	Message: require('./ast/message'),
-//	Message: I.Record({identifier: _, plist: _, tags: _map}, 'Message'),
+
 	MessageSend: require('./ast/messagesend'),
-	Identifier: require('./ast/identifier'),
+	Invocation: require('./ast/invocation'),
+	SymbolLookup: require('./ast/symbollookup'),
+	SequenceAccess: require('./ast/sequenceaccess'),
+	Immediate: require('./ast/immediate'),
+
+	PrefixExpression: require('./ast/prefixexpression'),
+	InfixExpression: require('./ast/infixexpression'),
+
+	Block: require('./ast/block'),
+	HybridFunction: require('./ast/hybridfunction'),
+	Function: require('./ast/function'),
+	List: require('./ast/list'),
+	Map: require('./ast/map'),
 	KeyValuePair: require('./ast/keyvaluepair'),
-	Record: require('./ast/record'),
-	Value: require('./ast/value'),
-	Union: require('./ast/union'),
-	Variant: require('./ast/variant'),
+
+	//Message: require('./ast/message'), // !!!
+	Operator: require('./ast/operator'), // Eventually, we should move operator to skeleton
+	Identifier: require('./ast/identifier'),
 	Symbol: require('./ast/symbol'),
-	Qualifier: require('./ast/qualifier'),
-	Error: require('./ast/error'),
+	TypeVar: require('./ast/typevar'),
+
+	Record: require('./ast/record'),
+	Tuple: require('./ast/tuple'),
 	Text: require('./ast/text'),
+	// TODO Channel: require('./ast/channel'),
+
 	Integer: require('./ast/integer'),
 	Rational: require('./ast/rational'),
 	Decimal: require('./ast/decimal'),
 	Scientific: require('./ast/scientific'),
 	Complex: require('./ast/complex'),
+
 	Bottom: require('./ast/bottom'),
-//  Real: require('./ast/real'),
-//	Real: I.Record({magnitude: _, tags: _map}, 'Real')
+
+	Error: require('./ast/error'),
 };

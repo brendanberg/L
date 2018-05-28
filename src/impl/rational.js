@@ -1,12 +1,12 @@
 const { Map } = require('immutable');
 const Type = require('../ast/type');
 const Rational = require('../ast/rational');
-const Variant = require('../ast/variant');
+const Symbol = require('../ast/symbol');
 const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
 let _Rational = new Type({label: 'Integer'});

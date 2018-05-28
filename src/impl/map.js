@@ -1,25 +1,25 @@
-const { Map, List: IList } = require('immutable');
+const { Map, List } = require('immutable');
 const Type = require('../ast/type');
-const Variant = require('../ast/variant');
+const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
 const Integer = require('../ast/integer');
-const List = require('../ast/list');
+const List_ = require('../ast/list');
 const KeyValuePair = require('../ast/keyvaluepair');
 const Bottom = require('../ast/bottom');
-const FunctionCall = require('../ast/functioncall');
+const Invocation = require('../ast/invocation');
 const dispatch = require('../dispatch');
 
 function make_bool(exp) {
-	return new Variant({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
 let _Map = new Type({label: 'Map'});
 
 _Map.methods = {
-	'(.count)': function() {
+	'(count.)': function() {
 		return new Integer({value: this.items.count()});
 	},
-	'(.isEmpty)': function() {
+	'(isEmpty.)': function() {
 		return make_bool(this.items.isEmpty());
 	},
 	"('@':)": function(key) {
@@ -35,9 +35,9 @@ _Map.methods = {
 	'(contains:)': function(v) {
 		return make_bool(this.items.includes(v));
 	},
-	'(.items)': function() {},
-	'(.keys)': function() {},
-	'(.values)': function() {},
+	'(items.)': function() {},
+	'(keys.)': function() {},
+	'(values.)': function() {},
 	'(merge:usingMerger:)': function() {},
 	'(setKey:value:)': function(k, v) {
 		return this.set('items', this.items.set(k, new KeyValuePair({
@@ -47,20 +47,23 @@ _Map.methods = {
 	'(updateKey:updater:)': function(k, func) {
 
 	},
+	"('=>':)": dispatch({
+
+	}),
 	'(map:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: f,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(f.ctx);
 			}));
 		},
 		'Match': function(m) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: m,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(m.ctx);
 			}));
 		},
@@ -68,17 +71,17 @@ _Map.methods = {
 	'(filter:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.filter(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: f,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(f.ctx).label === 'True';
 			}));
 		},
 		'Match': function(m) {
 			return this.set('items', this.items.filter(function(item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: m,
-					args: new List({items: IList([item])})
+					args: List([item])
 				})).eval(m.ctx).label === 'True';
 			}));
 		},
@@ -86,15 +89,15 @@ _Map.methods = {
 	'(compactMap:)': dispatch({
 		'Function': function(f) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
-					target: f, args: newList({items: IList([item])})
+				return (new Invocation({
+					target: f, args: List([item])
 				})).eval(f.ctx);
 			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
 		},
 		'Match': function (f) {
 			return this.set('items', this.items.map(function(item) {
-				return (new FunctionCall({
-					target: f, args: newList({items: IList([item])})
+				return (new Invocation({
+					target: f, args: List([item])
 				})).eval(f.ctx);
 			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
 		},
@@ -102,26 +105,26 @@ _Map.methods = {
 	'(reduce:)': dispatch({
 		'Function': function(f) {
 			return this.items.reduce(function(init, item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: f,
-					args: new List({items: IList([init, item])})
+					args: List([init, item])
 				})).eval(f.ctx);
 			});
 		},
 		'Match': function(m) {
 			return this.items.reduce(function(init, item) {
-				return (new FunctionCall({
+				return (new Invocation({
 					target: m,
-					args: new List({items: IList([init, item])})
+					args: List([init, item])
 				})).eval(m.ctx);
 			});
 		},
 	}),
 	'(reduceInto:with:)': function(init, func) {
 		return this.items.reduce(function(init, item) {
-			return (new FunctionCall({
+			return (new Invocation({
 				target: func,
-				args: new List({items: IList([init, item])})
+				args: List([init, item])
 			})).eval(func.ctx);
 		}, init);
 	},

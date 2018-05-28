@@ -2,16 +2,16 @@
    Map AST Node
 */
 
-const { Map: IMap, List, Record } = require('immutable');
+const { Map, List, Record } = require('immutable');
 const Context = require('../context');
 const _ = null;
 const _list = List([]);
-const _map = IMap({});
+const _map = Map({});
 
 // TODO: Remove ctx field
-const Map = Record({items: _map, ctx: _, tags: _map}, 'Map');
+const Map_ = Record({items: _list, ctx: _, tags: _map}, 'Map');
 
-Map.prototype.toString = function() {
+Map_.prototype.toString = function() {
 	let delims = ['[',']']; //this.getIn(['tags', 'source'], 'list')];
 
     if (this.items.count() == 0) {
@@ -20,15 +20,15 @@ Map.prototype.toString = function() {
 		let items = this.items;
         return (
             delims[0] + 
-            items.keySeq().map(function(key) {
-				return items.get(key).key.toString() + ': ' + items.get(key).val.toString();
+            items.map((kvpair) => {
+				return kvpair.key.toString() + ': ' + kvpair.val.toString();
 			}).join(', ') +
             delims[1]
         );
     }
 };
 
-Map.prototype.repr = function(depth, style) {
+Map_.prototype.repr = function(depth, style) {
     let delims = ['[',']'];
 
     if (this.items.count() == 0) {
@@ -37,21 +37,25 @@ Map.prototype.repr = function(depth, style) {
 		let items = this.items;
         return (
             style.delimiter(delims[0]) +
-            items.keySeq().map(function(key) {
+            items.map(function(kvpair) {
 				return (
-					items.get(key).key.repr(depth, style) + style.delimiter(': ') +
-					items.get(key).val.repr(depth, style)
+					kvpair.key.repr(depth, style) + style.delimiter(': ') +
+					kvpair.val.repr(depth, style)
 				);
 			}).join(style.delimiter(', ')) + style.delimiter(delims[1])
         );
     }
 };
 
-Map.prototype.eval = function(ctx) {
-	return this;
+Map_.prototype.eval = function(ctx) {
+	return this.update('items', (items) => {
+		return List(items.reduce((map, item) => {
+			return map.set(item.key, item);
+		}, Map({})).valueSeq());
+	});
 };
 
-Map.prototype.transform = function(func) {
+Map_.prototype.transform = function(func) {
     let transform = function(node) {
         return ('transform' in node) ? node.transform(func) : func(node);
     };
@@ -61,5 +65,5 @@ Map.prototype.transform = function(func) {
     }));
 };
 
-module.exports = Map;
+module.exports = Map_;
 

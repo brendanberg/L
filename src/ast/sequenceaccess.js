@@ -1,5 +1,5 @@
 /*
-	Collection Accessor AST node
+	Collection SequenceAccess AST node
 */
 
 const { Map, List: IList, Record } = require('immutable');
@@ -9,9 +9,9 @@ const _ = null;
 const _map = Map({});
 const _list = IList([]);
 
-const Accessor = Record({target: _, terms: _list, tags: _map}, 'Accessor');
+const SequenceAccess = Record({target: _, terms: _list, tags: _map}, 'SequenceAccess');
 
-Accessor.prototype.toString = function() {
+SequenceAccess.prototype.toString = function() {
 	return (
 		this.target.toString() + '[' + 
 		this.terms.map(function(t) {
@@ -20,7 +20,7 @@ Accessor.prototype.toString = function() {
 	);
 };
 
-Accessor.prototype.repr = function(depth, style) {
+SequenceAccess.prototype.repr = function(depth, style) {
 	return (
 		this.target.repr(depth, fmt) +
 		style.delimiter('[') +
@@ -31,7 +31,7 @@ Accessor.prototype.repr = function(depth, style) {
 	);
 };
 
-Accessor.prototype.eval = function(ctx) {
+SequenceAccess.prototype.eval = function(ctx) {
 	var target = this.target.eval(ctx);
 	var result = [];
 	var list, index;
@@ -75,5 +75,5 @@ Accessor.prototype.eval = function(ctx) {
 	}
 };
 
-module.exports = Accessor;
+module.exports = SequenceAccess;
 
