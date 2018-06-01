@@ -45,6 +45,7 @@ for (let i = 0, len = filenames.length; i < len; i++) {
 }
 
 console.log(style.operator('The L Programming Language, Meta.L v' + L.version));
+process.stdout.write('\033]0;Meta.L\007');
 
 rep = repl.start({
 	ignoreUndefined: true,
