@@ -151,7 +151,7 @@ function depth(cmd) {
 	let dnlen = dn ? dn.length : 0;
 	let uplen = up ? up.length : 0;
 
-	return dnlen - uplen;
+	return Math.max(dnlen - uplen, 0);
 }
 
 function writer(obj) {
@@ -180,7 +180,7 @@ function eval(cmd, context, filename, callback) {
 	// TODO: move this to online handler
 	if (level) {
 		L.log.setLevel(level[1]);
-		process.stdout.write("Set logging level to '" + level[1] + "'\n");
+		rep.outputStream.write(rep.writer(`Set logging level to '${ level[1] }'\n`));
 		rep.displayPrompt();
 		return;
 	}
