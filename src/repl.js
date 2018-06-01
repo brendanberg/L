@@ -96,7 +96,7 @@ rep.on('line', (cmd) => {
 				// ...	x: 1
 				// ... }
 				bufferedCommand += cmd + '\n';
-				let padding = Array(depth(bufferedCommand)).join('  ');
+				let padding = Array(depth(bufferedCommand)).fill('  ').join('');
 
 				rep.displayPrompt();
 				rep.write(padding);
