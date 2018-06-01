@@ -96,7 +96,7 @@ rep.on('line', (cmd) => {
 				// ...	x: 1
 				// ... }
 				bufferedCommand += cmd + '\n';
-				let padding = Array(depth(bufferedCommand)).fill('  ').join('');
+				let padding = Array(depth(bufferedCommand)).join('  ');
 
 				rep.displayPrompt();
 				rep.write(padding);
@@ -180,7 +180,7 @@ function eval(cmd, context, filename, callback) {
 	// TODO: move this to online handler
 	if (level) {
 		L.log.setLevel(level[1]);
-		process.stdout.write("Set logging level to '" + level[1] + "'\n");
+		rep.outputStream.write(rep.writer(`Set logging level to '${ level[1] }'\n`));
 		rep.displayPrompt();
 		return;
 	}
