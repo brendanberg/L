@@ -67,7 +67,7 @@ const test_transcript = (basepath, filename, globals) => {
 
 	let ctx = new L.Context({outer: globals});
 
-	it(filename, () => {
+	it(`correctly evaluates '${filename}'`, () => {
 		input.map((elt, idx) => {
 			let ast = L.Parser.parse(elt).transform(ctx, L.Rules);
 			let result = (new L.AST.Immediate({

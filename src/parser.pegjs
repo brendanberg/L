@@ -35,6 +35,9 @@ expressionList
 	= __ first:expression rest:(_S e:expression { return e; })* _S? __ {
 			return List([first].concat(rest));
 		}
+	/ __ _S? __ {
+			return List([]);
+		}
 
 
 /*
@@ -378,10 +381,10 @@ X "hex"
  ---------------------------------------------------------------------------*/
 
 _ "whitespace"
-  = (Whitespace / Comment)*
+  = (Comment / Whitespace)*
 
 __ "whitespace"
-	= (Linespace / Comment)*
+	= (Comment / Linespace)*
 
 _S "separator"
 	= _ [,\n] __
@@ -401,7 +404,7 @@ Comment "comment"
 	= '#-' t:(!'-#' .)* '-#' {
 			return Skel.Comment({text: t.join(''), tags: Map({source: 'inline'})});
 		}
-	/ '#' t:(!'\n' .)* '\n' {
+	/ '#' t:(!'\n' .)* {
 			return Skel.Comment({text: t.join(''), tags: Map({source: 'trailing'})});
 		}
 
