@@ -1,5 +1,5 @@
-var pkg = require('../package.json');
-var Log = require('log');
+const pkg = require('../package.json');
+const log = require('loglevel');
 
 module.exports = {
 	version: pkg.version,
@@ -8,5 +8,5 @@ module.exports = {
 	Parser: require('./parser'),
 	Rules: require('./rules'),
 	Context: require('./context'),
-	log: new Log('error')
+	log: log
 };

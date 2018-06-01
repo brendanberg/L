@@ -3,15 +3,12 @@
 const { List } = require('immutable');
 const repl = require('repl');
 const L = require('./l');
+const fs = require('fs');
+const path = require('path');
 let util = require('util');
-let debug = util.debuglog('repl');
 
 let ctx = new L.Context();
-let str = '';
-let rep;
 
-let fs = require('fs');
-let path = require('path');
 
 let basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
 let filenames = fs.readdirSync(basepath).filter(function(filename) {
@@ -36,7 +33,7 @@ for (let i = 0, len = filenames.length; i < len; i++) {
 			result += '\n' + e.stack.replace(/^[^\n]+\n/, '');
 		}
 
-		console.log(result);
+		L.log.debug(result);
 	}
 
 	if (ast) {
@@ -44,18 +41,25 @@ for (let i = 0, len = filenames.length; i < len; i++) {
 	}
 }
 
-console.log(style.operator('The L Programming Language, Meta.L v' + L.version));
+process.stdout.write(style.operator('The L Programming Language, Meta.L v' + L.version + '\n'));
 process.stdout.write('\033]0;Meta.L\007');
 
-rep = repl.start({
+let rep = repl.start({
 	ignoreUndefined: true,
 	prompt: ">> ",
 	eval: eval,
 	writer: writer
 });
+
+let bufferedCommand = '';
+
+rep.clearBufferedCommand = () => {
+	bufferedCommand = '';
+};
+
 rep.removeAllListeners('line');
-rep.on('line', function(cmd) {
-	debug('line %j', cmd);
+rep.on('line', (cmd) => {
+	L.log.debug('line %j', cmd);
 	var skipCatchall = false;
 	cmd = trimWhitespace(cmd);
 
@@ -74,35 +78,30 @@ rep.on('line', function(cmd) {
 	}
 
 	if (!skipCatchall) {
-		var evalCmd = rep.bufferedCommand + cmd + '\n';
-		debug('eval %j', evalCmd);
+		var evalCmd = bufferedCommand + cmd + '\n';
+		L.log.debug('eval %j', evalCmd);
 		rep.eval(evalCmd, rep.context, 'repl', finish);
 	} else {
 		finish(null);
 	}
 
 	function finish(e, ret) {
-		debug('finish', e, ret);
-		rep.memory(cmd);
-
-		if (e && !rep.bufferedCommand && cmd.trim().match(/^npm /)) {
-			rep.outputStream.write('npm should be run outside of the ' +
-									'node repl, in your normal shell.\n' +
-									'(Press Control-D to exit.)\n');
-			rep.bufferedCommand = '';
-			rep.displayPrompt();
-			return;
-		}
+		L.log.debug('finish', e, ret);
 
 		// If error was SyntaxError and not JSON.parse error
 		if (e) {
-			if (e instanceof Recoverable) {
+			if (e instanceof repl.Recoverable) {
 				// Start buffering data like that:
 				// {
 				// ...	x: 1
 				// ... }
-				rep.bufferedCommand += cmd + '\n';
+				bufferedCommand += cmd + '\n';
+				let padding = Array(depth(bufferedCommand)).fill('  ').join('');
+
 				rep.displayPrompt();
+				rep.write(padding);
+				rep.line = padding;
+				rep.cursor = padding.length;
 				return;
 			} else {
 				rep._domain.emit('error', e);
@@ -110,7 +109,7 @@ rep.on('line', function(cmd) {
 		}
 
 		// Clear buffer if no SyntaxErrors
-		rep.bufferedCommand = '';
+		rep.clearBufferedCommand();
 
 		// If we got any output - print it (if no error)
 		if (!e && (!rep.ignoreUndefined || !util.isUndefined(ret))) {
@@ -141,8 +140,19 @@ rep.on('SIGINT', function() {
 });
 
 rep.on('exit', function() {
-	console.log('');
+	rep.outputStream.write(rep.writer('\n'));
 });
+
+function depth(cmd) {
+	// TODO: Figure out how to attach this to the top AST node?
+	let dn = cmd.match(/{{|{[^{]|\[|\(|<</g);
+	let up = cmd.match(/}}|[^}]}|\]|\)|>>/g);
+
+	let dnlen = dn ? dn.length : 0;
+	let uplen = up ? up.length : 0;
+
+	return dnlen - uplen;
+}
 
 function writer(obj) {
 	if (typeof obj === 'object') {
@@ -167,14 +177,14 @@ function eval(cmd, context, filename, callback) {
 	var ast, result;
 
 	// Special cases for changing logging levels
+	// TODO: move this to online handler
 	if (level) {
 		L.log.setLevel(level[1]);
-		console.log("Set logging level to '" + level[1] + "'");
+		process.stdout.write("Set logging level to '" + level[1] + "'\n");
 		rep.displayPrompt();
 		return;
 	}
 
-	command = str + command;
 	if (command.trim() === '') {
 		//callback(null, undefined);
 		rep.displayPrompt();
@@ -183,16 +193,14 @@ function eval(cmd, context, filename, callback) {
 
 	try {
 		ast = L.Parser.parse(command).transform(ctx, L.Rules);
-		str = '';
 		rep.setPrompt('>> ');
 	} catch (e) {
-		//console.log(e.toString());
-		//console.log(e.stack.replace(/^[^\n]+\n/, ''));
-		L.log.info(function() { return e.toString(); });
 		if (e.found == null) {
-			str = command + '\n';
+			L.log.debug(e.toString());
+			L.log.debug(e.stack.replace(/^[^\n]+\n/, ''));
+
 			rep.setPrompt(' - ');
-			rep.displayPrompt();
+			callback(new repl.Recoverable('Unexpected end of input'), '');
 			return;
 		}
 
@@ -203,7 +211,7 @@ function eval(cmd, context, filename, callback) {
 			// and found properties.
 			var pointer = Array(e.column).join(' ') + style.string('^');
 			result = '   ' + pointer + '\n' + result;
-			str = '';
+			rep.clearBufferedCommand();
 			rep.setPrompt('>> ');
 		} else {
 			result += '\n' + style.string(e.stack.replace(/^[^\n]+\n/, ''));

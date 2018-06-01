@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "immutable": "^3.7.6",
-    "log": "^1.4.0",
+    "loglevel": "^1.6.1",
     "punycode": "^2.1.0"
   },
   "devDependencies": {
