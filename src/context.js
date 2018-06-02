@@ -1,9 +1,10 @@
 const { MatchError, NotImplemented } = require('./error');
-const { Map, Record } = require('immutable');
+const { Map, List, Record } = require('immutable');
 const Text = require('./ast/text');
 const Bottom = require('./ast/bottom');
 const Invocation = require('./ast/invocation');
 const KeyValuePair = require('./ast/keyvaluepair');
+const Symbol = require('./ast/symbol');
 const _ = null;
 const _map = Map({});
 
@@ -50,8 +51,7 @@ Context.prototype.match = function(pattern, value) {
 		// let decompose = function(a, b) { ... }
 		if (ctx === null) { return null; }
 
-		if (pattern._name === 'List' || pattern._name === 'Block') {
-			if (value._name !== pattern._name) { return null; }
+		if ((pattern._name === 'List' || pattern._name === 'Block') && pattern._name === value._name) {
 			let field = (pattern._name === 'List') ? 'items' : 'exprs';
 
 			let pat = pattern.get(field);
@@ -113,8 +113,73 @@ Context.prototype.match = function(pattern, value) {
 					innerCtx
 				);
 			}
-		} else if (pattern._name === 'Map') {
-			// TODO: Eventually add support for maps. (How?)
+		} else if (pattern._name === 'List' && value._name === 'Map') {
+			let [first, rest] = [pattern.items.first(), pattern.items.rest()];
+
+			if (!first) {
+				return value.items.count() ? null : ctx;
+			}
+
+			if (first._name === 'Identifier' && first.getIn(['tags', 'collect'], false)) {
+				// The first item is an identifier splat
+				if (rest.isEmpty()) {
+					if (first.label === '_') {
+						return ctx;
+					} else {
+						return ctx.set(first.label, value);
+					}
+				} else {
+					let contains_splat = pattern.items.rest().reduce((has_splat, item) => {
+						if (has_splat === true) { return true; }
+
+						if (item._name === 'Identifier') {
+							return item.getIn(['tags', 'collect'], false);
+						} else {
+							return false;
+						}
+					}, false);
+
+					// TODO: This should ideally raise an error
+					// This isn't just a bad match, it's literally wrong
+					if (contains_splat) { return null; }
+
+					let pat = pattern.update('items', (items) => {
+						return items.rest().push(items.first());
+					});
+					return capture(pat, value, ctx);
+				}
+			} else if (first._name === 'KeyValuePair' || first._name === 'Identifier') {
+				// The item is an identifier or key value pair
+				let key, val;
+				
+				if (first._name === 'Identifier') {
+					key = new Symbol({label: first.label});
+					val = first;
+				} else {
+					key = first.key;
+					val = first.val;
+				}
+
+				let map = value.items.reduce((map, item) => {
+					return map.set(item.key, item.val);
+				}, Map({}));
+
+				let innerCtx = capture(val, map.get(key), ctx);
+
+				return innerCtx && capture(
+					pattern.set('items', rest),
+					value.update('items', (items) => {
+						return List(items.reduce((map, item) => {
+							if (item.key.equals(key)) {
+								return map;
+							} else {
+								return map.set(item.key, item);
+							}
+						}, Map({})).valueSeq());
+					}),
+					innerCtx
+				);
+			}
 			return null;
 		} else if (pattern._name === 'Identifier') {
 			let type = pattern.getIn(['tags', 'type'], null);
@@ -141,8 +206,8 @@ Context.prototype.match = function(pattern, value) {
 			} else {
 				return null;
 			}
-		} else if (pattern._name === 'Text') {
-			if (value._name === 'Text' && value.value === pattern.value) {
+		} else if (pattern._name === 'Text' && value._name === 'Text') {
+			if (value.value.equals(pattern.value)) {
 				return ctx;
 			} else {
 				return null;

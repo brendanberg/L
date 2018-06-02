@@ -29,10 +29,6 @@ TextType.methods = {
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			/*let equal = (this.value.count() == s.value.count())
-						&& this.value.reduce((value, ch, idx) => {
-				return value && (ch === s.value.get(idx)); 
-			}, true);*/
 			return make_bool(this.value.equals(s.value));
 		}
 	}),
@@ -40,10 +36,6 @@ TextType.methods = {
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			/*let equal = (this.value.count() == s.value.count())
-						&& this.value.reduce(function(value, ch, idx) {
-				return value && (ch === s.value[idx]); 
-			}, true);*/
 			return make_bool(!this.value.equals(s.value));
 		}
 	}),

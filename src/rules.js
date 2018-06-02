@@ -660,7 +660,7 @@ let match = {
 						encountered: part[1]
 					}));
 				} else if (part) {
-					return result.push(part[0].match);
+					return result.push(part[0]);
 				} else {
 					return null;
 				}
@@ -688,6 +688,7 @@ let match = {
 		//                    | complex
 		//
 		let first = (
+			this.keyValuePart(context, node, unparsed) ||
 			this.identifier(context, node, unparsed) ||
 			this.tuplePart(context, node, unparsed) ||
 			/*this.recordTemplate(context, node, unparsed) ||*/
@@ -752,6 +753,21 @@ let match = {
 		}
 
 		return [node, unparsed];
+	},
+
+	keyValuePart: function(context, node, unparsed) {
+		let key = this.expressionNoInfix(context, node, unparsed);
+
+		if (key) {
+			let [first, rest] = [key[1].first(), key[1].rest()];
+
+			if (first && first._name === 'Operator' && first.label === ':') {
+				let val = this.templatePart(context, rest.first(), rest.rest());
+				return [new AST.KeyValuePair({key: key[0], val: val[0]}), val[1]];
+			}
+		}
+		
+		return null;
 	},
 
 	recordTemplate: function(context, node, unparsed) {

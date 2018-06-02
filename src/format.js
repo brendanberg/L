@@ -46,8 +46,8 @@ let colors = {
     'name': 'blue',
     'delimiter': 'cyan',
     'error': 'red',
-    'comment': 'white',
-    'important': 'underline',
+    'comment': 'grey',
+    'important': 'white',
 };
 
 
