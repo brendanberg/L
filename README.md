@@ -1,3 +1,8 @@
+![CircleCI][ci] ![GitHub release][ver]
+
+[ci]: https://img.shields.io/circleci/project/github/brendanberg/L.svg
+[ver]: https://img.shields.io/github/release/brendanberg/L.svg
+
 # The 🅛 Programming Language
 
 The __L__ Programming Language is an experimental, minimalist, multi-paradigm programming language.
