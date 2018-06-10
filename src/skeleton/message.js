@@ -1,5 +1,6 @@
 
 const { Map, List, Record } = require('immutable');
+const { NotImplemented } = require('../error');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
@@ -18,13 +19,7 @@ Message.prototype.repr = function(depth, style) {
 };
 
 Message.prototype.transform = function(context, match) {
-	/*
-	let exprs = this.exprs.reduce(function(result, expr) {
-		let exp = match.messageItem(context, expr.terms.first(), expr.terms.rest());
-		return exp ? result.push(exp) : result;
-	}, List([]));
-	*/
-	return null;
+	throw new NotImplemented('Cannot call transform on a skeleton node other than block');
 };
 
 module.exports = Message;

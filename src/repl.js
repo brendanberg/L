@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-const { List } = require('immutable');
+const { List, Set } = require('immutable');
 const repl = require('repl');
 const L = require('./l');
 const fs = require('fs');
@@ -12,7 +12,7 @@ const loadSourceFile = (basepath, filename) => {
 	let ast, contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
 
 	try {
-		ast = L.Parser.parse(contents).transform(ctx, L.Rules);
+		[ast, scopes] = L.Parser.parse(contents).transform(L.Rules, scopes);
 	} catch (e) {
 		let result = e.toString();
 
@@ -26,7 +26,8 @@ const loadSourceFile = (basepath, filename) => {
 	}
 
 	if (ast) {
-		(new L.AST.Immediate({target: ast, args: new L.AST.List()}).eval(ctx));
+		ctx.scope = scopes;
+		ast.invoke(ctx);
 	}
 };
 
@@ -35,8 +36,10 @@ const loadSourceFile = (basepath, filename) => {
 // Create the initial context and load built-in library
 // ---------------------------------------------------------------------------
 
+let scopes = new L.Scope();
 let ctx = new L.Context();
-
+scopes.debug = true;
+ctx.loadGlobals(scopes);
 
 const basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
 const filenames = fs.readdirSync(basepath).filter(function(filename) {
@@ -44,7 +47,7 @@ const filenames = fs.readdirSync(basepath).filter(function(filename) {
 });
 
 for (let filename of filenames) {
-	loadSourceFile(basepath, filename);
+	loadSourceFile(basepath, filename, scopes);
 }
 
 
@@ -116,7 +119,7 @@ rep.defineCommand('clear', {
 	help: 'Clear the session\'s context',
 	action: function() {
 		this.clearBufferedCommand();
-		ctx = new L.Context();
+		ctx = (new L.Context()).loadGlobals();
 		return 'Successfully cleared the session\'s context\n';
 	}
 });
@@ -141,7 +144,7 @@ rep.defineCommand('load', {
 rep.defineCommand('save', {
 	help: 'Save all evaluated commands in the current session into a file',
 	action: function(filename) {
-		console.log(this.lines);
+		L.log.debug(this.lines);
 	}
 });
 
@@ -243,7 +246,7 @@ rep.on('exit', function() {
 
 
 // ---------------------------------------------------------------------------
-// Override evaluation hooks to implement Meta.L instead of JavaScript
+// Override evaluation hooks to speak Meta.L instead of JavaScript
 // ---------------------------------------------------------------------------
 
 function depth(cmd) {
@@ -281,7 +284,7 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		ast = L.Parser.parse(command).transform(ctx, L.Rules);
+		[ast, scopes] = L.Parser.parse(command).transform(L.Rules, scopes);
 		rep.setPrompt('>> ');
 	} catch (e) {
 		if (e.found == null) {
@@ -311,9 +314,8 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		result = (new L.AST.Immediate({
-			target: ast, args: List([])
-		})).eval(ctx);
+		ctx.scope = scopes;
+		result = ast.invoke(ctx);
 	} catch (e) {
 		result = style.error(e.toString());
 		

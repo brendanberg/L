@@ -8,5 +8,6 @@ module.exports = {
 	Parser: require('./parser'),
 	Rules: require('./rules'),
 	Context: require('./context'),
+	Scope: require('./scope'),
 	log: log
 };

@@ -1,57 +1,105 @@
 const { MatchError, NotImplemented } = require('./error');
-const { Map, List, Record } = require('immutable');
+const { Map, List, Set, Record } = require('immutable');
 const Text = require('./ast/text');
 const Bottom = require('./ast/bottom');
-const Invocation = require('./ast/invocation');
+//const Invocation = require('./ast/invocation');
 const KeyValuePair = require('./ast/keyvaluepair');
-const Symbol = require('./ast/symbol');
+const Symbol_ = require('./ast/symbol');
 const _ = null;
 const _map = Map({});
 
-const builtins = Map({
-	'Integer': require('./impl/integer'),
-	'Rational': require('./impl/rational'),
-	'Decimal': require('./impl/decimal'),
-	'Complex': require('./impl/complex'),
-	'Text': require('./impl/text'),
-	'List': require('./impl/list'),
-	'Map': require('./impl/map'),
-	'Block': require('./impl/block'),
-	'Symbol': require('./impl/symbol'),
-	// TODO: Are there built-in methods that all records and unions use?
-	// Experimental Concurrency Type
-	// 'Filament': require('./impl/filament'),
-});
 
+function Context(outer) {
+	// Creates a new Context object. A context is a map of bindings from
+	// scoped identifiers to memory locations (In this implementation,
+	// "memory" is a dictionary from JS symbols to L values.) This
+	// implementation is in anticipation of the addition of hygenic macros.
+	// See Matthew Flatt's work on hygenic macros in Racket for more info.
+	//
+	// https://www.youtube.com/watch?v=Or_yKiI3Ha4
+	// http://www.cs.utah.edu/plt/publications/popl16-f.pdf
+	// http://www.cs.utah.edu/~mflatt/scope-sets/
 
-function Context(values) {
-	this.local = (values && values.local) || builtins;
-	this.outer = (values && values.outer) || _;
+	//this.bindings = Map({});
+	this.outer = outer || null;
+	this.locals = {};
+	this.buffer = [];
+	this.scope = null;
+	this.debug = false;
 }
 
-Context.prototype.extend = function(pattern, value) {
-	let captured = this.match(pattern, value);
-	return captured ? new Context({local: captured, outer: this}) : null;
+Context.prototype.loadGlobals = function(scope) {
+	const globalScope = Set([]);
+
+	let globals = {
+		'Integer': require('./impl/integer'),
+		'Rational': require('./impl/rational'),
+		'Decimal': require('./impl/decimal'),
+		'Complex': require('./impl/complex'),
+		'Text': require('./impl/text'),
+		'List': require('./impl/list'),
+		'Map': require('./impl/map'),
+		'Block': require('./impl/block'),
+		'Symbol': require('./impl/symbol'),
+		// TODO: Are there built-in methods that all records and unions use?
+		// Experimental Concurrency Type
+		// 'Fuzzum': require('./impl/filament'),
+	};
+	
+	Object.keys(globals).map((key) => {
+		let binding = scope.addBinding({label: key, scopes: globalScope});
+		this.locals[binding] = globals[key];
+	});
+}
+
+Context.prototype.get = function(binding) {
+	let value = this.locals[binding];
+	return (value === undefined && this.outer) ? this.outer.get(binding) : value;
 };
 
-Context.prototype.lookup = function(name) {
-	let value = this.local.get(name, null);
-	if (value == null && this.outer != null) {
-		return this.outer.lookup(name);
+Context.prototype.set = function(binding, value) {
+	this.setOuter(binding, value) || this.setLocal(binding, value);
+};
+
+Context.prototype.setLocal = function(binding, value) {
+	this.locals[binding] = value;
+};
+
+Context.prototype.setOuter = function(binding, value) {
+	if (this.locals.hasOwnProperty(binding)) {
+		// The binding is already in locals. Update it.
+		this.locals[binding] = value;
+		return true;
+	} else if (this.outer) {
+		// There's an outer scope. Try to set the value there.
+		return this.outer.setOuter(binding, value);
 	} else {
-		return value || new Bottom();
+		return false;
 	}
+};
+
+Context.prototype.push = function(binding, value) {
+	this.buffer.push(() => {
+		this.set(binding, value);
+	});
+};
+
+Context.prototype.flush = function() {
+	this.buffer.map((item) => { item.call(this); });
+	this.buffer = [];
 };
 
 Context.prototype.match = function(pattern, value) {
 	// TODO: allow more diverse forms with backreferences, etc
 	// like `[a, b..., a, c...]`
+	let locals = {};
 	let capture = function(pattern, value, ctx) {
 		// TODO: Abstract the list decomposition procedure to re-use for blocks
 		// let decompose = function(a, b) { ... }
 		if (ctx === null) { return null; }
 
-		if ((pattern._name === 'List' || pattern._name === 'Block') && pattern._name === value._name) {
+		if ((pattern._name === 'List' || pattern._name === 'Block')
+				&& pattern._name === value._name) {
 			let field = (pattern._name === 'List') ? 'items' : 'exprs';
 
 			let pat = pattern.get(field);
@@ -77,7 +125,15 @@ Context.prototype.match = function(pattern, value) {
 					if (first.label === '_') {
 						return ctx;
 					} else {
-						return ctx.set(first.label, value);
+						if (first.getIn(['tags', 'local']) === true) {
+							// console.log(`binding ${value} to ${first.debugString()}`);
+							ctx.setLocal(first.binding, value);
+						} else {
+							// console.log(`deferring ${value} to ${first.debugString()}`);
+							ctx.push(first.binding, value);
+						}
+						locals[first.label] = value;
+						return ctx;
 					}
 				} else {
 					// We need to match from the last item forward
@@ -126,7 +182,15 @@ Context.prototype.match = function(pattern, value) {
 					if (first.label === '_') {
 						return ctx;
 					} else {
-						return ctx.set(first.label, value);
+						if (first.getIn(['tags', 'local']) === true) {
+							// console.log(`binding ${value} to ${pattern.debugString()}`);
+							ctx.setLocal(first.binding, value);
+						} else {
+							// console.log(`deferring ${value} to ${pattern.debugString()}`);
+							ctx.push(first.binding, value);
+						}
+						locals[first.label] = value;
+						return ctx;
 					}
 				} else {
 					let contains_splat = pattern.items.rest().reduce((has_splat, item) => {
@@ -153,7 +217,7 @@ Context.prototype.match = function(pattern, value) {
 				let key, val;
 				
 				if (first._name === 'Identifier') {
-					key = new Symbol({label: first.label});
+					key = new Symbol_({label: first.label});
 					val = first;
 				} else {
 					key = first.key;
@@ -184,19 +248,26 @@ Context.prototype.match = function(pattern, value) {
 		} else if (pattern._name === 'Identifier') {
 			let type = pattern.getIn(['tags', 'type'], null);
 			// TODO: Type check here.
-			return (pattern.label == '_') ? ctx : ctx.set(pattern.label, value);
-		} else if (pattern._name === 'Symbol') {
+			if (pattern.label !== '_') {
+				if (pattern.getIn(['tags', 'local']) === true) {
+					// console.log(`binding ${value} to ${pattern.debugString()}`);
+					ctx.setLocal(pattern.binding, value);
+				} else {
+					// console.log(`deferring ${value} to ${pattern.debugString()}`);
+					ctx.push(pattern.binding, value);
+				}
+				locals[pattern.label] = value;
+			}
+
+			return ctx;
+		} else if (pattern._name === 'Symbol' && value._name === 'Symbol') {
 			// TODO: Replace each of these test cases with an equality
 			// method defined on each AST node
-			if (value._name === 'Symbol' && value.label === pattern.label) {
-				return ctx;
-			} else { 
-				return null;
-			}
+			return (value.label === pattern.label) ? ctx : null;
 		} else if (pattern._name === 'Record') {
 
-		} else if (pattern._name === 'Tuple') {
-			if (value._name === 'Tuple' && value.label === pattern.label) {
+		} else if (pattern._name === 'Tuple' && value._name === 'Tuple') {
+			if (value.label === pattern.label) {
 				// TODO: Match on pattern inner values
 				if (pattern.values.count() !== value.values.count()) { return null; }
 
@@ -207,53 +278,29 @@ Context.prototype.match = function(pattern, value) {
 				return null;
 			}
 		} else if (pattern._name === 'Text' && value._name === 'Text') {
-			if (value.value.equals(pattern.value)) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Integer') {
-			if (value._name === 'Integer' && value.value === pattern.value) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Decimal') {
-			if (value._name === 'Decimal' &&
-					value.numerator === pattern.numerator &&
-					value.exponent === pattern.exponent) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Scientific') {
-			if (value._name === 'Scientific' &&
-					value.significand === pattern.significand &&
-					value.mantissa === pattern.mantissa) {
-				return ctx;
-			} else {
-				return null;
-			}
-		} else if (pattern._name === 'Complex') {
-			if (value._name === 'Complex' &&
-					value.real === pattern.real &&
-					value.imaginary === pattern.imaginary) {
-				return ctx;
-			} else {
-				return null;
-			}
+			return (value.value.equals(pattern.value)) ? ctx : null;
+		} else if (pattern._name === 'Integer' && value._name === 'Integer') {
+			return (value.value === pattern.value) ? ctx : null;
+		} else if (pattern._name === 'Decimal' && value._name === 'Decimal') {
+			return (value.equals(pattern)) ? ctx : null;
+		} else if (pattern._name === 'Scientific' && value._name === 'Scientific') {
+			return (value.equals(pattern)) ? ctx : null;
+		} else if (pattern._name === 'Complex' && value._name === 'Complex') {
+			return (value.equals(pattern)) ? ctx : null;
 		} else {
-			throw new NotImplemented(
+			return null;
+			/*throw new NotImplemented(
 				"`" + pattern + "('==': " + value + ")` is not yet implemented"
-			);
+			);*/
 			// This is where we test value equivalence
 			// TODO: This should maybe call the equality method on the value
 			// (but which side is the target and which is the argument?)
-			let isEqual = (new Invocation({
+			// TODO: Importing Invocation creates a circular reference
+			/*let isEqual = (new Invocation({
 				target: pattern, plist: new KeyValuePair({
 					key: new Text({value: "'=='"}), val: value
 				})
-			})).eval(ctx);
+			})).eval(ctx);*/
 
 			if (isEqual._name === 'Symbol' && isEqual.label === 'True') {
 				return ctx;
@@ -263,18 +310,17 @@ Context.prototype.match = function(pattern, value) {
 		}
 	};
 
-	let ctx = capture(pattern, value, Map({}));
-	return ctx;
+	let ctx = capture(pattern, value, new Context(this));
+
+	if (ctx) {
+		ctx.scope = this.scope;
+		return [ctx, Map(locals)];
+	} else {
+		return null;
+	}
 };
 
 // TODO: Should underscore be a special case in the parser?
 //Context.prototype['_'] = new AST.Bottom({});
-/*
-var text = require('./impl/text');
-var numbers = require('./impl/numbers');
-var collections = require('./impl/collections');
-var blocks = require('./impl/blocks');
-var types = require('./impl/types');
-*/
 
 module.exports = Context;

@@ -18,3 +18,5 @@ _
 [.m5: ['arp': 1, 'blub': 'cork', 42: 'dorp']]
 >> ['arp': q, 'blub': r, 42: s] :: m5
 [.q: 1, .r: 'cork', .s: 'dorp']
+>> [a, x, c, d, e, q, r, s]
+[1, 2, 3, 4, 4, 1, 'cork', 'dorp']

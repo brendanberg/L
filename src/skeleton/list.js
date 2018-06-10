@@ -1,5 +1,6 @@
 
 const { Map, List, Record } = require('immutable');
+const { NotImplemented } = require('../error');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
@@ -20,12 +21,7 @@ _List.prototype.repr = function(depth, style) {
 };
 
 _List.prototype.transform = function(context, match) {
-	return new AST.List({
-		items: this.epxrs.map(function(item) {
-			return match.match(context, item.emit())
-		}),
-		tags: this.tags
-	});
+	throw new NotImplemented('Cannot call transform on a skeleton node other than block');
 };
 
 module.exports = _List;

@@ -10,7 +10,7 @@ function make_bool(exp) {
 	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
-let _Decimal = new Type({label: 'Integer'});
+let _Decimal = new Type({label: 'Decimal'});
 
 _Decimal.methods = {
 	"('+')": function() { return this },

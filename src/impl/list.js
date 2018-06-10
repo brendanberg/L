@@ -104,8 +104,8 @@ ListType.methods = {
 	'(unzip.)': function() {
 		let first = [], second = [];
 		this.items.map((item) => {
-			first.push(item.get(0));
-			second.push(item.get(1));
+			first.push(item.items.get(0));
+			second.push(item.items.get(1));
 		});
 
 		return new List_({items: List([
@@ -114,6 +114,7 @@ ListType.methods = {
 		])});
 	},
 	'(enumerate.)': function() {
+		// Shorthand for `values(zip: (0...))` ?
 		return this.update('items', (items) => {
 			return items.map((val, key) => {
 				let idx = new Integer({value: key, tags: Map({'source_base': 10})});
@@ -125,6 +126,16 @@ ListType.methods = {
 	'(split:max:)': function() {},
 	'(compactSplit:max:)': function() {},
 
+	// indexOf:
+	// countOf:
+	// partitionAt ??
+	// [a, b, c, d](popElementAt: 1) #=> [b, [a, c, d]]
+	// (any:)
+	// (all:)
+	// asText: ???
+	// iter ???
+	// (maxValue.) ?
+	// (minValue.) ?
 
 	// Sorts and comparisons
 
@@ -134,7 +145,7 @@ ListType.methods = {
 				let is_match = (new Invocation({
 					target: fn,
 					args: List([item])
-				})).eval(fn.ctx);
+				})).eval(this.ctx);
 
 				if (is_match.label === 'True') {
 					result[0].push(item);
@@ -158,13 +169,14 @@ ListType.methods = {
 		return this.update('items', (items) => {
 			return items.sort((a, b) => {
 				// Invoke a('<': b)
-				a.ctx = this.ctx;
-				let lt_method = this.ctx.lookup(a._name).methodForSelector("('<':)");
+				let alabel = {label: a._name, scopes: Set([])};
+				let lt_method = this.ctx.get(alabel).methodForSelector("('<':)");
+				//lookup(a._name).methodForSelector("('<':)");
 				let lt_result = lt_method.apply(a, [b]);
 				let less = (lt_result._name == 'Symbol' && lt_result.label == 'True');
 
 				// Invoke a('>': b)
-				let gt_method = this.ctx.lookup(a._name).methodForSelector("('>':)");
+				let gt_method = this.ctx.get(alabel).methodForSelector("('>':)");
 				let gt_result = gt_method.apply(a, [b]);
 				let greater = (gt_result._name == 'Symbol' && gt_result.label == 'True');
 				
@@ -181,7 +193,7 @@ ListType.methods = {
 					let result =  (new Invocation({
 						target: fn,
 						args: List([a, b])
-					})).eval(fn.ctx);
+					})).eval(this.ctx);
 					if (result.label == 'Same') { return 0; }
 					else if (result.label == 'Ascending') { return -1; }
 					else if (result.label == 'Descending') { return 1; }
@@ -194,7 +206,7 @@ ListType.methods = {
 					let result =  (new Invocation({
 						target: fn,
 						args: List([a, b])
-					})).eval(fn.ctx);
+					})).eval(this.ctx);
 					if (result.label == 'Same') { return 0; }
 					else if (result.label == 'Ascending') { return -1; }
 					else if (result.label == 'Descending') { return 1; }
@@ -241,7 +253,7 @@ ListType.methods = {
 				return items.reduce((result, item) => {
 					let value = (new Invocation({
 						target: f, args: List([item])
-					})).eval(f.ctx);
+					})).eval(this.ctx);
 
 					if (value && value._name === 'List') {
 						return result.concat(value.items.filter((item) => {
@@ -260,7 +272,7 @@ ListType.methods = {
 				return items.reduce((result, item) => {
 					let value = (new Invocation({
 						target: f, args: List([item])
-					})).eval(f.ctx);
+					})).eval(this.ctx);
 
 					if (value && value._name === 'List') {
 						return result.concat(value.items.filter((item) => {
@@ -276,12 +288,14 @@ ListType.methods = {
 		},
 	}),
 	'(map:)': dispatch({
+		// fns(map: (fn) -> { fn(elt) })
+		// fns(map: { _0(elt)) })
 		'Function': function(f) {
 			return this.set('items', this.items.map(function(item) {
 				return (new Invocation({
 					target: f,
 					args: List([item])
-				})).eval(f.ctx);
+				})).eval(this.ctx);
 			}));
 		},
 		'HybridFunction': function(m) {
@@ -289,7 +303,7 @@ ListType.methods = {
 				return (new Invocation({
 					target: m,
 					args: List([item])
-				})).eval(m.ctx);
+				})).eval(this.ctx);
 			}));
 		},
 	}),
@@ -298,14 +312,14 @@ ListType.methods = {
 			return this.set('items', this.items.map(function(item) {
 				return (new Invocation({
 					target: f, args: List([item])
-				})).eval(f.ctx);
+				})).eval(this.ctx);
 			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
 		},
 		'HybridFunction': function (f) {
 			return this.set('items', this.items.map(function(item) {
 				return (new Invocation({
 					target: f, args: List([item])
-				})).eval(f.ctx);
+				})).eval(this.ctx);
 			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
 		},
 	}),
@@ -315,7 +329,7 @@ ListType.methods = {
 				return (new Invocation({
 					target: f,
 					args: List([item])
-				})).eval(f.ctx).label === 'True';
+				})).eval(this.ctx).label === 'True';
 			}));
 		},
 		'HybridFunction': function(m) {
@@ -323,7 +337,7 @@ ListType.methods = {
 				return (new Invocation({
 					target: m,
 					args: List([item])
-				})).eval(m.ctx).label === 'True';
+				})).eval(this.ctx).label === 'True';
 			}));
 		},
 	}),
@@ -333,7 +347,7 @@ ListType.methods = {
 				return (new Invocation({
 					target: f,
 					args: List([init, item])
-				})).eval(f.ctx);
+				})).eval(this.ctx);
 			});
 		},
 		'HybridFunction': function(m) {
@@ -341,7 +355,7 @@ ListType.methods = {
 				return (new Invocation({
 					target: m,
 					args: List([init, item])
-				})).eval(m.ctx);
+				})).eval(this.ctx);
 			});
 		},
 	}),
@@ -350,7 +364,7 @@ ListType.methods = {
 			return (new Invocation({
 				target: func,
 				args: List([init, item])
-			})).eval(func.ctx);
+			})).eval(this.ctx);
 		}, init);
 	},
 };

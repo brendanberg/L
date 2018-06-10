@@ -1,5 +1,6 @@
 
 const { Map, List, Record } = require('immutable');
+const { NotImplemented } = require('../error');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
@@ -21,13 +22,8 @@ Expression.prototype.repr = function (depth, fmt) {
 	return this.toString();
 };
 
-Expression.prototype.transform = function(context, match) {
-	let ast = match.expression(context, this.terms.first(), this.terms.rest());
-
-	// TODO: Reject the transform if not all terms are consumed
-	// NOTE: Probably best to add the Error node in the match fn
-	//       rather than the Skeleton transform.
-	return ast && ast[0];
+Expression.prototype.transform = function(scopes, match) {
+	throw new NotImplemented('Cannot call transform on a skeleton node other than block');
 };
 
 module.exports = Expression;

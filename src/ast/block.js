@@ -4,12 +4,23 @@
 
 const { List, Map, Record } = require('immutable');
 const Context = require('../context');
+const Bottom = require('./bottom');
 const _ = null;
 const _list = List([]);
 const _map = Map({});
 
 
-let Block = Record({exprs: _list, ctx: _, tags: _map}, 'Block');
+let Block = Record({exprs: _list, tags: _map}, 'Block');
+
+Object.defineProperty(Block.prototype, 'scope', {
+	get() {
+		if (this._scope === undefined) {
+			this._scope = Symbol();
+		}
+		return this._scope;
+	},
+	set(scope) { this._scope = scope; }
+});
 
 Block.prototype.toString = function() {
 	let join = (this.exprs.count() > 1) ? '\n' : ' ';
@@ -47,17 +58,21 @@ Block.prototype.eval = function(ctx) {
     // and replace them with their evaluated value
 	// TODO: Figure out the right evaluation semantics for `\`
 	//       operators in nested blocks
-	let temp = this.set('ctx', new Context({outer: ctx}));
 	// TODO: This needs to be a depth-first traversal?
-	let xform = function(node) {
-		return node._name === 'Immediate' ? node.eval(temp.ctx) : node;
-	};
-	return temp.transform(xform);
+	return this.transform((node) => {
+		return node._name === 'Immediate' ? node.eval(ctx) : node;
+	});
+};
+
+Block.prototype.invoke = function(ctx) {
+	return this.exprs.reduce((result, exp) => {
+		return result.push((exp.eval && exp.eval(ctx)) || new Bottom());
+	}, List([])).last();
 };
 
 Block.prototype.transform = function(func) {
-	return func(this.update('exprs', function(exprs) {
-		return exprs.map(function(expr) {
+	return func(this.update('exprs', (exprs) => {
+		return exprs.map((expr) => {
 			return (expr && 'transform' in expr) ? expr.transform(func) : func(expr);
 		});
 	}));

@@ -9,7 +9,7 @@ const _map = I.Map({});
 const _list = I.List([]);
 
 
-let HybridFunction = I.Record({predicates: _list, ctx:_, tags: _map}, 'HybridFunction');
+let HybridFunction = I.Record({predicates: _list, tags: _map}, 'HybridFunction');
 
 HybridFunction.prototype.toString = function() {
 	return (
@@ -42,7 +42,7 @@ HybridFunction.prototype.eval = function(ctx) {
 		} else {
 			return node;
 		}
-	}).set('ctx', ctx);
+	});
 };
 
 HybridFunction.prototype.transform = function(func) {
@@ -51,7 +51,6 @@ HybridFunction.prototype.transform = function(func) {
 			return (node && 'transform' in node) ? node.transform(func) : func(node);
 		});
 	}));
-    return func(this);
 };
 
 module.exports = HybridFunction;

@@ -1,3 +1,5 @@
+>> even :: 0
+[.even: 0]
 >> odd :: {{ (0) -> { Boolean.False }, (n) ? (n > 0) -> { even(n - 1) }, (n) -> { even(n + 1) } }}
 [.odd: {{
     (0) -> { Boolean.False }

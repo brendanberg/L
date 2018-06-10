@@ -25,7 +25,11 @@ KeyValuePair.prototype.eval = function(ctx) {
 };
 
 KeyValuePair.prototype.transform = function(func) {
-    return func(this);
+	let transform = (node) => {
+		return node && ('transform' in node) ? node.transform(func) : func(node);
+	};
+
+    return func(this.update('key', transform).update('val', transform));
 }
 
 module.exports = KeyValuePair;

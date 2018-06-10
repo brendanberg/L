@@ -9,7 +9,7 @@ function make_bool(exp) {
 	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
 }
 
-let _Rational = new Type({label: 'Integer'});
+let _Rational = new Type({label: 'Rational'});
 
 _Rational.methods = {
 	"('+')": function() { return this },
