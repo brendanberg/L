@@ -1,11 +1,22 @@
 
-const { Map, List, Record: IRecord } = require('immutable');
+const { Map, List, Set, Record } = require('immutable');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
+const Identifier = require('./identifier');
 
 
-RecordType = IRecord({label: _, members: _list, ctx: _, tags: _map}, 'RecordType');
+RecordType = Record({label: _, members: _list, tags: _map}, 'RecordType');
+
+Object.defineProperty(RecordType.prototype, 'scopes', {
+	get() { return this._scopes || Set([]); },
+	set(scopes) { this._scopes = scopes; }
+});
+
+Object.defineProperty(RecordType.prototype, 'binding', {
+	get() { return this._binding || null; },
+	set(binding) { this._binding = binding }
+});
 
 RecordType.prototype.toString = function () {
 	let members = this.members.map(function(node) {
@@ -28,19 +39,20 @@ RecordType.prototype.repr = function (depth, style) {
 };
 
 RecordType.prototype.eval = function(ctx) {
-	var signature = '(' + this.members.map(function(x) {
-		return x.label + ':'
-	}).join('') + ')';
-
-	let newCtx = {};
-	newCtx[this.label] = this;
-	ctx.local = ctx.local.merge(newCtx);
+	ctx.set(ctx.scope.resolve(this), this);
 	return this;
 };
 
-RecordType.prototype.transform = function(context, match) {
+RecordType.prototype.transform = function(func) {
 	// Note: This rule should be unreachable if the grammar rules are correct
-	return this;
+	return func(this);
+};
+
+RecordType.prototype.debugString = function () {
+	let sc = this.scopes.map((sym)=>{return sym.toString();}).toArray().join(',');
+	let binding = this.binding ? this.binding.toString() : '--';
+
+	return `{${this.label}}[${sc}]: ${binding}`;
 };
 
 RecordType.prototype.methodForSelector = function(selector) {

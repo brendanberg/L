@@ -1,4 +1,4 @@
-const { List, Map } = require('immutable');
+const { List, Set, Map } = require('immutable');
 const L = require('../src/l');
 const chai = require('chai');
 const chaiImmutable = require('chai-immutable');
@@ -9,24 +9,31 @@ const path = require('path');
 chai.use(chaiImmutable);
 
 
-const load_libraries = () => {
+const create_context = () => {
+	let scopes = new L.Scope();
 	let ctx = new L.Context();
+	ctx.loadGlobals(scopes);
+
 	let basepath = path.join(path.dirname(fs.realpathSync(__filename)), '../src/lib');
 	let filenames = fs.readdirSync(basepath).filter(function(filename) {
 		return filename.match(/^[^\.].+\.l$/);
 	});
 	
+	let ast;
+
 	for (let file of filenames) {
 		let contents = fs.readFileSync(path.join(basepath, file), 'utf-8');
 
-		let ast = L.Parser.parse(contents).transform(ctx, L.Rules);
-		(new L.AST.Immediate({target: ast, args: new L.AST.List()})).eval(ctx);
+		[ast, scopes]= L.Parser.parse(contents).transform(L.Rules, scopes);
+
+		ctx.scope = scopes;
+		ast.invoke(ctx);
 	}
 
-	return ctx;
+	return [scopes, ctx];
 };
 
-const test_transcript = (basepath, filename, globals) => {
+const test_transcript = (basepath, filename, context) => {
 	let contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
 
 	// Strip leading characters from each line. If the line matches /^>> /
@@ -35,16 +42,15 @@ const test_transcript = (basepath, filename, globals) => {
 
 	let input = [];
 	let output = [];
-	var is_input = false;
 
 	for (let line of contents.split('\n')) {
-
-		let first = line.match(/^>> (.*)$/);
+		let first = line.match(/^>>(.*)$/);
 		
 		if (first) {
+			if (first[1].trim() === '') { continue; }
+
 			input.push(first[1]);
 			output.push([]);
-			is_input = true;
 			continue;
 		}
 
@@ -52,12 +58,7 @@ const test_transcript = (basepath, filename, globals) => {
 
 		if (rest) {
 			input[input.length - 1] += '\n' + rest[1];
-			is_input = true;
 			continue;
-		}
-
-		if (is_input) {
-			is_input = false;
 		}
 
 		if (line.length > 0) {
@@ -65,14 +66,21 @@ const test_transcript = (basepath, filename, globals) => {
 		}
 	}
 
-	let ctx = new L.Context({outer: globals});
+	let [outerScope, globals] = context;
+
+	let testScope = new L.Scope();
+	testScope.scope = Set(outerScope.scope);
+	testScope.bindings = Map(outerScope.bindings);
+
+	let ctx = new L.Context();
+	ctx.locals = Object.assign({}, globals.locals);
 
 	it(`correctly evaluates '${filename}'`, () => {
 		input.map((elt, idx) => {
-			let ast = L.Parser.parse(elt).transform(ctx, L.Rules);
-			let result = (new L.AST.Immediate({
-				target: ast, args: new L.AST.List()
-			})).eval(ctx);
+			let [ast, newScope] = L.Parser.parse(elt).transform(L.Rules, testScope);
+
+			ctx.scope = newScope;
+			let result = ast.invoke(ctx);
 
 			if (!(output[idx].join('') === '' || output[idx].join('') === '...')) {
 				let resultString = result.toString().replace(/\n[ \t\n]*/g, ' ');
@@ -90,10 +98,10 @@ let filenames = fs.readdirSync(basepath).filter(function(filename) {
 
 
 describe('Transcripts', () => {
-	const globals = load_libraries();
+	let context = create_context();
 
 	for (let name of filenames) {
-		test_transcript(basepath, name, globals);
+		test_transcript(basepath, name, context);
 	}
 });
 

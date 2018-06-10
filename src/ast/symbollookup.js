@@ -42,5 +42,13 @@ SymbolLookup.prototype.eval = function(ctx) {
 	}
 };
 
+SymbolLookup.prototype.transform = function(func) {
+	let transform = (node) => { return (node && 'transform' in node) ? node.transform(func) : func(node); };
+
+	return (this.update('target', transform)
+		.update('term', transform)
+	);
+};
+
 module.exports = SymbolLookup;
 

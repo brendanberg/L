@@ -1,0 +1,12 @@
+>> Point << x, y >>
+Point << x, y >>
+>> Point self ('+': other) -> {
+ -   Point(x: self.x + other.x, y: self.y + other.y)
+ - }
+Point self ('+': other) -> { Point(x: self.x + other.x, y: self.y + other.y) }
+>> p1 :: Point(x: 7, y: 9)
+[.p1: Point(x: 7, y: 9)]
+>> p2 :: Point(x: 3, y: 4)
+[.p2: Point(x: 3, y: 4)]
+>> p1 + p2
+Point(x: 10, y: 13)

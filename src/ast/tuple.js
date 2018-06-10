@@ -7,6 +7,16 @@ const _list = List([]);
 
 Tuple = Record({label: _, values: _list, tags: _map}, 'Tuple');
 
+Object.defineProperty(Tuple.prototype, 'scope', {
+	get() {
+		if (this._scope === undefined) {
+			this._scope = Symbol();
+		}
+		return this._scope;
+	},
+	set(scope) { this._scope = scope; }
+});
+
 Tuple.prototype.toString = function () {
 	if (this.values.count()) {
 		let values = this.values.map(function(val) { return val.toString(); });
@@ -29,7 +39,18 @@ Tuple.prototype.repr = function(depth, style) {
 };
 
 Tuple.prototype.eval = function(ctx) {
+	ctx.set(this, this);
 	return this;
+};
+
+Tuple.prototype.transform = function(func) {
+	let transform = (node) => {
+		return node && (node.transform) ? node.transform(func) : func(node);
+	};
+
+	return func(this.update('values', (values) => {
+		return values.map((val) => { return transform(val); });
+	}));
 };
 
 module.exports = Tuple;

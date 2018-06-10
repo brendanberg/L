@@ -22,15 +22,15 @@ Immediate.prototype.repr = function(depth, style) {
 };
 
 Immediate.prototype.eval = function(ctx) {
-    let target = this.target.eval(ctx);
+	return this.target.eval(ctx);
+};
 
-    if (target._name === 'Block') {
-		return target.exprs.reduce((result, exp) => {
-			return result.push((exp.eval && exp.eval(ctx)) || new Bottom());
-		}, List([])).last();
-    } else {
-        return target;
-    }
+Immediate.prototype.transform = function(func) {
+	let transform = (node) => {
+		return node && ('transform' in node) ? node.transform(func) : func(node);
+	};
+
+	return func(this.update('target', (target) => { return transform(target); }));
 };
 
 module.exports = Immediate;

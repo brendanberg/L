@@ -324,8 +324,11 @@ function peg$parse(input, options) {
       peg$c129 = function(l) {
       			return new AST.Symbol({label: l.join('')});
       		},
-      peg$c130 = function(l) {
-      			return new AST.Symbol({label: l.join(''), tags: Map({nullary: true})})
+      peg$c130 = function(first, rest) {
+      			return new AST.Symbol({
+      				label: first + rest.join(''),
+      				tags: Map({nullary: true})
+      			})
       		},
       peg$c131 = peg$otherExpectation("type variable"),
       peg$c132 = "$",
@@ -1772,32 +1775,34 @@ function peg$parse(input, options) {
   }
 
   function peg$parsenullaryLabel() {
-    var s0, s1, s2;
+    var s0, s1, s2, s3;
 
     peg$silentFails++;
     s0 = peg$currPos;
-    s1 = [];
-    s2 = peg$parselabelChar();
-    if (s2 !== peg$FAILED) {
-      while (s2 !== peg$FAILED) {
-        s1.push(s2);
-        s2 = peg$parselabelChar();
-      }
-    } else {
-      s1 = peg$FAILED;
-    }
+    s1 = peg$parselabelStart();
     if (s1 !== peg$FAILED) {
-      if (input.charCodeAt(peg$currPos) === 46) {
-        s2 = peg$c127;
-        peg$currPos++;
-      } else {
-        s2 = peg$FAILED;
-        if (peg$silentFails === 0) { peg$fail(peg$c128); }
+      s2 = [];
+      s3 = peg$parselabelChar();
+      while (s3 !== peg$FAILED) {
+        s2.push(s3);
+        s3 = peg$parselabelChar();
       }
       if (s2 !== peg$FAILED) {
-        peg$savedPos = s0;
-        s1 = peg$c130(s1);
-        s0 = s1;
+        if (input.charCodeAt(peg$currPos) === 46) {
+          s3 = peg$c127;
+          peg$currPos++;
+        } else {
+          s3 = peg$FAILED;
+          if (peg$silentFails === 0) { peg$fail(peg$c128); }
+        }
+        if (s3 !== peg$FAILED) {
+          peg$savedPos = s0;
+          s1 = peg$c130(s1, s2);
+          s0 = s1;
+        } else {
+          peg$currPos = s0;
+          s0 = peg$FAILED;
+        }
       } else {
         peg$currPos = s0;
         s0 = peg$FAILED;

@@ -37,7 +37,7 @@ List_.prototype.eval = function(ctx) {
 List_.prototype.transform = function(func) {
     return func(this.update('items', function(items) {
         return items.map(function(item) {
-			return (item && 'transform' in item) ? item.transform(func) : func(item);
+			return item && ('transform' in item) ? item.transform(func) : func(item);
 		});
     }));
 };

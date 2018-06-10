@@ -1,5 +1,6 @@
 
 const { Map, List, Record } = require('immutable');
+const { NotImplemented } = require('../error');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
@@ -20,7 +21,7 @@ Type.prototype.repr = function (depth, fmt) {
 };
 
 Type.prototype.transform = function(context, match) {
-	return new AST.Bottom();
+	throw new NotImplemented('Cannot call transform on a skeleton node other than block');
 };
 
 module.exports = Type;
