@@ -20,9 +20,11 @@ make it easy to write distributed concurrent programs.
 
 - __Pattern Matching:__
   One of the first surprising features of __L__ is that it does not have an assignment operator.
-  Instead, it uses the `::` "match" operator to structurally map values onto their corresponding variables.
-  For example, `[x, y..., z] :: [16, 25, 36, 49, 64]` would set `x` to the integer `16`, `z` to `64`,
-  and `y` to the list `[25, 36, 49]`.
+  Instead, it uses a pattern matching "bind" operator to structurally map values onto their corresponding variables.
+  
+  ```io
+  [x, y..., z] :: [16, 25, 36, 49, 64]    # x == 16, y == [25, 36, 49], and z == 64
+  ```
 
 - __Gradual Typing:__
   Variables are not required to explicitly state the data type of the value they contain.
@@ -59,10 +61,6 @@ npm run metal
 
 The `npm run metal` command starts the interactive shell.
 
-You can learn more about -- in the [Contribution Guidelines][contrib].
-
-[contrib]: docs/contributing.md
-
 ## Using the Interactive Shell
 
 __L__ comes with an interactive shell.
@@ -84,10 +82,10 @@ and anything the programmer would type is in bold.
 Here's a simple example of an __L__ program:
 
 <pre>
->> <b>1 + 1</b>
-2
+>> <b>['Hello', 'world'](join: ', ') + '!'</b>
+'Hello, world!'
 </pre>
 
-The [Intruduction to the L Programming Language][intro] describes additional shell interactions.
+You've made it this far, so consider reading the [Intruduction to the L Programming Language][intro] next!
 
 [intro]: docs/introduction.md
