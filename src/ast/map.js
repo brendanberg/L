@@ -8,8 +8,7 @@ const _ = null;
 const _list = List([]);
 const _map = Map({});
 
-// TODO: Remove ctx field
-const Map_ = Record({items: _list, ctx: _, tags: _map}, 'Map');
+const Map_ = Record({items: _list, tags: _map}, 'Map');
 
 Map_.prototype.toString = function() {
 	let delims = ['[',']']; //this.getIn(['tags', 'source'], 'list')];
@@ -35,6 +34,7 @@ Map_.prototype.repr = function(depth, style) {
         return style.delimiter(delims[0]) + ':' + style.delimiter(delims[1]);
     } else {
 		let items = this.items;
+
         return (
             style.delimiter(delims[0]) +
             items.map(function(kvpair) {

@@ -219,8 +219,13 @@ symbol "symbol"
 
 // TODO: AAAAUGHHH A NASTY HACK TO ALLOW (label.) SELECTORS
 nullaryLabel "symbol"
-	= l:labelChar+ '.' {
-			return new AST.Symbol({label: l.join(''), tags: Map({nullary: true})})
+	= first:labelStart rest:labelChar* '.' {
+			// We need to use label rules here to prevent ambiguity when
+			// calling functions with decimals that end in '.' e.g. abs(42.)
+			return new AST.Symbol({
+				label: first + rest.join(''),
+				tags: Map({nullary: true})
+			})
 		}
 
 // $ label

@@ -1,11 +1,22 @@
 
-const { Map, List, Record } = require('immutable');
+const { Map, List, Set, Record } = require('immutable');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
 
 
 Record_ = Record({label: _, fields: _map, tags: _map}, 'Record');
+
+Object.defineProperty(Record_.prototype, 'scopes', {
+	get() {
+		if (this._scopes === undefined) {
+			this._scopes = Set([]);
+		}
+		return this._scopes
+	},
+	set(scopes) { this._scopes = scopes; }
+});
+
 
 Record_.prototype.toString = function () {
 	return this.label + '(' + this.fields.map(function(val, key) {

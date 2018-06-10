@@ -37,6 +37,7 @@ InfixExpression.prototype.repr = function(depth, style) {
 InfixExpression.prototype.eval = function(ctx) {
     // TODO: Replace the list / invocation with a message / message send
     let args = List([new KeyValuePair({key: this.op, val: this.rhs})]); 
+
     return (new Invocation({
 		target: this.lhs, args: args,
 		selector: "('" + this.op.label + "':)"

@@ -2,12 +2,14 @@
     Invocation AST node
  */
 
-const { Map, List, Record } = require('immutable');
+const { Map, List, Set, Record } = require('immutable');
 const Record_ = require('./record');
 const Bottom = require('./bottom');
 const List_ = require('./list');
 const Immediate = require('./immediate');
+const Identifier = require('./identifier');
 const { NameError, NotImplemented } = require('../error');
+const Context = require('../context');
 
 const _ = null;
 const _map = Map({});
@@ -15,6 +17,11 @@ const _list = List([]);
 
 
 let Invocation = Record({target: _, selector: _, args: _list, tags: _map}, 'Invocation');
+
+Object.defineProperty(Invocation.prototype, 'scopes', {
+	get() { return this._scopes || Set([]); },
+	set(scopes) { this._scopes = scopes; }
+});
 
 Invocation.prototype.toString = function () {
     return this.target.toString() + '(' + this.args.map(function(it) {
@@ -41,22 +48,19 @@ Invocation.prototype.eval = function(ctx) {
 	// > t :: Thing(s: "stressed")
 	// > t(.reverse)
 	// 'desserts'
-	if (this.args._name) {
-		console.log('args', this.args);
-		console.trace('Invocation args are an AST list :(');
-	}
 
 	// Invocations on Records instantiate a value with field values
 	// mapped to named parameters in the message
 	if (target._name === 'RecordType') {
+		let fields = Map(this.args.map(function(kvp) {
+				return [kvp.key.label, kvp.val.eval(ctx)];
+			}));
 		let value = new Record_({
 			label: target.label,
-			fields: Map(this.args.map(function(kvp) {
-				return [kvp.key.label, kvp.val.eval(ctx)];
-			}))
+			fields: fields
 		});
 		// TODO: filter bad values
-		//ctx.register(value.label, value);
+
 		return value;
 	} else if (target._name === 'Tuple') {
 		// TODO: verify arity and type check...
@@ -67,28 +71,35 @@ Invocation.prototype.eval = function(ctx) {
 	}
 
 	let method;
-	
+	let scope = Symbol();
+
 	if (target._name === 'Record') {
-		// TODO: When do you invoke a value?
-		method = ctx.lookup(target.label).methodForSelector(this.selector);
+		method = ctx.get(ctx.scope.resolve(target)).methodForSelector(this.selector);
 	} else if (target._name === 'Symbol') {
 		// TODO: Is this right? I think this is wrong.
-		method = ctx.lookup(target.getIn(['tags', 'type'])).methodForSelector(this.selector);
+		let ident = new Identifier({label: target.getIn(['tags', 'type'])});
+		//ident.scopes = __;
+		method = ctx.get(ctx.scope.resolve(ident)).methodForSelector(this.selector);
 	} else if (target._name === 'Function') {
 		let args = new List_({items: this.args.map((item) => { return item.eval(ctx) })});
+		let match = ctx.match(target.template, args);
+		
+		if (match) {
+			let [testCtx, locals] = match; 
 
-		context = target.ctx.extend(target.template, args);
-		// TODO: Perhaps the context needs to get attached to the block?
-		// TODO: The block behavior seems more correct. Enable closures!
-		if (target.guard) {
-			let guard = target.guard.eval(context);
-
-			if (!(guard._name == 'Symbol' && guard.label == 'True')) {
-				return new Bottom({});
+			if (target.guard) {
+				// Don't need to flush here since everything should be local.
+				let guard = target.guard.eval(testCtx);
+	
+				if (!(guard._name == 'Symbol' && guard.label == 'True')) {
+					return new Bottom({});
+				}
 			}
+			context = testCtx;
+			method = target.block;
+		} else {
+			return new Bottom({});
 		}
-
-		method = target.block; // target.block.set('ctx', context);
 	} else if (target._name === 'HybridFunction') {
 		// TODO: Implement a more efficient pattern matching algorithm
 		// Currently, we just iterate over the predicates and stop when
@@ -96,8 +107,12 @@ Invocation.prototype.eval = function(ctx) {
 		let args = new List_({items: this.args.map((item) => { return item.eval(ctx) })});
 
 		for (let predicate of target.predicates) {
-			let testCtx = target.ctx.extend(predicate.template, args);
-			if (testCtx) {
+			// console.log('pred', predicate);
+			// console.log('args', args);
+			let match  = ctx.match(predicate.template, args);
+
+			if (match) {
+				let [testCtx, locals] = match;
 				if (predicate.guard) {
 					let guard = predicate.guard.eval(testCtx);
 
@@ -116,16 +131,20 @@ Invocation.prototype.eval = function(ctx) {
 
 		if (!method) { return new Bottom({}); }
 	} else if (target._name === 'Block') {
-		context = target.ctx;
+		context = new Context(ctx);
+		context.scope = ctx.scope;
 		method = target;
 	} else {
-		method = ctx.lookup(target._name).methodForSelector(this.selector);
+		let ident = new Identifier({label: target._name})
+		ident.scopes = Set([]);
+		method = ctx.get(ctx.scope.resolve(ident)).methodForSelector(this.selector);
 	}
 
 	if (method && method._name === 'Block') {
 		// Block invocation (either function, hybrid function, or bare block)
 		if (context) {
-			return (new Immediate({target: method})).eval(context);
+			context.flush();
+			return method.invoke(context);
 		} else {
 			// TODO: note the reason for the failed match
 			return new Bottom();
@@ -138,7 +157,6 @@ Invocation.prototype.eval = function(ctx) {
 		}).map(function(x) {
 			return x.val.eval(ctx);
 		}).toArray();
-
 		// Nasty hack to get method invocations to work within method built-ins
 		if (!target.has('ctx')) { target.ctx = ctx };
 		return method.apply(target, params) || new Bottom();
@@ -155,11 +173,11 @@ Invocation.prototype.eval = function(ctx) {
 			return item.val.eval(ctx);
 		}).insert(0, target);
 
-		let context = impl.ctx.extend(impl.template, new List_({items: args}));
+		let [context, locals] = ctx.match(impl.template, new List_({items: args}));
 
 		if (context) {
-			let ret = (new Immediate({target: impl.block}));
-			return ret.eval(context);
+			context.flush();
+			return impl.block.invoke(context);
 		} else {
 			return new Bottom();
 		}
@@ -173,7 +191,7 @@ Invocation.prototype.eval = function(ctx) {
 };
 
 Invocation.prototype.transform = function(xform) {
-	return xform(this.update('target', function(target) {
+	let inv = xform(this.update('target', function(target) {
 		return (target && 'transform' in target) ? target.transform(xform) : xform(target);
 	}).update('args', function(args) {
 		return args.map(function(item) {
@@ -186,6 +204,9 @@ Invocation.prototype.transform = function(xform) {
 			}
 		});
 	}));
+
+	inv.scopes = this.scopes;
+	return inv;
 };
 
 module.exports = Invocation;

@@ -2,17 +2,18 @@
    Method AST node
  */
 
-const { Map, List, Record } = require('immutable');
+const { Map, List, Set, Record } = require('immutable');
 const punycode = require('punycode');
 const { TypeError } = require('../error');
 const _Function = require('./function');
 const _List = require('./list');
+const Identifier = require('./identifier');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
 
 
-let Method = Record({target: _, selector: _list, block: _, ctx: _, tags: _map}, 'Method');
+let Method = Record({target: _, selector: _list, block: _, tags: _map}, 'Method');
 
 
 Method.prototype.toString = function() {
@@ -33,11 +34,12 @@ Method.prototype.repr = function(depth, style) {
 
 Method.prototype.eval = function(ctx) {
 	// Do some basic type checking (the target type must already exist).
-	let typeStr = this.target.getIn(['tags', 'type']);
-	let type = ctx.lookup(typeStr);
+	let ident = new Identifier({label: this.target.getIn(['tags', 'type'])});
+	// TODO: PROBABLY ADD SCOPES HERE!!!
+	let type = ctx.get(ctx.scope.resolve(ident));
 
 	if (!(type && 'registerSelector' in type)) {
-		throw new TypeError("There is no type '" + typeStr + "'");
+		throw new TypeError("There is no type '" + ident.label + "'");
 	}
 
 	// Build the selector string.
@@ -74,8 +76,18 @@ Method.prototype.eval = function(ctx) {
 	return this;
 };
 
-Method.prototype.transform = function(xform) {
-	return this;
+Method.prototype.transform = function(func) {
+	let transform = (node) => {
+		return node && ('transform' in node) ? node.transform(func) : func(node);
+	};
+
+	return func(this.update('target', (target) => {
+		return transform(target);
+	}).update('selector', (sel) => {
+		return sel.map((val) => { return transform(val); });
+	}).update('block', (block) => {
+		return transform(block);
+	}));
 };
 
 module.exports = Method;
