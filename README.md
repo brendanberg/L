@@ -1,6 +1,6 @@
 ![CircleCI][ci] ![GitHub release][ver]
 
-[ci]: https://img.shields.io/circleci/project/github/brendanberg/L.svg
+[ci]: https://circleci.com/gh/brendanberg/L/tree/node.svg?style=shield&circle-token=324393cdf34c942beaf41923baccd1b78948a666
 [ver]: https://img.shields.io/github/release/brendanberg/L.svg
 
 # The 🅛 Programming Language
