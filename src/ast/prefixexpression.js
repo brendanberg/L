@@ -11,7 +11,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let PrefixExpression = Record({op: _, expr: _, tags: _map}, 'PrefixExpression');
+let PrefixExpression = Record({op: _, expr: _, scope: _, tags: _map}, 'PrefixExpression');
 
 PrefixExpression.prototype.toString = function() {
     return this.op.label.replace(/^'(.*)'$/, '$1') + this.expr.toString();
@@ -25,7 +25,8 @@ PrefixExpression.prototype.eval = function(ctx) {
     // TODO: Replace the list / invocation with a message / message send
     return (new Invocation({
 		target: this.expr, args: List([this.op]),
-		selector: "('" + this.op.label + "')"
+		selector: "('" + this.op.label + "')",
+		scope: this.scope
 	})).eval(ctx);
 };
 

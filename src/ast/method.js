@@ -13,7 +13,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Method = Record({target: _, selector: _list, block: _, tags: _map}, 'Method');
+let Method = Record({target: _, selector: _list, block: _, scope: _, tags: _map}, 'Method');
 
 
 Method.prototype.toString = function() {
@@ -34,7 +34,10 @@ Method.prototype.repr = function(depth, style) {
 
 Method.prototype.eval = function(ctx) {
 	// Do some basic type checking (the target type must already exist).
-	let ident = new Identifier({label: this.target.getIn(['tags', 'type'])});
+	let ident = new Identifier({
+		label: this.target.getIn(['tags', 'type']),
+		scope: this.scope
+	});
 	// TODO: PROBABLY ADD SCOPES HERE!!!
 	let type = ctx.get(ctx.scope.resolve(ident));
 
@@ -68,7 +71,8 @@ Method.prototype.eval = function(ctx) {
 
 	let impl = new _Function({
 		template: new _List({items: templateItems}),
-		block: this.block
+		block: this.block,
+		scope: this.scope
 	});
 
 	// Associate the method implementation with the selector

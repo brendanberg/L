@@ -9,7 +9,7 @@ const _map = I.Map({});
 const _list = I.List([]);
 
 
-let HybridFunction = I.Record({predicates: _list, tags: _map}, 'HybridFunction');
+let HybridFunction = I.Record({predicates: _list, scope: _, tags: _map}, 'HybridFunction');
 
 HybridFunction.prototype.toString = function() {
 	return (

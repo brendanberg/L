@@ -1,4 +1,4 @@
-const { Map, Range, List } = require('immutable');
+const { Map, Range, Set, List } = require('immutable');
 const Type = require('../ast/type');
 const List_ = require('../ast/list');
 const Integer = require('../ast/integer');
@@ -9,7 +9,11 @@ const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
 let Integer_ = new Type({label: 'Integer'});
@@ -24,14 +28,18 @@ Integer_.methods = {
 
 		return new Decimal({
 			numerator: Math.floor(inexact * Math.pow(10, precision)),
-			exponent: precision
+			exponent: precision,
+			scope: this.scope
 		});
 	},
 	"('..':)": dispatch({
 		'Integer': function(n) {
-			return new List_({items: List(Range(this.value, n.value).map(function(n) {
-				return new Integer({value: n});			
-			}))});
+			return new List_({
+				items: List(Range(this.value, n.value).map(function(n) {
+					return new Integer({value: n, scope: this.scope});			
+				})),
+				scope: this.scope
+			});
 		},
 	}),
 	"('+':)": dispatch({
@@ -41,7 +49,8 @@ Integer_.methods = {
 		'Rational': function(q) {
 			return new Rational({
 				numerator: (this.value * q.denominator) + q.numerator,
-				denominator: q.denominator
+				denominator: q.denominator,
+				scope: this.scope
 			});
 		},
 		'Decimal': function(d) {
@@ -67,7 +76,8 @@ Integer_.methods = {
 		'Rational': function(q) {
 			return new Rational({
 				numerator: (this.value * q.denominator) - q.numerator,
-				denominator: q.denominator
+				denominator: q.denominator,
+				scope: this.scope
 			});
 		},
 		'Decimal': function(d) {
@@ -95,7 +105,8 @@ Integer_.methods = {
 		'Rational': function(q) {
 			return new Rational({
 				numerator: (this.value * q.denominator) * q.numerator,
-				denominator: q.denominator
+				denominator: q.denominator,
+				scope: this.scope
 			});
 		},
 		'Decimal': function(d) {
@@ -119,14 +130,17 @@ Integer_.methods = {
 	}),
 	"('/':)": dispatch({
 		'Integer': function(n) {
-			return (new Rational(
-				{numerator: this.value, denominator: n.value}
-			)).simplify();
+			return (new Rational({
+				numerator: this.value,
+				denominator: n.value, scope:
+				this.scope
+			})).simplify();
 		},
 		'Rational': function(q) {
 			return new Rational({
 				numerator: this.value * q.denominator,
-				denominator: q.numerator
+				denominator: q.numerator,
+				scope: this.scope
 			});
 		},
 		'Decimal': function(d) {
@@ -146,7 +160,8 @@ Integer_.methods = {
 			if (n.value < 0) {
 				return new Rational({
 					numerator: 1,
-					denominator: Math.pow(this.value, -n.value)
+					denominator: Math.pow(this.value, -n.value),
+					scope: this.scope
 				});
 			} else {
 				return this.update('value', (v) => { return Math.pow(v, n.value); });

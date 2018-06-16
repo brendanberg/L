@@ -39,8 +39,8 @@ let parser_description = function () {
 		[Node.simple_function]);
 
 	check.isomorphism('accepts complex terms', [Node.term]);
-/*	check.isomorphism('accepts complex expressions',
-		[Node.expression]); */
+	check.isomorphism('accepts complex expressions',
+		[Node.expression]);
 
 	check.isomorphism('accepts basic function invocations', [Node.simple_invocation]);
 //	check.isomorphism('accepts message sends (w/o receiver)',
@@ -62,9 +62,9 @@ let lists = {
 	alpha: 'ABCDEFGHIJKLMNOPQRSTUVWXZYabcdefghijklmnopqrstuvwxyz_'.split(''),
 	alphanum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split(''),
 	prefixOperator: '+-~!^'.split(''),
-	infixOperator: ['//:', '//', '/:', '+:', '-:', '*:', '%:', '<=', '==',
-		'!=', '>=', '..', '~>', '<~', '??', '+', '-', '*', '/', '%',
-		'<', '>', '&', '|', '^'
+	infixOperator: ['+', '-', '*', '/', '%', '<', '>', '^', '==', '!=', '>=',
+		'//:', '//', '/:', '+:', '-:', '*:', '%:', '<=', '==',
+		'..', '~>', '<~', '??', '&', '|'
 	]
 };
 
@@ -207,7 +207,7 @@ Node.infixExpression = gen.map((args) => {
 		lhs: args[1],
 		rhs: args[2]
 	});
-}, gen.array([gen.returnOneOf(lists.infixOperator), Node.term, Node.simple_expression]));
+}, gen.array([gen.returnOneOf(lists.infixOperator), Node.term, Node.term]));//Node.simple_expression]));
 
 Node.expression = gen.oneOf([Node.prefixExpression, Node.infixExpression]);
 
@@ -261,6 +261,13 @@ check.isomorphism = (description, nodeList) => {
 	check.it(description, nodeList, (node) => {
 		let parsed;
 		[parsed, scopes] = L.Parser.parse(node.toString()).transform(L.Rules, scopes);
+		parsed = parsed.transform((node) => {
+			// Since the generative AST doesn't go through a scoping or
+			// name binding step, we strip the scope and binding values from
+			// the parsed AST before comparison.
+			node = (node.has('binding')) ? node.set('binding', null) : node;
+			return node.set('scope', null);
+		});
 		assert.equal(node, parsed.exprs.first());
 	});
 };

@@ -8,7 +8,7 @@ const _ = null;
 const _list = List([]);
 const _map = Map({});
 
-const Map_ = Record({items: _list, tags: _map}, 'Map');
+const Map_ = Record({items: _list, scope: _, tags: _map}, 'Map');
 
 Map_.prototype.toString = function() {
 	let delims = ['[',']']; //this.getIn(['tags', 'source'], 'list')];
@@ -20,6 +20,7 @@ Map_.prototype.toString = function() {
         return (
             delims[0] + 
             items.map((kvpair) => {
+				//console.log(kvpair.toJSON());
 				return kvpair.key.toString() + ': ' + kvpair.val.toString();
 			}).join(', ') +
             delims[1]

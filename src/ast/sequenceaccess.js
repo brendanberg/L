@@ -9,7 +9,7 @@ const _ = null;
 const _map = Map({});
 const _list = IList([]);
 
-const SequenceAccess = Record({target: _, terms: _list, tags: _map}, 'SequenceAccess');
+const SequenceAccess = Record({target: _, terms: _list, scope: _, tags: _map}, 'SequenceAccess');
 
 SequenceAccess.prototype.toString = function() {
 	return (
@@ -41,15 +41,16 @@ SequenceAccess.prototype.eval = function(ctx) {
 		index = item.eval(ctx);
 		if (target._name === 'List') {
 			if (index._name !== 'Integer') {
-				return new Bottom();
+				return new Bottom({scope: this.scope});
 			}
 			if (index.value < 0) {
 				result.push(
 					target.items.get(target.items.size + index.value) ||
-					new Bottom()
+					new Bottom({scope: this.scope})
 				);
 			} else {
-				result.push(target.items.get(index.value) || new Bottom());
+				result.push(target.items.get(index.value)
+					|| new Bottom({scope: this.scope}));
 			}
 		} else if (target._name === 'Map') {
 			//TODO: Test that index is hashable
@@ -71,7 +72,7 @@ SequenceAccess.prototype.eval = function(ctx) {
 	if (target.type === 'Text') {
 		return target.set('value', result.join(''));
 	} else {
-		return new List({items: result});
+		return new List({items: result, scope: this.scope});
 	}
 };
 
