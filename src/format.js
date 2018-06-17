@@ -1,41 +1,25 @@
 
 
-let Style = function(open, close) {
-    this.prefix = '\u001b[';
-    this.suffix = 'm';
-    this.start = open;
-    this.end = close;
-};
-
-Style.prototype.prefix = '\u001b[';
-Style.prototype.suffix = 'm';
-
-Style.prototype.wrap = function(str) {
-    return this.open() + str + this.close();
-};
-
-Style.prototype.open = function() {
-    return this.prefix + this.start + this.suffix;
-};
-
-Style.prototype.close = function() {
-    return this.prefix + this.end + this.suffix;
+const color = (open, close) => {
+	return (str) => {
+		return `\u001b[${open}m${str}\u001b[${close}m`;
+	};
 };
 
 let styles = {
-	'bold' : new Style(1, 22),
-	'italic' : new Style(3, 23),
-	'underline' : new Style(4, 24),
-	'inverse' : new Style(7, 27),
-	'white' : new Style(37, 39),
-	'grey' : new Style(90, 39),
-	'black' : new Style(30, 39),
-	'blue' : new Style(34, 39),
-	'cyan' : new Style(36, 39),
-	'green' : new Style(32, 39),
-	'magenta' : new Style(35, 39),
-	'red' : new Style(31, 39),
-	'yellow' : new Style(33, 39),
+	'bold' : color(1, 22),
+	'italic' : color(3, 23),
+	'underline' : color(4, 24),
+	'inverse' : color(7, 27),
+	'white' : color(37, 39),
+	'grey' : color(90, 39),
+	'black' : color(30, 39),
+	'blue' : color(34, 39),
+	'cyan' : color(36, 39),
+	'green' : color(32, 39),
+	'magenta' : color(35, 39),
+	'red' : color(31, 39),
+	'yellow' : color(33, 39),
 };
 
 let colors = {
@@ -51,11 +35,11 @@ let colors = {
 };
 
 
-let stylize = function(type) {
-    let style = type && styles[colors[type]];
+let stylize = (type) => {
+    let style = type && styles[colors[type]] || function(str) { return str; };
 
-    return function(str) {
-        return style ? style.wrap(str) : str;
+    return (str) => {
+        return style(str);
     };
 };
 

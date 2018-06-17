@@ -8,6 +8,9 @@ const path = require('path');
 const util = require('util');
 const style = require('./format');
 
+const prmpt = '\u001B[44m \u001B[0m\u001B[34m\uE0B0\u001B[39m ';
+const cont = '\u001B[44m \u001B[0m  ';
+
 const loadSourceFile = (basepath, filename) => {
 	let ast, contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
 
@@ -55,12 +58,14 @@ for (let filename of filenames) {
 // Instantiate and configure the interactive shell
 // ---------------------------------------------------------------------------
 
-process.stdout.write(style.operator('The L Programming Language, Meta.L v' + L.version + '\n'));
+process.stdout.write('\u001B[45;97m The L Programming Language \u001B[0m'
+	+ `\u001B[42;35m\uE0B0\u001B[97m Meta.L v ${L.version} \u001B[0m`
+	+ '\u001B[32m\uE0B0\u001B[39m\n');
 process.stdout.write('\033]0;Meta.L\007');
 
 const rep = repl.start({
 	ignoreUndefined: true,
-	prompt: ">> ",
+	prompt: prmpt,
 	eval: eval,
 	writer: writer
 });
@@ -110,7 +115,7 @@ rep.defineCommand('break', {
 	help: 'Break out of the current nested statement and clear buffered input',
 	action: function() {
 		rep.clearBufferedCommand();
-		rep.setPrompt('>> ');
+		rep.setPrompt(prmpt);
 		rep.displayPrompt();
 	}
 });
@@ -172,7 +177,10 @@ rep.on('line', (cmd) => {
 				finish(null);
 				return;
 			} else {
-				rep.outputStream.write('Invalid REPL command\n');
+				let line = `${command} is not a recognized shell command\n`;
+				rep.outputStream.write(rep.writer(style.error(line)));
+				rep.displayPrompt();
+				return;
 			}
 		}
 	}
@@ -232,16 +240,16 @@ rep.removeAllListeners('SIGINT');
 rep.on('SIGINT', function() {
 	if (bufferedCommand.length > 0) {
 		rep.clearBufferedCommand();
-		rep.setPrompt('>> ');
+		rep.setPrompt(prmpt);
 		rep.displayPrompt();
 	} else {
-		rep.outputStream.write('\nTo exit, press Ctrl-D or type !exit\n');
+		rep.outputStream.write('\n   To exit, press Ctrl-D or type !exit\n');
 		rep.displayPrompt();
 	}
 });
 
 rep.on('exit', function() {
-	rep.outputStream.write(rep.writer('\n'));
+	rep.outputStream.write('\n');
 });
 
 
@@ -258,14 +266,19 @@ function depth(cmd) {
 }
 
 function writer(obj) {
+	const ok = '\u001B[42m \u001B[0m  ';
+	const error = '\u001B[41m \u001B[0m  ';
+
 	if (typeof obj === 'object') {
-		if ('repr' in obj) {
-			return obj.repr(-1, style);
+		if ('repr' in obj && obj._name === 'Error') {
+			return error + obj.repr(-1, style).replace(/\n/g, '\n' + error);
+		} else if ('repr' in obj) {
+			return ok + obj.repr(-1, style).replace(/\n/g, '\n' + ok);
 		} else {
-			return obj.toString();
+			return error + obj.toString().replace(/\n/g, '\n' + error);
 		}
 	} else {
-		return obj.toString();
+		return error + obj.toString().replace(/\n/g, '\n' + error);
 	}
 }
 
@@ -285,13 +298,12 @@ function eval(cmd, context, filename, finish) {
 
 	try {
 		[ast, scopes] = L.Parser.parse(command).transform(L.Rules, scopes);
-		rep.setPrompt('>> ');
+		rep.setPrompt(prmpt);
 	} catch (e) {
 		if (e.found == null) {
 			L.log.debug(e.toString());
 			L.log.debug(style.comment(e.stack.replace(/^[^\n]+\n/, '')));
 
-			rep.setPrompt(' - ');
 			finish(new repl.Recoverable('Unexpected end of input'), '');
 			return;
 		}
@@ -304,7 +316,7 @@ function eval(cmd, context, filename, finish) {
 			const pointer = ' '.repeat(e.column) + style.string('^');
 			result = '   ' + pointer + '\n' + result;
 			rep.clearBufferedCommand();
-			rep.setPrompt('>> ');
+			rep.setPrompt(prmpt);
 		} else {
 			result += '\n' + style.string(e.stack.replace(/^[^\n]+\n/, ''));
 		}
