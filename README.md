@@ -1,9 +1,12 @@
+![Hello World in L][hero]
+
 ![CircleCI][ci] ![GitHub release][ver]
 
+[hero]: https://raw.githubusercontent.com/brendanberg/L/node/docs/hero.jpg
 [ci]: https://circleci.com/gh/brendanberg/L/tree/node.svg?style=shield&circle-token=324393cdf34c942beaf41923baccd1b78948a666
 [ver]: https://img.shields.io/github/release/brendanberg/L.svg
 
-# The 🅛 Programming Language
+# The L Programming Language
 
 The __L__ Programming Language is an experimental, minimalist, multi-paradigm programming language.
 It is designed around the radical philosophy that programs should be intelligible
