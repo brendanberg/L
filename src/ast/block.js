@@ -10,17 +10,7 @@ const _list = List([]);
 const _map = Map({});
 
 
-let Block = Record({exprs: _list, tags: _map}, 'Block');
-
-Object.defineProperty(Block.prototype, 'scope', {
-	get() {
-		if (this._scope === undefined) {
-			this._scope = Symbol();
-		}
-		return this._scope;
-	},
-	set(scope) { this._scope = scope; }
-});
+let Block = Record({exprs: _list, locals: _map, scope: _, tags: _map}, 'Block');
 
 Block.prototype.toString = function() {
 	let join = (this.exprs.count() > 1) ? '\n' : ' ';
@@ -66,7 +56,8 @@ Block.prototype.eval = function(ctx) {
 
 Block.prototype.invoke = function(ctx) {
 	return this.exprs.reduce((result, exp) => {
-		return result.push((exp.eval && exp.eval(ctx)) || new Bottom());
+		return result.push(
+				(exp.eval && exp.eval(ctx)) || new Bottom({scope: this.scope}));
 	}, List([])).last();
 };
 

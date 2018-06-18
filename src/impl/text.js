@@ -10,7 +10,11 @@ const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
 
@@ -22,7 +26,7 @@ TextType.methods = {
 	},
 	"('+':)": dispatch({
 		'Text': function(s) {
-			return this.update('value', function(v) { return v.concat(s.value); });
+			return this.update('value', (v) => { return v.concat(s.value); });
 		}
 	}),
 	"('==':)": dispatch({
@@ -80,14 +84,14 @@ TextType.methods = {
 
 			if (s.value.count() === 0) {
 				// The trivial split
-				items = this.value.reduce(function(result, item) {
+				items = this.value.reduce((result, item) => {
 					return result.append(new Text({value: [item]}));
 				}, List([]));
 
 				return new List_({items: items});
 			}
 
-			let splits = this.value.reduce(function(result, item) {
+			let splits = this.value.reduce((result, item) =>{
 				let res;
 
 				if (result[2].count() === 0 && item === s.value[0]) {
@@ -101,28 +105,28 @@ TextType.methods = {
 					return [result[0], result[1].append(item), result[2].slice(1)];
 				} else if (result[2].count() < s.value.count()) {
 					// Reset after a false start
-					res = result[0].update(-1, function(v) {
+					res = result[0].update(-1, (v) => {
 						return v.concat(result[1]).append(item);
 					});
 					return [res, List([]), List(s.value)];
 				} else {
 					// Continue outside a match
-					res = result[0].update(-1, function(v) {
+					res = result[0].update(-1, (v) => {
 						return v.append(item);
 					});
 					return [res, result[1], result[2]];
 				}
 			}, [List([List([])]), List([]), List(s.value)]);
 
-			let texts = splits[0].map(function(item) {
+			let texts = splits[0].map((item) => {
 				return new Text({value: item});
 			});
 
 			if (splits[2].count() === 0) {
 				return new List_({items: texts.append(new Text({value: List([])}))});
 			} else if (splits[2].count() < s.value.count()) {
-				let fixed = texts.update(-1, function(t) {
-					return t.update('value', function(v) {
+				let fixed = texts.update(-1, (t) => {
+					return t.update('value', (v) => {
 						return v.concat(splits.get(1));
 					});
 				});

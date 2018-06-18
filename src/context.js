@@ -47,7 +47,7 @@ Context.prototype.loadGlobals = function(scope) {
 	};
 	
 	Object.keys(globals).map((key) => {
-		let binding = scope.addBinding({label: key, scopes: globalScope});
+		let binding = scope.addBinding({label: key, scope: globalScope});
 		this.locals[binding] = globals[key];
 	});
 }
@@ -217,7 +217,7 @@ Context.prototype.match = function(pattern, value) {
 				let key, val;
 				
 				if (first._name === 'Identifier') {
-					key = new Symbol_({label: first.label});
+					key = new Symbol_({label: first.label, scope: value.scope});
 					val = first;
 				} else {
 					key = first.key;
@@ -229,7 +229,7 @@ Context.prototype.match = function(pattern, value) {
 				}, Map({}));
 
 				let innerCtx = capture(val, map.get(key), ctx);
-
+				
 				return innerCtx && capture(
 					pattern.set('items', rest),
 					value.update('items', (items) => {

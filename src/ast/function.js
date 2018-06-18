@@ -9,7 +9,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Function_ = Record({template: _, guard: _, block: _, tags: _map}, 'Function');
+let Function_ = Record({template: _, guard: _, block: _, locals: _map, scope: _, tags: _map}, 'Function');
 
 Function_.prototype.toString = function() {
 	let guard = this.guard ? ' ? ' + this.guard.toString() : '';

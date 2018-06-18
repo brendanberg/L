@@ -14,7 +14,7 @@ let _Decimal = new Type({label: 'Decimal'});
 
 _Decimal.methods = {
 	"('+')": function() { return this },
-	"('-')": function() { return this.update('numerator', function(v) { return -v; }); },
+	"('-')": function() { return this.update('numerator', (v) => { return -v; }); },
 	'(sqrt.)': function() {
 		// WARNING! There's a loss of precision here!
 		let inexact = Math.sqrt(this.numerator * Math.pow(10, -this.exponent));
@@ -28,7 +28,7 @@ _Decimal.methods = {
 	"('+':)": dispatch({
 		'Integer': function(n) {
 			let factor = Math.pow(10, this.exponent);
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num + n.value * factor;
 			});
 		},
@@ -42,7 +42,7 @@ _Decimal.methods = {
 	"('-':)": dispatch({
 		'Integer': function(n) {
 			let factor = Math.pow(10, this.exponent);
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num - n.value * factor;
 			});
 		},
@@ -55,7 +55,7 @@ _Decimal.methods = {
 	}),
 	"('*':)": dispatch({
 		'Integer': function(n) {
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num * n.value;
 			});
 		},
@@ -69,7 +69,7 @@ _Decimal.methods = {
 	"('/':)": dispatch({
 		'Integer': function(n) {
 			let factor = Math.pow(10, this.exponent);
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num + n.value * factor;
 			});
 		},

@@ -8,7 +8,7 @@ const _list = List([]);
 const _map = Map({});
 
 
-let List_ = Record({items: _list, tags: _map}, 'List');
+let List_ = Record({items: _list, scope: _, tags: _map}, 'List');
 
 List_.prototype.toString = function() {
 	let delims = ['[',']']; //this.getIn(['tags', 'source'], 'list')];

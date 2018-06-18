@@ -5,17 +5,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-Record_ = Record({label: _, fields: _map, tags: _map}, 'Record');
-
-Object.defineProperty(Record_.prototype, 'scopes', {
-	get() {
-		if (this._scopes === undefined) {
-			this._scopes = Set([]);
-		}
-		return this._scopes
-	},
-	set(scopes) { this._scopes = scopes; }
-});
+Record_ = Record({label: _, fields: _map, scope: _, tags: _map}, 'Record');
 
 
 Record_.prototype.toString = function () {

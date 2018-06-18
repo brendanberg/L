@@ -3,8 +3,13 @@ const Type = require('../ast/type');
 const Symbol = require('../ast/symbol');
 const dispatch = require('../dispatch');
 
+
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
 const SymbolType = new Type({label: 'Symbol'});
@@ -25,7 +30,7 @@ SymbolType.methods = {
 	}),
 	"('+':)": dispatch({
 		'Symbol': function(s) {
-			return this.update('label', function(l) { return l + s.label; });
+			return this.update('label', (l) => { return l + s.label; });
 		},
 	}),
 };

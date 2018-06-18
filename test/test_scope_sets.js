@@ -14,7 +14,7 @@ describe('Scope Sets', () => {
 	let context = new L.Context();
 
 	let scope1 = Set([Symbol('a')]);
-	let x_out = new L.AST.Identifier({label: 'x'});
+	let x_out = new L.AST.Identifier({label: 'x', scope: scope1});
 
 	it('looking up an unbound name returns null', () => {
 		let binding = scope.resolve(x_out);
@@ -24,7 +24,6 @@ describe('Scope Sets', () => {
 	});
 
 	it('resolving a bound name returns the identical symbol', () => {
-		x_out.scopes = scope1;
 		let sym1 = scope.addBinding(x_out);
 		let sym2 = scope.resolve(x_out);
 		assert.equal(sym1, sym2);
@@ -51,8 +50,7 @@ describe('Scope Sets', () => {
 	});
 
 	let scope2 = scope1.add(Symbol('b'));
-	let x_in = new L.AST.Identifier({label: 'x'});
-	x_in.scopes = scope2;
+	let x_in = new L.AST.Identifier({label: 'x', scope: scope2});
 	let inner = new L.Context(context);
 
 	it('the get() method traverses enclosing scopes to find a bound name', () => {
@@ -85,11 +83,9 @@ describe('Scope Sets', () => {
 		assert.equal(value3, maybe_val);
 	});
 
-	let y_out = new L.AST.Identifier({label: 'y'});
-	y_out.scopes = scope1;
+	let y_out = new L.AST.Identifier({label: 'y', scope: scope1});
 
-	let y_in = new L.AST.Identifier({label: 'y'});
-	y_in.scopes = scope2;
+	let y_in = new L.AST.Identifier({label: 'y', scope: scope2});
 
 	let value5 = 'v5';
 

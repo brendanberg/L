@@ -10,7 +10,7 @@ const _ = null;
 const _map = Map({});
 
 
-let MessageSend = Record({sender: _, receiver: _, message: _, tags: _map}, 'MessageSend');
+let MessageSend = Record({sender: _, receiver: _, message: _, scope: _, tags: _map}, 'MessageSend');
 
 MessageSend.prototype.toString = function() {
 	return (this.receiver ? this.receiver.toString() + '<-' : '') + this.message.toString();

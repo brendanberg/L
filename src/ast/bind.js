@@ -13,7 +13,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Bind = Record({template: _, value: _, tags: _map}, 'Bind');
+let Bind = Record({template: _, value: _, scope: _, tags: _map}, 'Bind');
 
 Bind.prototype.toString = function() {
     return this.template.toString() + ' :: ' + this.value.toString();
@@ -43,7 +43,10 @@ Bind.prototype.eval = function(ctx) {
 		// console.log(ctx.locals);
 		return new Map_({
 			items: List(changeSet.entrySeq().map(([label, val]) => {
-				return new KeyValuePair({key: new Symbol_({label: label}), val: val});
+				return new KeyValuePair({
+					key: new Symbol_({label: label, scope: this.scope}),
+					val: val,
+					scope: this.scope});
 			}))
 		});
 	} else {

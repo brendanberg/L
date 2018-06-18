@@ -9,7 +9,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Text = Record({value: _, tags: _map}, 'Text');
+let Text = Record({value: _, scope: _, tags: _map}, 'Text');
 
 Text.prototype.toString = function() {
 	// Returns a quoted, escaped string suitable for input into the parser

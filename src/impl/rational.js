@@ -6,14 +6,18 @@ const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
 let _Rational = new Type({label: 'Rational'});
 
 _Rational.methods = {
 	"('+')": function() { return this },
-	"('-')": function() { return this.update('numerator', function(v) { return -v; }); },
+	"('-')": function() { return this.update('numerator', (v) => { return -v; }); },
 	"('+':)": dispatch({
 		'Integer': function(n) {
 			return this.set('numerator', this.numerator + n.value * this.denominator);

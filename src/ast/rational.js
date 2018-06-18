@@ -12,7 +12,7 @@ function gcd(a, b) {
 	return gcd(b, a % b);
 }
 
-const Rational = Record({numerator: _, denominator: _, tags: _map}, 'Rational');
+const Rational = Record({numerator: _, denominator: _, scope: _, tags: _map}, 'Rational');
 
 Rational.prototype.toString = function() {
 	let rat = this.simplify();

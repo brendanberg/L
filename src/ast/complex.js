@@ -7,7 +7,7 @@ const _ = null;
 const _map = Map({});
 
 
-let Complex = Record({real: _, imaginary: _, tags: _map}, 'Complex');
+let Complex = Record({real: _, imaginary: _, scope: _, tags: _map}, 'Complex');
 
 Complex.prototype.toString = function() {
 	let real = this.get('real', null);

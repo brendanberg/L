@@ -9,7 +9,7 @@ const _map = I.Map({});
 const _list = I.List([]);
 
 
-let TypeVar = I.Record({label: _, tags: _map}, 'TypeVar');
+let TypeVar = I.Record({label: _, binding: _, scope: _, tags: _map}, 'TypeVar');
 
 TypeVar.prototype.toString = function() {
 	return '$' + this.label;

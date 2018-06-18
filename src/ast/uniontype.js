@@ -5,17 +5,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-UnionType = Record({label: _, variants: _map, tags: _map}, 'UnionType');
-
-Object.defineProperty(UnionType.prototype, 'scopes', {
-	get() { return this._scopes || Set([]); },
-	set(scopes) { this._scopes = scopes; }
-});
-
-Object.defineProperty(UnionType.prototype, 'binding', {
-	get() { return this._binding || null; },
-	set(binding) { this._binding = binding }
-});
+UnionType = Record({label: _, variants: _map, binding: _, scope: _, tags: _map}, 'UnionType');
 
 UnionType.prototype.toString = function () {
 	let variants = this.variants.map(function(node) {
@@ -46,7 +36,7 @@ UnionType.prototype.transform = function(func) {
 };
 
 UnionType.prototype.debugString = function () {
-	let sc = this.scopes.map((sym)=>{return sym.toString();}).toArray().join(',');
+	let sc = this.scope.map((sym)=>{return sym.toString();}).toArray().join(',');
 	let binding = this.binding ? this.binding.toString() : '--';
 
 	return `{${this.label}}[${sc}]: ${binding}`;

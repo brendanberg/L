@@ -29,13 +29,13 @@ Block.prototype.transform = function(match, scopes) {
 		if (node._name === 'Identifier' && node.binding == null) {
 			if (node.getIn(['tags', 'introduction'])) {
 				if (node.getIn(['tags', 'local'])) {
-					node.binding = scopes.addBinding(node);
+					node = node.set('binding', scopes.addBinding(node));
 				} else {
-					node.binding = scopes.resolve(node) || scopes.addBinding(node);
+					node = node.set('binding', scopes.resolve(node) || scopes.addBinding(node));
 				}
 				log.debug(`+ ${node.debugString()}`);
 			} else {
-				node.binding = scopes.resolve(node);
+				node = node.set('binding', scopes.resolve(node));
 				if (node.binding) {
 					 log.debug(`= ${node.debugString()}`);
 				} else {
@@ -44,14 +44,14 @@ Block.prototype.transform = function(match, scopes) {
 			}
 		} else if ((node._name === 'RecordType' || node._name === 'UnionType')
 				&& node.binding == null) {
-			node.binding = scopes.addBinding(node);
+			node = node.set('binding', scopes.addBinding(node));
 			log.debug(`+ ${node.debugString()}`);
 		}
 
 		return node;
 	}).transform((node) => {
 		if (node._name === 'Identifier' && node.binding == null) {
-			node.binding = scopes.resolve(node);
+			node = node.set('binding', scopes.resolve(node));
 			log.debug(`= ${node.debugString()}`);
 		}
 

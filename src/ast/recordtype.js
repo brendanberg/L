@@ -6,17 +6,7 @@ const _list = List([]);
 const Identifier = require('./identifier');
 
 
-RecordType = Record({label: _, members: _list, tags: _map}, 'RecordType');
-
-Object.defineProperty(RecordType.prototype, 'scopes', {
-	get() { return this._scopes || Set([]); },
-	set(scopes) { this._scopes = scopes; }
-});
-
-Object.defineProperty(RecordType.prototype, 'binding', {
-	get() { return this._binding || null; },
-	set(binding) { this._binding = binding }
-});
+RecordType = Record({label: _, members: _list, binding: _, scope: _, tags: _map}, 'RecordType');
 
 RecordType.prototype.toString = function () {
 	let members = this.members.map(function(node) {
@@ -49,7 +39,7 @@ RecordType.prototype.transform = function(func) {
 };
 
 RecordType.prototype.debugString = function () {
-	let sc = this.scopes.map((sym)=>{return sym.toString();}).toArray().join(',');
+	let sc = this.scope.map((sym)=>{return sym.toString();}).toArray().join(',');
 	let binding = this.binding ? this.binding.toString() : '--';
 
 	return `{${this.label}}[${sc}]: ${binding}`;

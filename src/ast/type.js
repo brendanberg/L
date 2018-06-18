@@ -17,7 +17,7 @@ Type.prototype.repr = function (depth, fmt) {
 };
 
 Type.prototype.transform = function(context, match) {
-	return new Bottom();
+	return new Bottom({scope: this.scope});
 };
 
 Type.prototype.methodForSelector = function(selector) {

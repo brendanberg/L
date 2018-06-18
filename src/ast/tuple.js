@@ -5,17 +5,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-Tuple = Record({label: _, values: _list, tags: _map}, 'Tuple');
-
-Object.defineProperty(Tuple.prototype, 'scope', {
-	get() {
-		if (this._scope === undefined) {
-			this._scope = Symbol();
-		}
-		return this._scope;
-	},
-	set(scope) { this._scope = scope; }
-});
+Tuple = Record({label: _, values: _list, scope: _, tags: _map}, 'Tuple');
 
 Tuple.prototype.toString = function () {
 	if (this.values.count()) {

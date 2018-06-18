@@ -10,17 +10,7 @@ const _list = List([]);
 const _set = Set([]);
 
 
-let Identifier = Record({label: _, modifier: _, tags: _map}, 'Identifier');
-
-Object.defineProperty(Identifier.prototype, 'scopes', {
-	get() { return this._scopes || Set([]); },
-	set(scopes) { this._scopes = scopes; }
-});
-
-Object.defineProperty(Identifier.prototype, 'binding', {
-	get() { return this._binding || null; },
-	set(binding) { this._binding = binding }
-});
+let Identifier = Record({label: _, modifier: _, binding: _, scope: _, tags: _map}, 'Identifier');
 
 Identifier.prototype.toString = function() {
 	let type = this.getIn(['tags', 'type'], '');
@@ -46,7 +36,7 @@ Identifier.prototype.eval = function(ctx) {
 };
 
 Identifier.prototype.debugString = function () {
-	let sc = this.scopes.map((sym)=>{return sym.toString();}).toArray().join(',');
+	let sc = this.scope.map((sym)=>{return sym.toString();}).toArray().join(',');
 	let local = this.getIn(['tags', 'local']) ? 'local ' : '';
 	let binding = this.binding ? this.binding.toString() : '--';
 

@@ -7,7 +7,7 @@ const _ = null;
 const _map = Map({});
 
 
-const KeyValuePair = Record({key: _, val:_, tags: _map}, 'KeyValuePair');
+const KeyValuePair = Record({key: _, val: _, scope: _, tags: _map}, 'KeyValuePair');
 
 KeyValuePair.prototype.toString = function() {
     return this.key.toString() + ': ' + this.val.toString();

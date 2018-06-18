@@ -6,6 +6,14 @@ const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
+}
+
+function make_bool(exp) {
 	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Bool'})});
 }
 
@@ -49,7 +57,7 @@ _Complex.methods = {
 	}),
 	"('-':)": dispatch({
 		'Integer': function(n) {
-			return this.update('real', function(r) {
+			return this.update('real', (r) => {
 				// Invoke r('-': n)
 				r.ctx = this.ctx;
 				let method = this.ctx.lookup(r._name).methodForSelector("('+':)");
@@ -57,12 +65,12 @@ _Complex.methods = {
 			});
 		},
 		'Complex': function(c) {
-			return this.update('real', function(r) {
+			return this.update('real', (r) => {
 				// Invoke r('-': c.real)
 				r.ctx = this.ctx;
 				let method = this.ctx.lookup(r._name).methodForSelector("('-':)");
 				return method.apply(r, [c.real]);
-			}).update('imaginary', function(j) {
+			}).update('imaginary', (j) => {
 				// invoke j('-': c.imaginary)
 				j.ctx = this.ctx;
 				let method = this.ctx.lookup(j._name).methodForSelector("('-':)");

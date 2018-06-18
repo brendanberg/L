@@ -1,0 +1,31 @@
+>> Vector << x, y, z >>
+Vector << x, y, z >>
+
+>> Vector v (magnitude.) -> { ((v.x ^ 2) + (v.y ^ 2) + (v.z ^ 2))(sqrt.) }
+Vector v (magnitude.) -> { ((v.x ^ 2) + (v.y ^ 2) + (v.z ^ 2))(sqrt.) }
+
+>> Vector v ('+': w) -> { Vector(x: v.x + w.x, y: v.y + w.y, z: v.z + w.z) }
+Vector v ('+': w) -> { Vector(x: v.x + w.x, y: v.y + w.y, z: v.z + w.z) }
+
+>> Vector v ('/': s) -> { Vector(x: v.x / s, y: v.y / s, z: v.z / s) }
+Vector v ('/': s) -> { Vector(x: v.x / s, y: v.y / s, z: v.z / s) }
+
+>> List s (centroid.) -> {
+ -   s(reduceInto: Vector(x: 0, y: 0, z: 0), with: (sum, vec) -> { sum + vec }) / s(count.)
+ - }
+List s (centroid.) -> { s(reduceInto: Vector(x: 0, y: 0, z: 0), with: (sum, vec) -> { sum + vec }) / s(count.) }
+
+>> vectors :: [
+ -   Vector(x: 11, y: 13, z: 10)
+ -   Vector(x: 8, y: 10, z: 17)
+ -   Vector(x: 15, y: 14, z: 6)
+ -   Vector(x: 18, y: 9, z: 7)
+ -   Vector(x: 5, y: 18, z: 20)
+ - ]
+[.vectors: [Vector(x: 11, y: 13, z: 10), Vector(x: 8, y: 10, z: 17), Vector(x: 15, y: 14, z: 6), Vector(x: 18, y: 9, z: 7), Vector(x: 5, y: 18, z: 20)]]
+
+>> vectors(centroid.)
+
+
+>> vectors(map: (v) -> { v(magnitude.) })
+[19.748417658131, 21.283796653792, 21.377558326431, 21.307275752662, 27.367864366808]

@@ -8,11 +8,11 @@ function gensym() {
 	return (++currentSymbol).toString(36).padStart(4, '0').toUpperCase();
 }
 
-const ScopedIdentifier = Record({label: _, scopes: Set([])});
+const ScopedIdentifier = Record({label: _, scope: Set([])});
 
 ScopedIdentifier.prototype.toString = function() {
 	return ('{' + this.label + '}['
-		+ this.scopes.map((sym) => { return sym.toString() }).toArray().join(',')
+		+ this.scope.map((sym) => { return sym.toString() }).toArray().join(',')
 		+ ']');
 }
 
@@ -33,22 +33,22 @@ Scope.prototype.toString = function() {
 };
 
 Scope.prototype.addBinding = function(ident) {
-	ident = new ScopedIdentifier({label: ident.label, scopes: ident.scopes});
+	ident = new ScopedIdentifier({label: ident.label, scope: ident.scope});
 	let binding = gensym();
 	this.bindings = this.bindings.set(ident, binding);
 	return binding;
 };
 
 Scope.prototype.resolve = function(ident) {
-	ident = new ScopedIdentifier({label: ident.label, scopes: ident.scopes});
+	ident = new ScopedIdentifier({label: ident.label, scope: ident.scope});
 
 	let candidates = this.bindings.keySeq().filter((id) => {
-		return (id.label == ident.label && id.scopes.isSubset(ident.scopes));
+		return (id.label == ident.label && id.scope.isSubset(ident.scope));
 	});
 
 	let bestMatch = candidates.reduce((bestMatch, id) => {
-		if (id.scopes.intersect(ident.scopes).count()
-				> bestMatch.scopes.intersect(ident.scopes).count()) {
+		if (id.scope.intersect(ident.scope).count()
+				> bestMatch.scope.intersect(ident.scope).count()) {
 			return id;
 		} else {
 			return bestMatch;

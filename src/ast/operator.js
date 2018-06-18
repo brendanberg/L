@@ -5,7 +5,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-Operator = Record({label: _, tags: _map}, 'Operator');
+Operator = Record({label: _, scope: _, tags: _map}, 'Operator');
 
 Operator.prototype.toString = function () {
 	return this.label;
@@ -19,9 +19,8 @@ Operator.prototype.eval = function(ctx) {
 	return this;
 };
 
-Operator.prototype.transform = function(context, match) {
-	// Note: This rule should be unreachable if the grammar rules are correct
-	return this;
+Operator.prototype.transform = function(func) {
+	return func(this);
 };
 
 module.exports = Operator;
