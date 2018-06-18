@@ -9,8 +9,13 @@ const Bottom = require('../ast/bottom');
 const Invocation = require('../ast/invocation');
 const dispatch = require('../dispatch');
 
+
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
 let _Map = new Type({label: 'Map'});
@@ -29,7 +34,7 @@ _Map.methods = {
 	"('+':)": dispatch({
 		// This is a dictionary merge.
 		'Map': function(s) {
-			return this.update('items', function(v) { return v.merge(s.items); });
+			return this.update('items', (v) => { return v.merge(s.items); });
 		}
 	}),
 	'(contains:)': function(v) {
@@ -52,7 +57,7 @@ _Map.methods = {
 	}),
 	'(map:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) => {
 				return (new Invocation({
 					target: f,
 					args: List([item])
@@ -60,7 +65,7 @@ _Map.methods = {
 			}));
 		},
 		'Match': function(m) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) => {
 				return (new Invocation({
 					target: m,
 					args: List([item])
@@ -70,7 +75,7 @@ _Map.methods = {
 	}),
 	'(filter:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.filter(function(item) {
+			return this.set('items', this.items.filter((item) => {
 				return (new Invocation({
 					target: f,
 					args: List([item])
@@ -78,7 +83,7 @@ _Map.methods = {
 			}));
 		},
 		'Match': function(m) {
-			return this.set('items', this.items.filter(function(item) {
+			return this.set('items', this.items.filter((item) => {
 				return (new Invocation({
 					target: m,
 					args: List([item])
@@ -88,23 +93,23 @@ _Map.methods = {
 	}),
 	'(compactMap:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) => {
 				return (new Invocation({
 					target: f, args: List([item])
 				})).eval(f.ctx);
-			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+			}).filter((item) => { return item && item._name !== 'Bottom'; }));
 		},
 		'Match': function (f) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) =>{
 				return (new Invocation({
 					target: f, args: List([item])
 				})).eval(f.ctx);
-			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+			}).filter((item) => { return item && item._name !== 'Bottom'; }));
 		},
 	}),
 	'(reduce:)': dispatch({
 		'Function': function(f) {
-			return this.items.reduce(function(init, item) {
+			return this.items.reduce((init, item) => {
 				return (new Invocation({
 					target: f,
 					args: List([init, item])
@@ -112,7 +117,7 @@ _Map.methods = {
 			});
 		},
 		'Match': function(m) {
-			return this.items.reduce(function(init, item) {
+			return this.items.reduce((init, item) => {
 				return (new Invocation({
 					target: m,
 					args: List([init, item])
@@ -121,7 +126,7 @@ _Map.methods = {
 		},
 	}),
 	'(reduceInto:with:)': function(init, func) {
-		return this.items.reduce(function(init, item) {
+		return this.items.reduce((init, item) => {
 			return (new Invocation({
 				target: func,
 				args: List([init, item])

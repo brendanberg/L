@@ -5,7 +5,11 @@ const Bottom = require('../ast/bottom');
 const dispatch = require('../dispatch');
 
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
 let Block = new Type({label: 'Block'});
@@ -16,11 +20,11 @@ Block.methods = {
 	//       done by the parser and type checker :-)
 	"('+':)": dispatch({
 		'Block': function(b) {
-			return this.update('exprs', function(e) { return e.concat(b.exprs); });
+			return this.update('exprs', (e) => { return e.concat(b.exprs); });
 		},
 	}),
 	'(append:)': function(exp) {
-		return this.update('exprs', function(e) { return e.push(exp); });
+		return this.update('exprs', (e) => { return e.push(exp); });
 	},
 	'(evaluateWithContext:)': function(ctx) {
 		// TODO:

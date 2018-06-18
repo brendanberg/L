@@ -9,7 +9,11 @@ const Invocation = require('../ast/invocation');
 const dispatch = require('../dispatch');
 
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
 let ListType = new Type({label: 'List'});
@@ -22,7 +26,7 @@ ListType.methods = {
 		return make_bool(this.items.isEmpty());
 	},
 	'(reverse.)': function() {
-		return this.update('items', function(items) { return items.reverse().toList(); });
+		return this.update('items', (items) => { return items.reverse().toList(); });
 	},
 	"('@':)": dispatch({
 		'Integer': function(idx) {
@@ -31,12 +35,12 @@ ListType.methods = {
 	}),
 	"('+':)": dispatch({
 		'List': function(s) {
-			return this.update('items', function(v) { return v.concat(s.items); });
+			return this.update('items', (v) => { return v.concat(s.items); });
 		}
 	}),
 	"('*':)": dispatch({
 		'Integer': function(n) {
-			return this.update('items', function(items) {
+			return this.update('items', (items) => {
 				return List(Repeat(items, n.value)).flatten(1);
 			});
 		}
@@ -49,9 +53,9 @@ ListType.methods = {
 		// Is [Text](join:Text)->Text a weird signature when other types
 		// look more like this: [Integer](join:Integer)->[Integer]
 		'Text': function(s) {
-			let joinedChars = this.items.reduce(function(result, node) {
+			let joinedChars = this.items.reduce((result, node) => {
 				return result.concat([node.value]);
-			}, []).reduce(function(result, chars) {
+			}, []).reduce((result, chars) => {
 				return result.concat(s.value).concat(chars);
 			});
 
@@ -291,7 +295,7 @@ ListType.methods = {
 		// fns(map: (fn) -> { fn(elt) })
 		// fns(map: { _0(elt)) })
 		'Function': function(f) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) => {
 				return (new Invocation({
 					target: f,
 					args: List([item])
@@ -299,7 +303,7 @@ ListType.methods = {
 			}));
 		},
 		'HybridFunction': function(m) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) => {
 				return (new Invocation({
 					target: m,
 					args: List([item])
@@ -309,23 +313,23 @@ ListType.methods = {
 	}),
 	'(compactMap:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) => {
 				return (new Invocation({
 					target: f, args: List([item])
 				})).eval(this.ctx);
-			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+			}).filter((item) => { return item && item._name !== 'Bottom'; }));
 		},
 		'HybridFunction': function (f) {
-			return this.set('items', this.items.map(function(item) {
+			return this.set('items', this.items.map((item) => {
 				return (new Invocation({
 					target: f, args: List([item])
 				})).eval(this.ctx);
-			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+			}).filter((item) => { return item && item._name !== 'Bottom'; }));
 		},
 	}),
 	'(filter:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.filter(function(item) {
+			return this.set('items', this.items.filter((item) => {
 				return (new Invocation({
 					target: f,
 					args: List([item])
@@ -333,7 +337,7 @@ ListType.methods = {
 			}));
 		},
 		'HybridFunction': function(m) {
-			return this.set('items', this.items.filter(function(item) {
+			return this.set('items', this.items.filter((item) => {
 				return (new Invocation({
 					target: m,
 					args: List([item])
@@ -343,7 +347,7 @@ ListType.methods = {
 	}),
 	'(reduce:)': dispatch({
 		'Function': function(f) {
-			return this.items.reduce(function(init, item) {
+			return this.items.reduce((init, item) => {
 				return (new Invocation({
 					target: f,
 					args: List([init, item])
@@ -351,7 +355,7 @@ ListType.methods = {
 			});
 		},
 		'HybridFunction': function(m) {
-			return this.items.reduce(function(init, item) {
+			return this.items.reduce((init, item) => {
 				return (new Invocation({
 					target: m,
 					args: List([init, item])
@@ -360,7 +364,7 @@ ListType.methods = {
 		},
 	}),
 	'(reduceInto:with:)': function(init, func) {  // '(reduceInto:using:)' ?
-		return this.items.reduce(function(init, item) {
+		return this.items.reduce((init, item) => {
 			return (new Invocation({
 				target: func,
 				args: List([init, item])
