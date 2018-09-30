@@ -7,9 +7,10 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const style = require('./format');
+const config = require('config');
 
-const prmpt = '\u001B[44m \u001B[0m\u001B[34m\uE0B0\u001B[39m ';
-const cont = '\u001B[44m \u001B[0m  ';
+const input_start = config.get('repl.prompt.input_start');
+const input_more = config.get('repl.prompt.input_more');
 
 const loadSourceFile = (basepath, filename) => {
 	let ast, contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
@@ -58,14 +59,34 @@ for (let filename of filenames) {
 // Instantiate and configure the interactive shell
 // ---------------------------------------------------------------------------
 
-process.stdout.write('\u001B[45;97m The L Programming Language \u001B[0m'
-	+ `\u001B[42;35m\uE0B0\u001B[97m Meta.L v ${L.version} \u001B[0m`
-	+ '\u001B[32m\uE0B0\u001B[39m\n');
+// Write the welcome banner. The banner can be configured in the REPL config
+// file by providing a string or array of strings for the key 'banner'. The
+// banner string can use the ES6 interpolation `${variable}` syntax and
+// reference `welcome`, `version`, and `help` strings defined below. The
+// default banner string is `"${welcome}, ${version}\n${help}\n"`.
+
+String.prototype.interpolate = function(params) {
+	const names = Object.keys(params);
+	const vals = Object.values(params);
+	return new Function(...names, `return \`${this}\`;`)(...vals);
+}
+
+const banner_cfg = config.get('repl.banner');
+const banner = Array.isArray(banner_cfg) ? banner_cfg.join('') : banner_cfg;
+
+process.stdout.write(banner.interpolate({
+	welcome: 'The L Programming Language',
+	version: `Meta.L v ${L.version}`,
+	help: 'Type "#! help" for more information'
+}));
+
+// Set the window title
 process.stdout.write('\033]0;Meta.L\007');
 
+//process.stdout.write(`${prefix}${config.repl.welcome}${suffix}`);
 const rep = repl.start({
 	ignoreUndefined: true,
-	prompt: prmpt,
+	prompt: input_start,
 	eval: eval,
 	writer: writer
 });
@@ -115,7 +136,7 @@ rep.defineCommand('break', {
 	help: 'Break out of the current nested statement and clear buffered input',
 	action: function() {
 		rep.clearBufferedCommand();
-		rep.setPrompt(prmpt);
+		rep.setPrompt(input_start);
 		rep.displayPrompt();
 	}
 });
@@ -240,7 +261,7 @@ rep.removeAllListeners('SIGINT');
 rep.on('SIGINT', function() {
 	if (bufferedCommand.length > 0) {
 		rep.clearBufferedCommand();
-		rep.setPrompt(prmpt);
+		rep.setPrompt(input_start);
 		rep.displayPrompt();
 	} else {
 		rep.outputStream.write('\n   To exit, press Ctrl-D or type !exit\n');
@@ -266,8 +287,8 @@ function depth(cmd) {
 }
 
 function writer(obj) {
-	const ok = '\u001B[42m \u001B[0m  ';
-	const error = '\u001B[41m \u001B[0m  ';
+	const ok = config.get('repl.prompt.output_ok');
+	const error = config.get('repl.prompt.output_error');
 
 	if (typeof obj === 'object') {
 		if ('repr' in obj && obj._name === 'Error') {
@@ -298,12 +319,13 @@ function eval(cmd, context, filename, finish) {
 
 	try {
 		[ast, scopes] = L.Parser.parse(command).transform(L.Rules, scopes);
-		rep.setPrompt(prmpt);
+		rep.setPrompt(input_start);
 	} catch (e) {
 		if (e.found == null) {
 			L.log.debug(e.toString());
 			L.log.debug(style.comment(e.stack.replace(/^[^\n]+\n/, '')));
 
+			rep.setPrompt(input_more);
 			finish(new repl.Recoverable('Unexpected end of input'), '');
 			return;
 		}
@@ -316,7 +338,7 @@ function eval(cmd, context, filename, finish) {
 			const pointer = ' '.repeat(e.column) + style.string('^');
 			result = '   ' + pointer + '\n' + result;
 			rep.clearBufferedCommand();
-			rep.setPrompt(prmpt);
+			rep.setPrompt(input_start);
 		} else {
 			result += '\n' + style.string(e.stack.replace(/^[^\n]+\n/, ''));
 		}
