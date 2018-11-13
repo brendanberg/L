@@ -9,7 +9,7 @@
     "url": "https://github.com/brendanberg/l.git"
   },
   "scripts": {
-    "build": "rm src/parser.js && pegjs -o src/parser.js src/parser.pegjs",
+    "build": "rm -f src/scanner.js && pegjs -o src/scanner.js src/scanner.pegjs",
     "test": "node_modules/mocha/bin/mocha test/",
     "metal": "src/repl.js"
   },

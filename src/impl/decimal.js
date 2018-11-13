@@ -1,4 +1,4 @@
-const { Map } = require('immutable');
+const { Set, Map } = require('immutable');
 const Type = require('../ast/type');
 const Rational = require('../ast/rational');
 const Decimal = require('../ast/decimal');
@@ -7,10 +7,14 @@ const dispatch = require('../dispatch');
 
 
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
-let _Decimal = new Type({label: 'Decimal'});
+let _Decimal = new Type({label: 'Decimal', scope: Set([])});
 
 _Decimal.methods = {
 	"('+')": function() { return this },

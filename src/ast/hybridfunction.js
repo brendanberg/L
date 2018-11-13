@@ -36,13 +36,13 @@ HybridFunction.prototype.repr = function(depth, style) {
 
 HybridFunction.prototype.eval = function(ctx) {
 	// Evaluate any eager nodes (???)
-	return this.transform(function(node) {
-		if (node._name === 'Evaluate') {
-			return node.eval(ctx);
-		} else {
-			return node;
-		}
+	let hybrid = this.transform(function(node) {
+		return node._name === 'Immediate' ? node.eval(ctx) : node;
 	});
+
+	// TODO: Figure out semantics for closures over hybrid functions. Do all
+	// individual predicates share the same environment? Is that gross?
+	return hybrid;
 };
 
 HybridFunction.prototype.transform = function(func) {

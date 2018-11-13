@@ -12,17 +12,19 @@ const config = require('config');
 const input_start = config.get('repl.prompt.input_start');
 const input_more = config.get('repl.prompt.input_more');
 
+const env = new L.Environment();
+
 const loadSourceFile = (basepath, filename) => {
 	let ast, contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
 
 	try {
-		[ast, scopes] = L.Parser.parse(contents).transform(L.Rules, scopes);
+		ast = env.parse(contents);
 	} catch (e) {
 		let result = e.toString();
 
 		if (e.line && e.column) {
 			result += `\nline ${e.line}, column ${e.column}`;
-		} else {
+		} else if (e.stack) {
 			result += `\n ${e.stack.replace(/^[^\n]+\n/, '')}`;
 		}
 
@@ -30,7 +32,7 @@ const loadSourceFile = (basepath, filename) => {
 	}
 
 	if (ast) {
-		ctx.scope = scopes;
+		ctx.scope = env.parser.scope;
 		ast.invoke(ctx);
 	}
 };
@@ -40,10 +42,10 @@ const loadSourceFile = (basepath, filename) => {
 // Create the initial context and load built-in library
 // ---------------------------------------------------------------------------
 
-let scopes = new L.Scope();
+//let scopes = new L.Scope();
 let ctx = new L.Context();
-scopes.debug = true;
-ctx.loadGlobals(scopes);
+env.parser.scope.debug = true;
+ctx.loadGlobals(env);
 
 const basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
 const filenames = fs.readdirSync(basepath).filter(function(filename) {
@@ -51,7 +53,7 @@ const filenames = fs.readdirSync(basepath).filter(function(filename) {
 });
 
 for (let filename of filenames) {
-	loadSourceFile(basepath, filename, scopes);
+	loadSourceFile(basepath, filename);
 }
 
 
@@ -318,12 +320,15 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		[ast, scopes] = L.Parser.parse(command).transform(L.Rules, scopes);
+		ast = env.parse(command);
 		rep.setPrompt(input_start);
 	} catch (e) {
-		if (e.found == null) {
+		if (e.hasOwnProperty('found') && e.found == null) {
 			L.log.debug(e.toString());
-			L.log.debug(style.comment(e.stack.replace(/^[^\n]+\n/, '')));
+
+			if (e.stack) {
+				L.log.debug(style.comment(e.stack.replace(/^[^\n]+\n/, '')));
+			}
 
 			rep.setPrompt(input_more);
 			finish(new repl.Recoverable('Unexpected end of input'), '');
@@ -339,7 +344,7 @@ function eval(cmd, context, filename, finish) {
 			result = '   ' + pointer + '\n' + result;
 			rep.clearBufferedCommand();
 			rep.setPrompt(input_start);
-		} else {
+		} else if (e.stack) {
 			result += '\n' + style.string(e.stack.replace(/^[^\n]+\n/, ''));
 		}
 
@@ -348,7 +353,7 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		ctx.scope = scopes;
+		ctx.scope = env.parser.scope;
 		result = ast.invoke(ctx);
 	} catch (e) {
 		result = style.error(e.toString());

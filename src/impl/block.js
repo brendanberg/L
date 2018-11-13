@@ -1,4 +1,4 @@
-const { Map, List } = require('immutable');
+const { Set, Map, List } = require('immutable');
 const Type = require('../ast/type');
 const Symbol = require('../ast/symbol');
 const Bottom = require('../ast/bottom');
@@ -12,7 +12,7 @@ function make_bool(exp) {
 	});
 }
 
-let Block = new Type({label: 'Block'});
+let Block = new Type({label: 'Block', scope: Set([])});
 
 Block.methods = {
 	// Block composition methods

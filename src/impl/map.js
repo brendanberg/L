@@ -1,4 +1,4 @@
-const { Map, List } = require('immutable');
+const { Set, Map, List } = require('immutable');
 const Type = require('../ast/type');
 const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
@@ -18,7 +18,7 @@ function make_bool(exp) {
 	});
 }
 
-let _Map = new Type({label: 'Map'});
+let _Map = new Type({label: 'Map', scope: Set([])});
 
 _Map.methods = {
 	'(count.)': function() {

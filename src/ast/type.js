@@ -6,7 +6,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-Type = Record({label: _, tags: _map}, 'Type');
+Type = Record({label: _, scope: _, tags: _map}, 'Type');
 
 Type.prototype.toString = function () {
 	return this.label.toString();

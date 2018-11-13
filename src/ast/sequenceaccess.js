@@ -2,12 +2,12 @@
 	Collection SequenceAccess AST node
 */
 
-const { Map, List: IList, Record } = require('immutable');
+const { Map, List, Record } = require('immutable');
 const Bottom = require('./bottom');
-const List = require('./list');
+const _List = require('./list');
 const _ = null;
 const _map = Map({});
-const _list = IList([]);
+const _list = List([]);
 
 const SequenceAccess = Record({target: _, terms: _list, scope: _, tags: _map}, 'SequenceAccess');
 
@@ -59,20 +59,22 @@ SequenceAccess.prototype.eval = function(ctx) {
 			if (index._name !== 'Integer') {
 				// TODO: THis is an error
 			}
+
 			if (index.value < 0) {
 				index.value = target.value.length + index.value;
 			}
 
-			// This is a problem.. Pushing empty string? LOL
-			// TODO: Should the default be Bottom()?
-			result.push(target.value[index.value] || '');
+			// TODO: Is it an error to access an out-of-bounds character?
+			// It would make some sort of sense if we were building a List
+			// instead of Text and the out-of-bounds value would be _.
+			result.push(target.value.get(index.value, ''));
 		}
 	}
 
-	if (target.type === 'Text') {
-		return target.set('value', result.join(''));
+	if (target._name === 'Text') {
+		return target.set('value', List(result));
 	} else {
-		return new List({items: result, scope: this.scope});
+		return new _List({items: result, scope: this.scope});
 	}
 };
 

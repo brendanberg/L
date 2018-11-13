@@ -13,7 +13,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Method = Record({target: _, selector: _list, block: _, scope: _, tags: _map}, 'Method');
+let Method = Record({target: _, selector: _list, block: _, binding: _, scope: _, tags: _map}, 'Method');
 
 
 Method.prototype.toString = function() {
@@ -34,15 +34,11 @@ Method.prototype.repr = function(depth, style) {
 
 Method.prototype.eval = function(ctx) {
 	// Do some basic type checking (the target type must already exist).
-	let ident = new Identifier({
-		label: this.target.getIn(['tags', 'type']),
-		scope: this.scope
-	});
 	// TODO: PROBABLY ADD SCOPES HERE!!!
-	let type = ctx.get(ctx.scope.resolve(ident));
+	let type = ctx.get(this.binding);
 
 	if (!(type && 'registerSelector' in type)) {
-		throw new TypeError("There is no type '" + ident.label + "'");
+		throw new TypeError("There is no type '" + this.target.getIn(['tags', 'type']) + "'");
 	}
 
 	// Build the selector string.

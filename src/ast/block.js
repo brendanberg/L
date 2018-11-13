@@ -10,7 +10,7 @@ const _list = List([]);
 const _map = Map({});
 
 
-let Block = Record({exprs: _list, locals: _map, scope: _, tags: _map}, 'Block');
+let Block = Record({exprs: _list, context: _, scope: _, tags: _map}, 'Block');
 
 Block.prototype.toString = function() {
 	let join = (this.exprs.count() > 1) ? '\n' : ' ';
@@ -49,9 +49,11 @@ Block.prototype.eval = function(ctx) {
 	// TODO: Figure out the right evaluation semantics for `\`
 	//       operators in nested blocks
 	// TODO: This needs to be a depth-first traversal?
-	return this.transform((node) => {
+	let block = this.transform((node) => {
 		return node._name === 'Immediate' ? node.eval(ctx) : node;
 	});
+
+	return block.set('context', new Context(ctx));
 };
 
 Block.prototype.invoke = function(ctx) {

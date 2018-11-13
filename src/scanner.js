@@ -325,6 +325,8 @@ function peg$parse(input, options) {
       			return new AST.Symbol({label: l.join('')});
       		},
       peg$c130 = function(first, rest) {
+      			// We need to use label rules here to prevent ambiguity when
+      			// calling functions with decimals that end in '.' e.g. abs(42.)
       			return new AST.Symbol({
       				label: first + rest.join(''),
       				tags: Map({nullary: true})

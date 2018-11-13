@@ -266,7 +266,7 @@ labelChar
 
 /*
 
-Symbol :: << Text label >>
+Symbol << Text label >>
 Symbol s (init) -> (Text label) -> {
 
 Symbol s (evaluate: Context c) -> { c(getSymbol: s.label) }
@@ -283,11 +283,11 @@ items :: [Symbol('x'): 1, y: 2, .z: 3]
  - resolves to .y. .z is the symbol literal, which evaluates to iteslf.
  -#
 
-Bool :: << True | False >>
+Bool << True | False >>
 Bool.True
 Bool.False
 
-Option :: << Some(*) | Nothing >>
+Option << Some(*) | Nothing >>
 b :: Option.Some(Bool.True)
 
  */

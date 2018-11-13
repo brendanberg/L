@@ -16,7 +16,7 @@ function make_bool(exp) {
 	});
 }
 
-let Integer_ = new Type({label: 'Integer'});
+let Integer_ = new Type({label: 'Integer', scope: Set([])});
 
 Integer_.methods = {
 	"('+')": function() { return this },

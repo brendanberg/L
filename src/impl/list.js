@@ -1,4 +1,4 @@
-const { Map, List, Repeat, Seq } = require('immutable');
+const { Set, Map, List, Repeat, Seq } = require('immutable');
 const Type = require('../ast/type');
 const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
@@ -16,11 +16,11 @@ function make_bool(exp) {
 	});
 }
 
-let ListType = new Type({label: 'List'});
+let ListType = new Type({label: 'List', scope: Set([])});
 
 ListType.methods = {
 	'(count.)': function() {
-		return new Integer({value: this.items.count()});
+		return new Integer({value: this.items.count(), scope: this.scope});
 	},
 	'(isEmpty.)': function() {
 		return make_bool(this.items.isEmpty());
@@ -30,7 +30,7 @@ ListType.methods = {
 	},
 	"('@':)": dispatch({
 		'Integer': function(idx) {
-			return this.items.get(idx.value) || new Bottom();
+			return this.items.get(idx.value) || new Bottom({scope: this.scope});
 		}
 	}),
 	"('+':)": dispatch({
@@ -59,7 +59,7 @@ ListType.methods = {
 				return result.concat(s.value).concat(chars);
 			});
 
-			return new Text({value: joinedChars});
+			return new Text({value: joinedChars, scope: this.scope});
 		},
 	}),
 	'(append:)': function(v) {

@@ -26,7 +26,7 @@ UnionType.prototype.repr = function(depth, style) {
 };
 
 UnionType.prototype.eval = function(ctx) {
-	ctx.set(ctx.scope.resolve(this), this);
+	ctx.set(this.binding, this); // TODO: Previously, this was a dynamic resolution...
 	return this;
 };
 

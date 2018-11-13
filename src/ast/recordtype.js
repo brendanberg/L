@@ -29,7 +29,7 @@ RecordType.prototype.repr = function (depth, style) {
 };
 
 RecordType.prototype.eval = function(ctx) {
-	ctx.set(ctx.scope.resolve(this), this);
+	ctx.set(this.binding, this);
 	return this;
 };
 

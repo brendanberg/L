@@ -37,7 +37,7 @@ Identifier.prototype.eval = function(ctx) {
 
 Identifier.prototype.debugString = function () {
 	let sc = this.scope.map((sym)=>{return sym.toString();}).toArray().join(',');
-	let local = this.getIn(['tags', 'local']) ? 'local ' : '';
+	let local = this.getIn(['tags', 'local']) ? 'arg ' : '';
 	let binding = this.binding ? this.binding.toString() : '--';
 
 	return `${local}{${this.label}}[${sc}]: ${binding}`;

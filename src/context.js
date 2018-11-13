@@ -1,5 +1,6 @@
 const { MatchError, NotImplemented } = require('./error');
 const { Map, List, Set, Record } = require('immutable');
+const log = require('loglevel');
 const Text = require('./ast/text');
 const Bottom = require('./ast/bottom');
 //const Invocation = require('./ast/invocation');
@@ -28,8 +29,8 @@ function Context(outer) {
 	this.debug = false;
 }
 
-Context.prototype.loadGlobals = function(scope) {
-	const globalScope = Set([]);
+Context.prototype.loadGlobals = function(env) {
+	//const globalScope = Set([]);
 
 	let globals = {
 		'Integer': require('./impl/integer'),
@@ -47,13 +48,24 @@ Context.prototype.loadGlobals = function(scope) {
 	};
 	
 	Object.keys(globals).map((key) => {
-		let binding = scope.addBinding({label: key, scope: globalScope});
+		let binding = env.bindings.addBinding({label: key, scope: env.scope});
 		this.locals[binding] = globals[key];
 	});
 }
 
 Context.prototype.get = function(binding) {
 	let value = this.locals[binding];
+	if (value === undefined) {
+		if (this.outer) {
+			log.debug(`${binding} not in ${this.scope}`);
+			return this.outer.get(binding);
+		} else {
+			log.debug(`${binding} not in any scope`);
+			return value;
+		}
+	} else {
+		log.debug(`${binding} in ${this.scope}`);
+	}
 	return (value === undefined && this.outer) ? this.outer.get(binding) : value;
 };
 
@@ -125,13 +137,15 @@ Context.prototype.match = function(pattern, value) {
 					if (first.label === '_') {
 						return ctx;
 					} else {
+						/*
 						if (first.getIn(['tags', 'local']) === true) {
 							// console.log(`binding ${value} to ${first.debugString()}`);
 							ctx.setLocal(first.binding, value);
 						} else {
 							// console.log(`deferring ${value} to ${first.debugString()}`);
 							ctx.push(first.binding, value);
-						}
+						}*/
+						ctx.setLocal(first.binding, value);
 						locals[first.label] = value;
 						return ctx;
 					}

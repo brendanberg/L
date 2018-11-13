@@ -38,7 +38,9 @@ SymbolLookup.prototype.eval = function(ctx) {
 			throw new NameError(`'${name}' has no attribute '${label}'`);
 		}
 
-		return target.variants.get(this.term.label).setIn(['tags', 'type'], target.label);
+		return target.variants.get(this.term.label)
+			.setIn(['tags', 'type'], target.label)
+			.setIn(['tags', 'typebinding'], target.binding);
 	}
 };
 

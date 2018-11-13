@@ -206,7 +206,7 @@ let match = {
 					];
 				} else if (next._name === 'Message') {
 					let message = (
-						this.symbolMessage(next, rest) ||
+						this.symbolMessage(next, rest, scope) ||
 						this.namedParameterList(next, rest, scope) ||
 						this.positionalParameterList(next, rest, scope)
 					);
@@ -581,8 +581,8 @@ let match = {
 
 		[body, unparsed, __] = match;
 
-		name = name.setIn(['tags', 'introduction'], true)
-			.setIn(['tags', 'type'], node.label)
+		//name = name.setIn(['tags', 'introduction'], true) // TODO: remove introduction tag
+		name = name.setIn(['tags', 'type'], node.label)
 			.set('scope', innerScope);
 
 		let method = new AST.Method({target: name, selector: selector, block: body, scope: scope});
@@ -622,10 +622,10 @@ let match = {
 					return null;
 				} else {
 					name = second[0].setIn(['tags', 'type'], first[0].label)
-						.setIn(['tags', 'introduction'], true);
+						.setIn(['tags', 'mode'], 'arg'); // TODO: remove intro tag
 				}
 			} else {
-				name = first[0].setIn(['tags', 'introduction'], true);
+				name = first[0].setIn(['tags', 'mode'], 'arg');
 			}
 
 			return result.push(new AST.KeyValuePair({key: id[0], val: name, scope: scope}));
@@ -671,7 +671,7 @@ let match = {
 		// Maps              `[$x: a, $y: b, c...]`
 		// Blocks            `{exprs..., ret}`
 		// Functions		 `(a, b, c...) -> block` or `(a, b) -> { exps... }`
-		// Scalar literals   `'text'`, `123.45`, `$symbol`
+		// Scalar literals   `'text'`, `123.45`, `.symbol`
 		//
 		// What about nesting? Are any of the following allowed?
 		// `[a, [b, c], d...]`
@@ -785,7 +785,7 @@ let match = {
 				}
 			}
 
-			ident = ident.setIn(['tags', 'introduction'], true);
+			ident = ident.setIn(['tags', 'mode'], 'lvalue');
 			return [ident, unparsed, scope];
 		} else {
 			return [first, unparsed, scope];
@@ -797,7 +797,10 @@ let match = {
 		//
 		//     tupleTemplate ::= symbol MESSAGE[ Identifier + ]
 		//
-		if (node._name !== 'Symbol') { return null; }
+		let symbol, match = this.symbol(node, unparsed, scope);
+		if (!match) { return null; }
+
+		[symbol, unparsed, scope] = match;
 
 		if (unparsed.count() > 0) {
 			let message = unparsed.first();
@@ -823,7 +826,7 @@ let match = {
 			}
 		}
 
-		return [node, unparsed, scope];
+		return [symbol, unparsed, scope];
 	},
 
 	keyValuePart: function(node, unparsed, scope) {
@@ -1187,6 +1190,7 @@ let match = {
 		//     symbol ::= '.' [a-zA-Z0-9_-]+
 		//
 		if (node._name === 'Symbol') {
+			if (scope === null) { console.log('!!!!!!') }
 			return [node.set('scope', scope), unparsed, scope];
 		} else {
 			return null;

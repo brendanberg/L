@@ -1,4 +1,4 @@
-const { Map } = require('immutable');
+const { Set, Map } = require('immutable');
 const Type = require('../ast/type');
 const Rational = require('../ast/rational');
 const Symbol = require('../ast/symbol');
@@ -13,7 +13,7 @@ function make_bool(exp) {
 	});
 }
 
-let _Rational = new Type({label: 'Rational'});
+let _Rational = new Type({label: 'Rational', scope: Set([])});
 
 _Rational.methods = {
 	"('+')": function() { return this },

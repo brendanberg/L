@@ -1,4 +1,4 @@
-const { Map, List } = require('immutable');
+const { Set, Map, List } = require('immutable');
 const Type = require('../ast/type');
 const Symbol = require('../ast/symbol');
 const dispatch = require('../dispatch');
@@ -12,7 +12,7 @@ function make_bool(exp) {
 	});
 }
 
-const SymbolType = new Type({label: 'Symbol'});
+const SymbolType = new Type({label: 'Symbol', scope: Set([])});
 
 SymbolType.methods = {
 	// Symbol composition methods

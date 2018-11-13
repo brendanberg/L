@@ -43,7 +43,7 @@ Invocation.prototype.eval = function(ctx) {
 	// Take the selector keys and string em together.
 	// Dispatch will select on the type signature so get that right
 	// when you define the ctx
-	// > Thing :: << Text s >>
+	// > Thing << Text s >>
 	// > Thing t (.reverse) -> { t.s(.reverse) }
 	// > t :: Thing(s: "stressed")
 	// > t(.reverse)
@@ -76,15 +76,15 @@ Invocation.prototype.eval = function(ctx) {
 	let scope = Symbol();
 
 	if (target._name === 'Record') {
-		method = ctx.get(ctx.scope.resolve(target)).methodForSelector(this.selector);
+		method = ctx.get(target.binding).methodForSelector(this.selector);
 	} else if (target._name === 'Symbol') {
 		// TODO: Is this right? I think this is wrong.
-		let ident = new Identifier({
+		/*let ident = new Identifier({
 			label: target.getIn(['tags', 'type']),
 			scope: this.scope
-		});
+		});*/
 		//ident.scopes = __;
-		method = ctx.get(ctx.scope.resolve(ident)).methodForSelector(this.selector);
+		method = ctx.get(target.getIn(['tags', 'typebinding'])).methodForSelector(this.selector);
 	} else if (target._name === 'Function') {
 		let args = new List_({
 			items: this.args.map((item) => { return item.eval(ctx) }),
@@ -145,10 +145,15 @@ Invocation.prototype.eval = function(ctx) {
 		context = new Context(ctx);
 		context.scope = ctx.scope;
 		method = target;
-	} else {
-		let ident = new Identifier({label: target._name, scope: this.scope})
-		ident.scopes = Set([]);
-		method = ctx.get(ctx.scope.resolve(ident)).methodForSelector(this.selector);
+	} else if (target.has('binding')) {
+		//let ident = new Identifier({label: target._name, scope: this.scope})
+		//ident.scopes = Set([]);
+		// TODO: HOW DO WE RESOLVE EVERY TYPE BEFORE RUNTIME?!
+		//console.log("HOLY FUCK WHAT'S HAPPENING");
+		// TODO: Verify that this is correct!
+		method = ctx.get(target.binding).methodForSelector(this.selector);
+	} else if (target.hasIn(['tags', 'typebinding'])) {
+		method = ctx.get(target.getIn(['tags', 'typebinding'])).methodForSelector(this.selector);
 	}
 
 	if (method && method._name === 'Block') {
