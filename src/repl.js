@@ -32,7 +32,7 @@ const loadSourceFile = (basepath, filename) => {
 	}
 
 	if (ast) {
-		ctx.scope = env.parser.scope;
+		ctx.scope = null;//env.parser.scope;
 		ast.invoke(ctx);
 	}
 };
@@ -42,9 +42,8 @@ const loadSourceFile = (basepath, filename) => {
 // Create the initial context and load built-in library
 // ---------------------------------------------------------------------------
 
-//let scopes = new L.Scope();
 let ctx = new L.Context();
-env.parser.scope.debug = true;
+//env.parser.scope.debug = true;
 ctx.loadGlobals(env);
 
 const basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
@@ -353,7 +352,7 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		ctx.scope = env.parser.scope;
+		ctx.scope = null;//env.parser.scope;
 		result = ast.invoke(ctx);
 	} catch (e) {
 		result = style.error(e.toString());

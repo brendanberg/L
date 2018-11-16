@@ -10,9 +10,9 @@ chai.use(chaiImmutable);
 
 
 const create_context = () => {
-	let scopes = new L.Scope();
+	let env = new L.Environment();
 	let ctx = new L.Context();
-	ctx.loadGlobals(scopes);
+	ctx.loadGlobals(env);
 
 	let basepath = path.join(path.dirname(fs.realpathSync(__filename)), '../src/lib');
 	let filenames = fs.readdirSync(basepath).filter(function(filename) {
@@ -24,16 +24,16 @@ const create_context = () => {
 	for (let file of filenames) {
 		let contents = fs.readFileSync(path.join(basepath, file), 'utf-8');
 
-		[ast, scopes]= L.Parser.parse(contents).transform(L.Rules, scopes);
+		ast = env.parse(contents);
 
-		ctx.scope = scopes;
+		ctx.scope = env.scope;
 		ast.invoke(ctx);
 	}
 
-	return [scopes, ctx];
+	return [env, ctx];
 };
 
-const test_transcript = (basepath, filename, context) => {
+const test_transcript = (basepath, filename, environment, context) => {
 	let contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
 
 	// Strip leading characters from each line. If the line matches /^>> /
@@ -66,20 +66,13 @@ const test_transcript = (basepath, filename, context) => {
 		}
 	}
 
-	let [outerScope, globals] = context;
-
-	let testScope = new L.Scope();
-	testScope.scope = Set(outerScope.scope);
-	testScope.bindings = Map(outerScope.bindings);
-
 	let ctx = new L.Context();
-	ctx.locals = Object.assign({}, globals.locals);
+	ctx.locals = Object.assign({}, context.locals);
 
 	it(`correctly evaluates '${filename}'`, () => {
 		input.map((elt, idx) => {
-			let [ast, newScope] = L.Parser.parse(elt).transform(L.Rules, testScope);
-
-			ctx.scope = newScope;
+			environment.parser.scope = Set([]);
+			let ast = environment.parse(elt);
 			let result = ast.invoke(ctx);
 
 			if (!(output[idx].join('') === '' || output[idx].join('') === '...')) {
@@ -98,10 +91,10 @@ let filenames = fs.readdirSync(basepath).filter(function(filename) {
 
 
 describe('Transcripts', () => {
-	let context = create_context();
+	let [env, ctx] = create_context();
 
 	for (let name of filenames) {
-		test_transcript(basepath, name, context);
+		test_transcript(basepath, name, env, ctx);
 	}
 });
 

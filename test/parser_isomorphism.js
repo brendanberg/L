@@ -9,7 +9,12 @@ const assert = chai.assert;
 chai.use(chaiImmutable);
 
 let Node = {};
-let scopes = new L.Scope();
+let env = new L.Environment();
+
+env.pipeline = [
+	(source) => env.scanner.parse(source),
+	(skel) => env.parser.parse(skel),
+];
 
 
 // ---------------------------------------------------------------------------
@@ -127,7 +132,7 @@ Node.plist_identifier = gen.map((args) => {
 	return new L.AST.Identifier({
 		label: args[0], 
 		modifier: args[1],
-		tags: Map({'introduction': true, 'local': true})
+		tags: Map({'mode': 'lvalue', 'local': true})
 	});
 }, gen.array([Node.name, gen.returnOneOf([null, '?', '!'])]));
 
@@ -259,15 +264,17 @@ Node.messageSend = gen.map((args) => {
 
 check.isomorphism = (description, nodeList) => {
 	check.it(description, nodeList, (node) => {
-		let parsed;
-		[parsed, scopes] = L.Parser.parse(node.toString()).transform(L.Rules, scopes);
+		let parsed = env.parse(node.toString());
+
 		parsed = parsed.transform((node) => {
 			// Since the generative AST doesn't go through a scoping or
 			// name binding step, we strip the scope and binding values from
 			// the parsed AST before comparison.
 			node = (node.has('binding')) ? node.set('binding', null) : node;
+			node = (node.hasIn(['tags', 'typebinding'])) ? node.deleteIn(['tags', 'typebinding']) : node;
 			return node.set('scope', null);
 		});
+
 		assert.equal(node, parsed.exprs.first());
 	});
 };

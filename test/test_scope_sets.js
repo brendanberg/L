@@ -10,7 +10,7 @@ chai.use(chaiImmutable);
 
 
 describe('Scope Sets', () => {
-	let scope = new L.Scope();
+	let scope = new L.Bindings();
 	let context = new L.Context();
 
 	let scope1 = Set([Symbol('a')]);

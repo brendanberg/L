@@ -23,6 +23,7 @@ let TextType = new Type({label: 'Text', scope: Set([])});
 TextType.methods = {
 	'(count.)': function() {
 		return new Integer({value: this.value.count(), scope: this.scope});
+		// return ctx.createInteger(this.value.count());
 	},
 	"('+':)": dispatch({
 		'Text': function(s) {
@@ -34,6 +35,7 @@ TextType.methods = {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
 			return make_bool(this.value.equals(s.value));
+			// return ctx.createSymbol(label, type);
 		}
 	}),
 	"('!=':)": dispatch({

@@ -1,13 +1,22 @@
+const { Set } = require('immutable');
 const pkg = require('../package.json');
 const log = require('loglevel');
 
-module.exports = {
+
+const L = {
 	version: pkg.version,
+	log: log,
+
 	Skel: require('./skeleton'),
 	AST: require('./ast'),
+
+	Scanner: require('./scanner'),
 	Parser: require('./parser'),
-	Rules: require('./rules'),
+
 	Context: require('./context'),
-	Scope: require('./scope'),
-	log: log
+	Bindings: require('./bindings'),
+	Environment: require('./environment'),
 };
+
+module.exports = L;
+

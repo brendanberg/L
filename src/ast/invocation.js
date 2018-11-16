@@ -78,13 +78,8 @@ Invocation.prototype.eval = function(ctx) {
 	if (target._name === 'Record') {
 		method = ctx.get(target.binding).methodForSelector(this.selector);
 	} else if (target._name === 'Symbol') {
-		// TODO: Is this right? I think this is wrong.
-		/*let ident = new Identifier({
-			label: target.getIn(['tags', 'type']),
-			scope: this.scope
-		});*/
-		//ident.scopes = __;
-		method = ctx.get(target.getIn(['tags', 'typebinding'])).methodForSelector(this.selector);
+		let type = target.getIn(['tags', 'typebinding']);
+		method = ctx.get(type).methodForSelector(this.selector);
 	} else if (target._name === 'Function') {
 		let args = new List_({
 			items: this.args.map((item) => { return item.eval(ctx) }),
