@@ -212,6 +212,65 @@ Additional destructuring features are supported on other data types discussed la
 
 ## The Text Type
 
+As mentioned earlier, text literals may be specified in __L__ programs by enclosing a sequence of Unicode code points in single or double quotes.
+
+### Text Operators
+
+A number of operators are supported on text values in __L__. They are:
+
+- Concatenation (`a + b`)
+- Element-wise code point access (`a @ b`)
+- Equality (`a == b`)
+- Inequality (`a != b`)
+- Equal to (`a == b`)
+- Not equal to (`a != b`)
+- Precedes (`a < b`)
+- Follows (`a > b`)
+- Precedes or equal to (`a <= b`),
+- Follows or equal to (`a >= b`).
+
+The `+` operator concatenates the contents of two text values and returns a text value with the joined contents. The `@` operator
+
+```
+'Hello, ' + 'world!'      # equals 'Hello, world!'
+'abcdefg' @ 3             # equals 'd'
+```
+
+The __L__ comparison operators discussed previously are also defined for text values. Each operator returns a boolean value to indicate whether the relationship is true or false.
+
+```
+'apple' == 'apple'        # true, because the string contents are identical
+'banana' != 'BANANA'      # true, becaues the string contents are not identical
+'apple' < 'banana'        # true, because 'apple' is found before 'banana' alphabetically
+'aardvark' > 'apple'      # false, because 'aardvark' is found before 'apple' alphabetically
+```
+
+### Text Methods
+
+The number of Unicode code points in a sequence of text may be queried using the `(count.)` method.
+
+```
+'Hamburger'(count.)       # equals 9
+'🍔'(count.)              # equals 1 because the hamburger emoji is U+1F354
+
+'Café'(count.)            # equals 4 because the final é is U+00E9, latin small e with acute accent
+'Café'(count.)            # equals 5 because despite appearing identical to the example above, the
+                          #    final glyph consists of the surrogate pair U+0065 (latin small e),
+                          #    and U+0301 (combining diacritic acute accent)
+```
+
+The `(split:)` method separates a length of text into a list of subsequences, using a specified separator that delineates subsequences. 
+
+```
+'the quick brown fox'(split: ' ')    # equals ['the', 'quick', 'brown', 'fox']
+'a man, a plan, a canal, panama'(split: ', ')    # equals ['a man', 'a plan', 'a canal', 'panama']
+```
+
+Additional text methods are described in the [Text Type Documentation][text].
+
+[text]: docs/types/text.md
+
+
 ## Collection Types
 
 __L__ provides two primary data types for storing collections of values.
