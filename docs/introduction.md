@@ -61,7 +61,7 @@ Control characters and certain formatting characters must be escaped.
 
 Quotes only need to be escaped if they are the same style as the delimiting quote marks.
 The double quotes in the text `'The novelist said, "read my new book!"'` do not need to be escaped,
-but in the text `"\"It works!\" exclaimed the scientist, \"yet they told me, 'it can't be done.'\""`
+but in the text `"\"It works!\" exclaimed the scientist, \"and they told me, 'it can't be done.'\""`
 the double quotes (but not the single quotes) must be escaped.
 
 ## Basic Types and Operators
@@ -220,8 +220,6 @@ A number of operators are supported on text values in __L__. They are:
 
 - Concatenation (`a + b`)
 - Element-wise code point access (`a @ b`)
-- Equality (`a == b`)
-- Inequality (`a != b`)
 - Equal to (`a == b`)
 - Not equal to (`a != b`)
 - Precedes (`a < b`)
@@ -229,14 +227,20 @@ A number of operators are supported on text values in __L__. They are:
 - Precedes or equal to (`a <= b`),
 - Follows or equal to (`a >= b`).
 
-The `+` operator concatenates the contents of two text values and returns a text value with the joined contents. The `@` operator
+The `+` operator concatenates the contents of two text values and returns a text value with the joined contents.
 
 ```
 'Hello, ' + 'world!'      # equals 'Hello, world!'
-'abcdefg' @ 3             # equals 'd'
 ```
 
-The __L__ comparison operators discussed previously are also defined for text values. Each operator returns a boolean value to indicate whether the relationship is true or false.
+The `@` operator accesses the code point at the specified offset. Offsets greater than or equal to zero are counted from the start of the sequence, while offsets less than zero are counted from the end of the sequence.
+
+```
+'abcdefg' @ 3             # equals 'd'
+'abcdefg' @ -2            # equals 'f'
+```
+
+The __L__ comparison operators discussed previously also work for text values. Each operator returns a boolean value to indicate whether the relationship is true or false.
 
 ```
 'apple' == 'apple'        # true, because the string contents are identical
@@ -247,7 +251,7 @@ The __L__ comparison operators discussed previously are also defined for text va
 
 ### Text Methods
 
-The number of Unicode code points in a sequence of text may be queried using the `(count.)` method.
+The number of Unicode code points in a sequence of text may be queried using the `(count.)` selector.
 
 ```
 'Hamburger'(count.)       # equals 9
@@ -259,10 +263,10 @@ The number of Unicode code points in a sequence of text may be queried using the
                           #    and U+0301 (combining diacritic acute accent)
 ```
 
-The `(split:)` method separates a length of text into a list of subsequences, using a specified separator that delineates subsequences. 
+The `(split:)` selector separates a length of text into a list of subsequences, using a specified separator that delineates subsequences. 
 
 ```
-'the quick brown fox'(split: ' ')    # equals ['the', 'quick', 'brown', 'fox']
+'the quick brown fox'(split: ' ')                # equals ['the', 'quick', 'brown', 'fox']
 'a man, a plan, a canal, panama'(split: ', ')    # equals ['a man', 'a plan', 'a canal', 'panama']
 ```
 
