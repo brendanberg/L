@@ -1,4 +1,4 @@
-const { Map, List } = require('immutable');
+const { Set, Map, List } = require('immutable');
 const Type = require('../ast/type');
 const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
@@ -6,30 +6,36 @@ const Integer = require('../ast/integer');
 const List_ = require('../ast/list');
 const KeyValuePair = require('../ast/keyvaluepair');
 const Bottom = require('../ast/bottom');
-const Invocation = require('../ast/invocation');
+const Call = require('../ast/call');
+const A = require('../arbor');
 const dispatch = require('../dispatch');
 
+
 function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
+	return new Symbol({
+		label: exp ? 'True' : 'False',
+		scope: Set([]),
+		tags: Map({type: 'Boolean'})
+	});
 }
 
-let _Map = new Type({label: 'Map'});
+let _Map = new Type({label: 'Map', scope: Set([])});
 
 _Map.methods = {
 	'(count.)': function() {
-		return new Integer({value: this.items.count()});
+		return A.Integer(this.items.count());
 	},
 	'(isEmpty.)': function() {
 		return make_bool(this.items.isEmpty());
 	},
 	"('@':)": function(key) {
 		let item = this.items.get(key);
-		return item ? item.val : new Bottom();
+		return item ? item.val : A.Bottom();
 	},
 	"('+':)": dispatch({
 		// This is a dictionary merge.
 		'Map': function(s) {
-			return this.update('items', function(v) { return v.merge(s.items); });
+			return this.update('items', (v) => { return v.merge(s.items); });
 		}
 	}),
 	'(contains:)': function(v) {
@@ -52,80 +58,80 @@ _Map.methods = {
 	}),
 	'(map:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.map(function(item) {
-				return (new Invocation({
+			return this.set('items', this.items.map((item) => {
+				return (new Call({
 					target: f,
 					args: List([item])
-				})).eval(f.ctx);
+				})).eval(f.ctx)[0];
 			}));
 		},
 		'Match': function(m) {
-			return this.set('items', this.items.map(function(item) {
-				return (new Invocation({
+			return this.set('items', this.items.map((item) => {
+				return (new Call({
 					target: m,
 					args: List([item])
-				})).eval(m.ctx);
+				})).eval(m.ctx)[0];
 			}));
 		},
 	}),
 	'(filter:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.filter(function(item) {
-				return (new Invocation({
+			return this.set('items', this.items.filter((item) => {
+				return (new Call({
 					target: f,
 					args: List([item])
-				})).eval(f.ctx).label === 'True';
+				})).eval(f.ctx)[0].label === 'True';
 			}));
 		},
 		'Match': function(m) {
-			return this.set('items', this.items.filter(function(item) {
-				return (new Invocation({
+			return this.set('items', this.items.filter((item) => {
+				return (new Call({
 					target: m,
 					args: List([item])
-				})).eval(m.ctx).label === 'True';
+				})).eval(m.ctx)[0].label === 'True';
 			}));
 		},
 	}),
 	'(compactMap:)': dispatch({
 		'Function': function(f) {
-			return this.set('items', this.items.map(function(item) {
-				return (new Invocation({
+			return this.set('items', this.items.map((item) => {
+				return (new Call({
 					target: f, args: List([item])
-				})).eval(f.ctx);
-			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+				})).eval(f.ctx)[0];
+			}).filter((item) => { return item && item._name !== 'Bottom'; }));
 		},
 		'Match': function (f) {
-			return this.set('items', this.items.map(function(item) {
-				return (new Invocation({
+			return this.set('items', this.items.map((item) =>{
+				return (new Call({
 					target: f, args: List([item])
-				})).eval(f.ctx);
-			}).filter(function(item) { return item && item._name !== 'Bottom'; }));
+				})).eval(f.ctx)[0];
+			}).filter((item) => { return item && item._name !== 'Bottom'; }));
 		},
 	}),
 	'(reduce:)': dispatch({
 		'Function': function(f) {
-			return this.items.reduce(function(init, item) {
-				return (new Invocation({
+			return this.items.reduce((init, item) => {
+				return (new Call({
 					target: f,
 					args: List([init, item])
-				})).eval(f.ctx);
+				})).eval(f.ctx)[0];
 			});
 		},
 		'Match': function(m) {
-			return this.items.reduce(function(init, item) {
-				return (new Invocation({
+			return this.items.reduce((init, item) => {
+				return (new Call({
 					target: m,
 					args: List([init, item])
-				})).eval(m.ctx);
+				})).eval(m.ctx)[0];
 			});
 		},
 	}),
 	'(reduceInto:with:)': function(init, func) {
-		return this.items.reduce(function(init, item) {
-			return (new Invocation({
+		return this.items.reduce((init, item) => {
+			return (new Call({
 				target: func,
 				args: List([init, item])
-			})).eval(func.ctx);
+			})).eval(func.ctx)[0];
 		}, init);
 	},
 };

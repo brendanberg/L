@@ -9,7 +9,7 @@ const _map = I.Map({});
 const _list = I.List([]);
 
 
-let HybridFunction = I.Record({predicates: _list, tags: _map}, 'HybridFunction');
+let HybridFunction = I.Record({predicates: _list, scope: _, tags: _map}, 'HybridFunction');
 
 HybridFunction.prototype.toString = function() {
 	return (
@@ -35,14 +35,14 @@ HybridFunction.prototype.repr = function(depth, style) {
 };
 
 HybridFunction.prototype.eval = function(ctx) {
-	// Evaluate any eager nodes (???)
-	return this.transform(function(node) {
-		if (node._name === 'Evaluate') {
-			return node.eval(ctx);
-		} else {
-			return node;
-		}
+	// TODO: Figure out semantics for closures over hybrid functions. Do all
+	// individual predicates share the same environment? Is that gross?
+	// UPDATE: Each predicate is a separate scope.
+	let hybrid = this.update('predicates', (predicates) => {
+		return predicates.map((func) => func.eval(ctx)[0]);
 	});
+
+	return [hybrid, ctx];
 };
 
 HybridFunction.prototype.transform = function(func) {

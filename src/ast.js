@@ -8,7 +8,7 @@ module.exports = {
 	Method: require('./ast/method'),
 
 	MessageSend: require('./ast/messagesend'),
-	Invocation: require('./ast/invocation'),
+	Call: require('./ast/call'),
 	SymbolLookup: require('./ast/symbollookup'),
 	SequenceAccess: require('./ast/sequenceaccess'),
 	Immediate: require('./ast/immediate'),

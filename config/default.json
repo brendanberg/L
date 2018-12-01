@@ -1,0 +1,11 @@
+{
+	"repl": {
+		"banner": "${welcome}, ${version}\n${help}\n",
+		"prompt": {
+			"input_start": ">> ",
+			"input_more": " - ",
+			"output_ok": "   ",
+			"output_error": "   "
+		}
+	}
+}

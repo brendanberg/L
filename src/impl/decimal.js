@@ -1,83 +1,69 @@
-const { Map } = require('immutable');
+const { Set, Map } = require('immutable');
 const Type = require('../ast/type');
-const Rational = require('../ast/rational');
-const Decimal = require('../ast/decimal');
-const Symbol = require('../ast/symbol');
+const A = require('../arbor');
 const dispatch = require('../dispatch');
 
 
-function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
-}
+const bool = function(exp) { return exp ? 'True' : 'False' };
 
-let _Decimal = new Type({label: 'Decimal'});
+let _Decimal = new Type({label: 'Decimal', scope: Set([])});
 
 _Decimal.methods = {
 	"('+')": function() { return this },
-	"('-')": function() { return this.update('numerator', function(v) { return -v; }); },
+	"('-')": function() { return this.update('numerator', (v) => { return -v; }); },
 	'(sqrt.)': function() {
 		// WARNING! There's a loss of precision here!
 		let inexact = Math.sqrt(this.numerator * Math.pow(10, -this.exponent));
-		let precision = 12;
 
-		return new Decimal({
-			numerator: Math.floor(inexact * Math.pow(10, precision)),
-			exponent: precision
-		});
+		return A.pushScope(this.scope)(A.Decimal(inexact.toString()));
 	},
 	"('+':)": dispatch({
 		'Integer': function(n) {
 			let factor = Math.pow(10, this.exponent);
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num + n.value * factor;
 			});
 		},
 		'Decimal': function(q) {
-			return new Rational({
-				numerator: this.value * q.denominator + q.numerator,
-				denominator: q.denominator
-			});
+			let numerator = this.value * q.denominator + q.numerator;
+			return A.pushScope(this.scope)(A.Rational(numerator, q.denominator));
 		},
 	}),
 	"('-':)": dispatch({
 		'Integer': function(n) {
 			let factor = Math.pow(10, this.exponent);
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num - n.value * factor;
 			});
 		},
 		'Decimal': function(q) {
-			return new Rational({
-				numerator: this.value * q.denominator + q.numerator,
-				denominator: q.denominator
-			});
+			let numerator = this.value * q.denominator + q.numerator;
+			return A.pushScope(this.scope)(A.Rational(numerator, q.denominator));
 		},
 	}),
 	"('*':)": dispatch({
 		'Integer': function(n) {
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num * n.value;
 			});
 		},
 		'Decimal': function(q) {
-			return new Decimal({
-				numerator: this.numerator * q.numerator,
-				exponent: this.exponent + q.exponent
-			});
+			return A.pushScope(this.scope)(
+				A.Decimal(this.numerator * q.numerator, this.exponent + q.exponent)
+			);
 		},
 	}),
 	"('/':)": dispatch({
 		'Integer': function(n) {
 			let factor = Math.pow(10, this.exponent);
-			return this.update('numerator', function(num) {
+			return this.update('numerator', (num) => {
 				return num + n.value * factor;
 			});
 		},
 		'Decimal': function(q) {
-			return new Decimal({
-				numerator: this.value * q.denominator + q.numerator,
-				exponent: q.denominator
-			});
+			return A.pushScope(this.scope)(
+				A.Decimal(this.value * q.denominator + q.numerator, q.denominator)
+			);
 		},
 	}),
 	"('^':)": dispatch({
@@ -85,12 +71,7 @@ _Decimal.methods = {
 			if (n.value < 0) {
 				// WARNING! There's a loss of precision here!
 				let inexact = 1 / Math.pow(this.numerator, -n.value);
-				let precision = 12;
-
-				return new Decimal({
-					numerator: Math.floor(inexact * Math.pow(10, precision - n.value)),
-					exponent: precision
-				});
+				return A.pushScope(this.scope)(A.Decimal(inexact.toString()));
 			} else {
 				return this.update('numerator', (v) => {
 					return Math.pow(v, n.value);

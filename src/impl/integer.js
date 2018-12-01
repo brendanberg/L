@@ -1,18 +1,12 @@
-const { Map, Range, List } = require('immutable');
+const { Map, Range, Set, List } = require('immutable');
 const Type = require('../ast/type');
-const List_ = require('../ast/list');
-const Integer = require('../ast/integer');
-const Rational = require('../ast/rational');
-const Decimal = require('../ast/decimal');
-const Symbol = require('../ast/symbol');
+const A = require('../arbor');
 const dispatch = require('../dispatch');
 
 
-function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
-}
+const bool = function(exp) { return exp ? 'True' : 'False' };
 
-let Integer_ = new Type({label: 'Integer'});
+let Integer_ = new Type({label: 'Integer', scope: Set([])});
 
 Integer_.methods = {
 	"('+')": function() { return this },
@@ -20,18 +14,24 @@ Integer_.methods = {
 	'(sqrt.)': function() {
 		// WARNING! There's a loss of precision here!
 		let inexact = Math.sqrt(this.value);
-		let precision = 12;
-
-		return new Decimal({
-			numerator: Math.floor(inexact * Math.pow(10, precision)),
-			exponent: precision
-		});
+		return A.pushScope(this.scope)(A.Decimal(inexact.toString()));
 	},
 	"('..':)": dispatch({
 		'Integer': function(n) {
-			return new List_({items: List(Range(this.value, n.value).map(function(n) {
-				return new Integer({value: n});			
-			}))});
+			let items = Range(this.value, n.value).map((n) => A.Integer(n));
+			return A.pushScope(this.scope)(A.List(...items));
+		},
+	}),
+	"('..|':)": dispatch({
+		'Integer': function(n) {
+			let items = Range(this.value, n.value).map((n) => A.Integer(n));
+			return A.pushScope(this.scope)(A.List(...items));
+		},
+	}),
+	"('...':)": dispatch({
+		'Integer': function(n) {
+			let items = Range(this.value, n.value + 1).map((n) => A.Integer(n));
+			return A.pushScope(this.scope)(A.List(...items));
 		},
 	}),
 	"('+':)": dispatch({
@@ -39,10 +39,9 @@ Integer_.methods = {
 			return this.update('value', function(v) { return v + n.value; });
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: (this.value * q.denominator) + q.numerator,
-				denominator: q.denominator
-			});
+			return A.pushScope(this.scope)(
+				A.Rational((this.value * q.denominator) + q.numerator, q.denominator)
+			);
 		},
 		'Decimal': function(d) {
 			let factor = Math.pow(10, d.exponent);
@@ -65,10 +64,8 @@ Integer_.methods = {
 			return this.update('value', function(v) { return v - n.value; });
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: (this.value * q.denominator) - q.numerator,
-				denominator: q.denominator
-			});
+			let numerator = (this.value * q.denominator) - q.numerator;
+			return A.pushScope(this.scope)(A.Rational(numerator, q.denominator));
 		},
 		'Decimal': function(d) {
 			let factor = Math.pow(10, d.exponent);
@@ -93,10 +90,8 @@ Integer_.methods = {
 			return this.update('value', function(v) { return v * n.value; });
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: (this.value * q.denominator) * q.numerator,
-				denominator: q.denominator
-			});
+			let numerator = (this.value * q.denominator) * q.numerator;
+			return A.pushScope(this.scope)(A.Rational(numerator, q.denominator));
 		},
 		'Decimal': function(d) {
 			let self = this;
@@ -119,17 +114,13 @@ Integer_.methods = {
 	}),
 	"('/':)": dispatch({
 		'Integer': function(n) {
-			return (new Rational(
-				{numerator: this.value, denominator: n.value}
-			)).simplify();
+			return A.pushScope(this.scope)(A.Rational(this.value, n.value));
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: this.value * q.denominator,
-				denominator: q.numerator
-			});
+			return A.pushScope(this.scope)(A.Rational(this.value * q.denominator, q.numerator));
 		},
 		'Decimal': function(d) {
+			// TODO: FIX THE MATH HERE
 			let self = this;
 			return d.update('numerator', function(num) {
 				return num * self.value;
@@ -144,10 +135,7 @@ Integer_.methods = {
 	"('^':)": dispatch({
 		'Integer': function(n) {
 			if (n.value < 0) {
-				return new Rational({
-					numerator: 1,
-					denominator: Math.pow(this.value, -n.value)
-				});
+				return A.pushScope(this.scope)(A.Rational(1, Math.pow(this.value, -n.value)));
 			} else {
 				return this.update('value', (v) => { return Math.pow(v, n.value); });
 			}
@@ -160,62 +148,76 @@ Integer_.methods = {
 	}),
 	"('==':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value === n.value);
+			let label = bool(this.value === n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Rational': function(q) {
-			return make_bool(q.denominator == 1 && this.value == q.numerator);
+			let label = bool(q.denominator == 1 && this.value == q.numerator);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
-			return make_bool(d.exponent == 0 && d.numerator == this.value);
+			let label = bool(d.exponent == 0 && d.numerator == this.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('!=':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value != n.value);
+			let label = bool(this.value != n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Rational': function(q) {
-			return make_bool(!(q.denominator == 1 && this.value == q.numerator));
+			let label = bool(!(q.denominator == 1 && this.value == q.numerator));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
-			return make_bool(!(d.exponent == 0 && d.numerator == this.value));
+			let label = bool(!(d.exponent == 0 && d.numerator == this.value));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('<':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value < n.value);
+			let label = bool(this.value < n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, d.exponent);
-			return make_bool(exponent * this.value < d.numerator);
+			let label = bool(exponent * this.value < d.numerator);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('<=':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value <= n.value);
+			let label = bool(this.value <= n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, d.exponent);
-			return make_bool(exponent * this.value < d.numerator || (
+			let label = bool(exponent * this.value < d.numerator || (
 				d.exponent == 0 && this.value == d.numerator));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('>':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value > n.value);
+			let label = bool(this.value > n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, d.exponent);
-			return make_bool(exponent * this.value > d.numerator);
+			let label = bool(exponent * this.value > d.numerator);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('>=':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.value >= n.value);
+			let label = bool(this.value >= n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, d.exponent);
-			return make_bool(exponent * this.value > d.numerator || (
+			let label = bool(exponent * this.value > d.numerator || (
 				d.exponent == 0 && this.value == d.numerator));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 };

@@ -6,7 +6,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-Type = Record({label: _, tags: _map}, 'Type');
+Type = Record({label: _, scope: _, tags: _map}, 'Type');
 
 Type.prototype.toString = function () {
 	return this.label.toString();
@@ -17,7 +17,7 @@ Type.prototype.repr = function (depth, fmt) {
 };
 
 Type.prototype.transform = function(context, match) {
-	return new Bottom();
+	return new Bottom({scope: this.scope});
 };
 
 Type.prototype.methodForSelector = function(selector) {

@@ -7,18 +7,24 @@ const fs = require('fs');
 const path = require('path');
 const util = require('util');
 const style = require('./format');
+const config = require('config');
+
+const input_start = config.get('repl.prompt.input_start');
+const input_more = config.get('repl.prompt.input_more');
+
+const env = new L.Environment();
 
 const loadSourceFile = (basepath, filename) => {
 	let ast, contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
 
 	try {
-		[ast, scopes] = L.Parser.parse(contents).transform(L.Rules, scopes);
+		ast = env.parse(contents);
 	} catch (e) {
 		let result = e.toString();
 
 		if (e.line && e.column) {
 			result += `\nline ${e.line}, column ${e.column}`;
-		} else {
+		} else if (e.stack) {
 			result += `\n ${e.stack.replace(/^[^\n]+\n/, '')}`;
 		}
 
@@ -26,8 +32,7 @@ const loadSourceFile = (basepath, filename) => {
 	}
 
 	if (ast) {
-		ctx.scope = scopes;
-		ast.invoke(ctx);
+		[_, ctx] = ast.invoke(ctx, false);
 	}
 };
 
@@ -36,10 +41,8 @@ const loadSourceFile = (basepath, filename) => {
 // Create the initial context and load built-in library
 // ---------------------------------------------------------------------------
 
-let scopes = new L.Scope();
-let ctx = new L.Context();
-scopes.debug = true;
-ctx.loadGlobals(scopes);
+let ctx = new L.Context(null, {});
+ctx.loadGlobals(env);
 
 const basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
 const filenames = fs.readdirSync(basepath).filter(function(filename) {
@@ -47,7 +50,7 @@ const filenames = fs.readdirSync(basepath).filter(function(filename) {
 });
 
 for (let filename of filenames) {
-	loadSourceFile(basepath, filename, scopes);
+	loadSourceFile(basepath, filename);
 }
 
 
@@ -55,15 +58,38 @@ for (let filename of filenames) {
 // Instantiate and configure the interactive shell
 // ---------------------------------------------------------------------------
 
-process.stdout.write(style.operator('The L Programming Language, Meta.L v' + L.version + '\n'));
+// Write the welcome banner. The banner can be configured in the REPL config
+// file by providing a string or array of strings for the key 'banner'. The
+// banner string can use the ES6 interpolation `${variable}` syntax and
+// reference `welcome`, `version`, and `help` strings defined below. The
+// default banner string is `"${welcome}, ${version}\n${help}\n"`.
+
+String.prototype.interpolate = function(params) {
+	const names = Object.keys(params);
+	const vals = Object.values(params);
+	return new Function(...names, `return \`${this}\`;`)(...vals);
+}
+
+const banner_cfg = config.get('repl.banner');
+const banner = Array.isArray(banner_cfg) ? banner_cfg.join('') : banner_cfg;
+
+process.stdout.write(banner.interpolate({
+	welcome: 'The L Programming Language',
+	version: `Meta.L v ${L.version}`,
+	help: 'Type "#! help" for more information'
+}));
+
+// Set the window title
 process.stdout.write('\033]0;Meta.L\007');
 
+//process.stdout.write(`${prefix}${config.repl.welcome}${suffix}`);
 const rep = repl.start({
 	ignoreUndefined: true,
-	prompt: ">> ",
+	prompt: input_start,
 	eval: eval,
 	writer: writer
 });
+
 
 let bufferedCommand = '';
 
@@ -110,7 +136,7 @@ rep.defineCommand('break', {
 	help: 'Break out of the current nested statement and clear buffered input',
 	action: function() {
 		rep.clearBufferedCommand();
-		rep.setPrompt('>> ');
+		rep.setPrompt(input_start);
 		rep.displayPrompt();
 	}
 });
@@ -150,7 +176,6 @@ rep.defineCommand('save', {
 
 rep.removeAllListeners('line');
 rep.on('line', (cmd) => {
-	L.log.debug(style.comment('line %j'), cmd);
 	cmd = trimWhitespace(cmd);
 
 	// Check to see if a REPL keyword was used. If it returns true,
@@ -172,13 +197,15 @@ rep.on('line', (cmd) => {
 				finish(null);
 				return;
 			} else {
-				rep.outputStream.write('Invalid REPL command\n');
+				let line = `${command} is not a recognized shell command\n`;
+				rep.outputStream.write(rep.writer(style.error(line)));
+				rep.displayPrompt();
+				return;
 			}
 		}
 	}
 
 	const evalCmd = bufferedCommand + cmd + '\n';
-	L.log.debug(style.comment('eval %j'), evalCmd);
 	rep.eval(evalCmd, rep.context, 'repl', finish);
 
 	function finish(e, ret) {
@@ -232,16 +259,16 @@ rep.removeAllListeners('SIGINT');
 rep.on('SIGINT', function() {
 	if (bufferedCommand.length > 0) {
 		rep.clearBufferedCommand();
-		rep.setPrompt('>> ');
+		rep.setPrompt(input_start);
 		rep.displayPrompt();
 	} else {
-		rep.outputStream.write('\nTo exit, press Ctrl-D or type !exit\n');
+		rep.outputStream.write('\n   To exit, press Ctrl-D or type !exit\n');
 		rep.displayPrompt();
 	}
 });
 
 rep.on('exit', function() {
-	rep.outputStream.write(rep.writer('\n'));
+	rep.outputStream.write('\n');
 });
 
 
@@ -258,14 +285,19 @@ function depth(cmd) {
 }
 
 function writer(obj) {
+	const ok = config.get('repl.prompt.output_ok');
+	const error = config.get('repl.prompt.output_error');
+
 	if (typeof obj === 'object') {
-		if ('repr' in obj) {
-			return obj.repr(-1, style);
+		if ('repr' in obj && obj._name === 'Error') {
+			return error + obj.repr(-1, style).replace(/\n/g, '\n' + error);
+		} else if ('repr' in obj) {
+			return ok + obj.repr(-1, style).replace(/\n/g, '\n' + ok);
 		} else {
-			return obj.toString();
+			return error + obj.toString().replace(/\n/g, '\n' + error);
 		}
 	} else {
-		return obj.toString();
+		return error + obj.toString().replace(/\n/g, '\n' + error);
 	}
 }
 
@@ -284,14 +316,19 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		[ast, scopes] = L.Parser.parse(command).transform(L.Rules, scopes);
-		rep.setPrompt('>> ');
+		ast = env.parse(command);
+		rep.setPrompt(input_start);
 	} catch (e) {
-		if (e.found == null) {
+		if (e.hasOwnProperty('found') && e.found == null) {
+			/*
 			L.log.debug(e.toString());
-			L.log.debug(style.comment(e.stack.replace(/^[^\n]+\n/, '')));
 
-			rep.setPrompt(' - ');
+			if (e.stack) {
+				L.log.debug(style.comment(e.stack.replace(/^[^\n]+\n/, '')));
+			}
+			*/
+
+			rep.setPrompt(input_more);
 			finish(new repl.Recoverable('Unexpected end of input'), '');
 			return;
 		}
@@ -304,8 +341,8 @@ function eval(cmd, context, filename, finish) {
 			const pointer = ' '.repeat(e.column) + style.string('^');
 			result = '   ' + pointer + '\n' + result;
 			rep.clearBufferedCommand();
-			rep.setPrompt('>> ');
-		} else {
+			rep.setPrompt(input_start);
+		} else if (e.stack) {
 			result += '\n' + style.string(e.stack.replace(/^[^\n]+\n/, ''));
 		}
 
@@ -314,8 +351,9 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		ctx.scope = scopes;
-		result = ast.invoke(ctx);
+		// TODO: Bindings needs to be kept at the root context???
+		ctx.bindings = env.bindings;
+		[result, ctx] = ast.invoke(ctx, false);
 	} catch (e) {
 		result = style.error(e.toString());
 		

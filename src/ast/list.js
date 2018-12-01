@@ -8,7 +8,7 @@ const _list = List([]);
 const _map = Map({});
 
 
-let List_ = Record({items: _list, tags: _map}, 'List');
+let List_ = Record({items: _list, scope: _, tags: _map}, 'List');
 
 List_.prototype.toString = function() {
 	let delims = ['[',']']; //this.getIn(['tags', 'source'], 'list')];
@@ -29,9 +29,11 @@ List_.prototype.repr = function(depth, style) {
 };
 
 List_.prototype.eval = function(ctx) {
-    return this.update('items', (list) => {
-        return list.map((it) => { return it.eval(ctx) });
+    let listItems = this.update('items', (list) => {
+        return list.map((it) => { return it.eval(ctx)[0] });
     });
+
+	return [listItems, ctx];
 };
 
 List_.prototype.transform = function(func) {

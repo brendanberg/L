@@ -61,7 +61,7 @@ Control characters and certain formatting characters must be escaped.
 
 Quotes only need to be escaped if they are the same style as the delimiting quote marks.
 The double quotes in the text `'The novelist said, "read my new book!"'` do not need to be escaped,
-but in the text `"\"It works!\" exclaimed the scientist, \"yet they told me, 'it can't be done.'\""`
+but in the text `"\"It works!\" exclaimed the scientist, \"and they told me, 'it can't be done.'\""`
 the double quotes (but not the single quotes) must be escaped.
 
 ## Basic Types and Operators
@@ -151,13 +151,20 @@ minusFive :: -5              # minusFive is -5
 alsoMinusFive :: +minusFive  # alsoMinusFive is -5 because +(-5) is still -5
 ```
 
-The binary arithmetic operators behave similarly to a standard pocket calculator.
+The binary arithmetic operators `+`, `-`, and `*` behave similarly to a standard pocket calculator.
 
 ```
 2 + 3                     # equals 5
 8 - 3                     # equals 5
 6 * 7                     # equals 42
+```
+
+The fraction operator `/` is slightly different and returns a fraction representation of the numerator and denominator.
+The values are automatically reduced to simplified form.
+
+```
 6 / 8                     # equals the fraction ¾
+12 / 4                    # equals 3
 ```
 
 ## The Bind Operator
@@ -185,7 +192,7 @@ If each item in the list is an identifier, both sides must have the same length.
 
 ```
 [p, q, r] :: [3, 4, 5]        # 'p' gets the value 3, 'q' gets 4, and 'r' is 5
-[x, y] :: [2, 3, 4]           # Error, because both sides are not the same length
+[x, y] :: [2, 3, 4]           # this is an error, because both sides are not the same length
 ```
 
 Patterns may contain literal values,
@@ -211,6 +218,74 @@ but may only contain one collection identifier.
 Additional destructuring features are supported on other data types discussed later in this intruduction.
 
 ## The Text Type
+
+As mentioned earlier,
+text literals may be specified in __L__ programs by enclosing a sequence of Unicode code points in single or double quotes.
+
+### Text Operators
+
+A number of operators are supported on text values in __L__. They are:
+
+- Concatenation (`a + b`)
+- Element-wise code point access (`a @ b`)
+- Equal to (`a == b`)
+- Not equal to (`a != b`)
+- Precedes (`a < b`)
+- Follows (`a > b`)
+- Precedes or equal to (`a <= b`),
+- Follows or equal to (`a >= b`).
+
+The `+` operator concatenates the contents of two text values and returns a text value with the joined contents.
+
+```
+'Hello, ' + 'world!'      # equals 'Hello, world!'
+```
+
+The `@` operator accesses the code point at the specified offset.
+Offsets greater than or equal to zero are counted from the start of the sequence,
+while offsets less than zero are counted from the end of the sequence.
+
+```
+'abcdefg' @ 3             # equals 'd'
+'abcdefg' @ -2            # equals 'f'
+```
+
+The __L__ comparison operators discussed previously also work for text values.
+Each operator returns a boolean value to indicate whether the relationship is true or false.
+
+```
+'apple' == 'apple'        # true, because the string contents are identical
+'banana' != 'BANANA'      # true, becaues the string contents are not identical
+'apple' < 'banana'        # true, because 'apple' is found before 'banana' alphabetically
+'aardvark' > 'apple'      # false, because 'aardvark' is found before 'apple' alphabetically
+```
+
+### Text Methods
+
+The number of Unicode code points in a sequence of text may be queried using the `(count.)` selector.
+
+```
+'Hamburger'(count.)       # equals 9
+'🍔'(count.)              # equals 1 because the hamburger emoji is U+1F354
+
+'Café'(count.)            # equals 4 because the final é is U+00E9, latin small e with acute accent
+'Café'(count.)            # equals 5 because despite appearing identical to the example above, the
+                          #    final glyph consists of the surrogate pair U+0065 (latin small e),
+                          #    and U+0301 (combining diacritic acute accent)
+```
+
+The `(split:)` selector separates a length of text into a list of subsequences,
+using a specified separator that delineates subsequences. 
+
+```
+'the quick brown fox'(split: ' ')                # equals ['the', 'quick', 'brown', 'fox']
+'a man, a plan, a canal, panama'(split: ', ')    # equals ['a man', 'a plan', 'a canal', 'panama']
+```
+
+Additional text methods are described in the [Text Type Documentation][text].
+
+[text]: docs/types/text.md
+
 
 ## Collection Types
 
@@ -343,11 +418,14 @@ Accessing associated values can be done with pattern matching.
 ## Functions
 
 A function is a sequence of operations grouped with a description of its input.
-When a function is invoked by providing it with input values, it executes the operations and produces a value as output.
+When a function is invoked by providing it with input values,
+it executes the operations and produces a value as output.
 
-Functions in __L__ consist of a list of input parameters in parentheses, followed by the `->` arrow operator,
+Functions in __L__ consist of a list of input parameters in parentheses,
+followed by the `->` arrow operator,
 and finally a list of expressions in braces that are evaluated when the function is invoked.
-All functions in __L__ are anonymous, and must be bound to a variable if we want to refer to it later in our program.
+All functions in __L__ are anonymous,
+and must be bound to a variable if we want to refer to it later in our program.
 
 Here is the definition of a function that calculates the average of two numbers, __*x*__ and __*y*__.
 We assign the function to the variable `average` so we have a way to reference it in the future.
@@ -381,7 +459,8 @@ the match will fail and the function will return `_`.
 
 Pattern matching arguments can be useful on its own,
 but its real power is apparent when building hybrid functions.
-A hybrid function is a collection of function definitions that can define different behavior for different conditions of input.
+A hybrid function is a collection of function definitions
+that can define different behavior for different conditions of input.
 
 A classic example is defining base cases for recursive functions.
 The factorial function is defined for some positive integer __*n*__

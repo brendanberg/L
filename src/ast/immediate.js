@@ -11,7 +11,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Immediate = Record({target: _, tags: _map}, 'Immediate');
+let Immediate = Record({target: _, scope: _, tags: _map}, 'Immediate');
 
 Immediate.prototype.toString = function() {
 	return '\\' + this.target.toString();

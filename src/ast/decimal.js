@@ -12,7 +12,7 @@ const _map = Map({});
 //   1.0        num:    10,  exp:  1
 //   0.0125     num:   125,  exp:  4
 // 157.01       num: 15701,  exp:  2
-let Decimal = Record({numerator: _, exponent: _, tags: _map}, 'Decimal');
+let Decimal = Record({numerator: _, exponent: _, scope: _, tags: _map}, 'Decimal');
 
 Decimal.prototype.toString = function() {
 	let exponent = Math.pow(10, this.exponent);
@@ -36,7 +36,7 @@ Decimal.prototype.zeroPad = function (num, len) {
 };
 
 Decimal.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Decimal.prototype.transform = function(func) {

@@ -9,7 +9,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Function_ = Record({template: _, guard: _, block: _, tags: _map}, 'Function');
+let Function_ = Record({template: _, guard: _, block: _, locals: _map, scope: _, tags: _map}, 'Function');
 
 Function_.prototype.toString = function() {
 	let guard = this.guard ? ' ? ' + this.guard.toString() : '';
@@ -37,9 +37,7 @@ Function_.prototype.repr = function(depth, style) {
 }
 
 Function_.prototype.eval = function(ctx) {
-    return this.transform((node) => {
-        return node._name === 'Immediate' ? node.eval(ctx) : node;
-    });
+	return [this.update('block', (block) => block.eval(ctx)[0]), ctx];
 };
 
 Function_.prototype.transform = function(func) {

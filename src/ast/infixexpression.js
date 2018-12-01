@@ -4,13 +4,13 @@
 
 const { Map, List, Record } = require('immutable');
 const KeyValuePair = require('./keyvaluepair');
-const Invocation = require('./invocation');
+const Call = require('./call');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
 
 
-let InfixExpression = Record({op: _, lhs: _, rhs: _, tags: _map}, 'InfixExpression');
+let InfixExpression = Record({op: _, lhs: _, rhs: _, scope: _, tags: _map}, 'InfixExpression');
 
 InfixExpression.prototype.toString = function() {
 	let grouped = this.getIn(['tags', 'parenthesized'], false);
@@ -36,11 +36,16 @@ InfixExpression.prototype.repr = function(depth, style) {
 
 InfixExpression.prototype.eval = function(ctx) {
     // TODO: Replace the list / invocation with a message / message send
-    let args = List([new KeyValuePair({key: this.op, val: this.rhs})]); 
+    let args = List([new KeyValuePair({
+			key: this.op,
+			val: this.rhs,
+			scope: this.scope
+		})]); 
 
-    return (new Invocation({
+    return (new Call({
 		target: this.lhs, args: args,
-		selector: "('" + this.op.label + "':)"
+		selector: "('" + this.op.label + "':)",
+		scope: this.scope
 	})).eval(ctx);
 };
 
@@ -49,7 +54,10 @@ InfixExpression.prototype.transform = function(func) {
         return (node && 'transform' in node) ? node.transform(func) : func(node);
     };
 
-    return func(this.update('lhs', transform).update('rhs', transform));
+    return func(this.update('op', transform)
+		.update('lhs', transform)
+		.update('rhs', transform)
+	);
 };
 
 module.exports = InfixExpression;

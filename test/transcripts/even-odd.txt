@@ -1,16 +1,15 @@
->> even :: 0
-[.even: 0]
->> odd :: {{ (0) -> { Boolean.False }, (n) ? (n > 0) -> { even(n - 1) }, (n) -> { even(n + 1) } }}
-[.odd: {{
-    (0) -> { Boolean.False }
-    (n) ? (n > 0) -> { even(n - 1) }
-    (n) -> { even(n + 1) }
-}}]
->> even :: {{ (0) -> { Boolean.True }, (n) ? (n > 0) -> { odd(n - 1) }, (n) -> { odd(n + 1) } }}
+>> [even, odd] :: [
+ -   {{ (0) -> { Boolean.True }, (n) ? (n > 0) -> { odd(n - 1) }, (n) -> { odd(n + 1) } }}
+ -   {{ (0) -> { Boolean.False }, (n) ? (n > 0) -> { even(n - 1) }, (n) -> { even(n + 1) } }}
+ - ]
 [.even: {{
     (0) -> { Boolean.True }
     (n) ? (n > 0) -> { odd(n - 1) }
     (n) -> { odd(n + 1) }
+}}, .odd: {{
+    (0) -> { Boolean.False }
+    (n) ? (n > 0) -> { even(n - 1) }
+    (n) -> { even(n + 1) }
 }}]
 >> even(0)
 .True

@@ -1,0 +1,8 @@
+>> Thrush << x >>
+Thrush << x >>
+>> Thrush self (applyTo: func) -> { func(self.x) }
+Thrush self (applyTo: func) -> { func(self.x) }
+>> val :: Thrush(x: 5)
+[.val: Thrush(x: 5)]
+>> val(applyTo: (x) -> { x * x})
+25

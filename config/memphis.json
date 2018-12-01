@@ -1,0 +1,15 @@
+{
+	"repl": {
+		"banner": [
+			"\u001B[45;97m ${welcome} \u001B[42;35m\uE0B0",
+			"\u001B[97m ${version} \u001B[0m\u001B[32m\uE0B0\u001B[39m\n",
+			"\u001B[42;97m ${help}          \u001B[0m\u001B[32m\uE0B0\n"
+		],
+		"prompt": {
+			"input_start": "\u001B[44m \u001B[0m\u001B[34m\uE0B0\u001B[39m ",
+			"input_more": "\u001B[44m \u001B[0m\u001B[34m\uE0B0\u001B[39m ",
+			"output_ok": "\u001B[42m \u001B[0m  ",
+			"output_error": "\u001B[41m \u001B[0m  "
+		}
+	}
+}

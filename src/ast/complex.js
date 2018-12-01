@@ -7,7 +7,7 @@ const _ = null;
 const _map = Map({});
 
 
-let Complex = Record({real: _, imaginary: _, tags: _map}, 'Complex');
+let Complex = Record({real: _, imaginary: _, scope: _, tags: _map}, 'Complex');
 
 Complex.prototype.toString = function() {
 	let real = this.get('real', null);
@@ -24,7 +24,7 @@ Complex.prototype.repr = function(depth, style) {
 };
 
 Complex.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Complex.prototype.transform = function(func) {

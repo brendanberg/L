@@ -13,7 +13,7 @@ const _map = Map({});
 const _list = List([]);
 
 
-let Method = Record({target: _, selector: _list, block: _, tags: _map}, 'Method');
+let Method = Record({target: _, selector: _list, block: _, binding: _, scope: _, tags: _map}, 'Method');
 
 
 Method.prototype.toString = function() {
@@ -34,12 +34,10 @@ Method.prototype.repr = function(depth, style) {
 
 Method.prototype.eval = function(ctx) {
 	// Do some basic type checking (the target type must already exist).
-	let ident = new Identifier({label: this.target.getIn(['tags', 'type'])});
-	// TODO: PROBABLY ADD SCOPES HERE!!!
-	let type = ctx.get(ctx.scope.resolve(ident));
+	let type = ctx.get(this.binding);
 
 	if (!(type && 'registerSelector' in type)) {
-		throw new TypeError("There is no type '" + ident.label + "'");
+		throw new TypeError("There is no type '" + this.target.getIn(['tags', 'type']) + "'");
 	}
 
 	// Build the selector string.
@@ -60,20 +58,19 @@ Method.prototype.eval = function(ctx) {
 	}, '') + ')';
 
 	// Build the method implementation
-	let templateItems = List([this.target]).concat(this.selector.filter(function(item) {
+	let templateItems = List([this.target]).concat(this.selector.filter((item) => {
 		return (item._name === 'KeyValuePair');
-	}).map(function(item) {
-		return item.val;
-	}));
+	}).map((item) => item.val));
 
 	let impl = new _Function({
 		template: new _List({items: templateItems}),
-		block: this.block
+		block: this.block,
+		scope: this.scope
 	});
 
 	// Associate the method implementation with the selector
 	type.registerSelector(selector, impl);
-	return this;
+	return [this, ctx];
 };
 
 Method.prototype.transform = function(func) {

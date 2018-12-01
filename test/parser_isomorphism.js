@@ -9,7 +9,12 @@ const assert = chai.assert;
 chai.use(chaiImmutable);
 
 let Node = {};
-let scopes = new L.Scope();
+let env = new L.Environment();
+
+env.pipeline = [
+	(source) => env.scanner.parse(source),
+	(skel) => env.parser.parse(skel),
+];
 
 
 // ---------------------------------------------------------------------------
@@ -39,8 +44,8 @@ let parser_description = function () {
 		[Node.simple_function]);
 
 	check.isomorphism('accepts complex terms', [Node.term]);
-/*	check.isomorphism('accepts complex expressions',
-		[Node.expression]); */
+	check.isomorphism('accepts complex expressions',
+		[Node.expression]);
 
 	check.isomorphism('accepts basic function invocations', [Node.simple_invocation]);
 //	check.isomorphism('accepts message sends (w/o receiver)',
@@ -62,9 +67,9 @@ let lists = {
 	alpha: 'ABCDEFGHIJKLMNOPQRSTUVWXZYabcdefghijklmnopqrstuvwxyz_'.split(''),
 	alphanum: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_-'.split(''),
 	prefixOperator: '+-~!^'.split(''),
-	infixOperator: ['//:', '//', '/:', '+:', '-:', '*:', '%:', '<=', '==',
-		'!=', '>=', '..', '~>', '<~', '??', '+', '-', '*', '/', '%',
-		'<', '>', '&', '|', '^'
+	infixOperator: ['+', '-', '*', '/', '%', '<', '>', '^', '==', '!=', '>=',
+		'//:', '//', '/:', '+:', '-:', '*:', '%:', '<=', '==',
+		'..', '~>', '<~', '??', '&', '|'
 	]
 };
 
@@ -127,7 +132,7 @@ Node.plist_identifier = gen.map((args) => {
 	return new L.AST.Identifier({
 		label: args[0], 
 		modifier: args[1],
-		tags: Map({'introduction': true, 'local': true})
+		tags: Map({'mode': 'lvalue', 'local': true})
 	});
 }, gen.array([Node.name, gen.returnOneOf([null, '?', '!'])]));
 
@@ -155,6 +160,10 @@ Node.simple_infixExpression = gen.map((args) => {
 }, gen.array([gen.returnOneOf(lists.infixOperator), Node.simple_term, Node.simple_term]));
 
 Node.immediate = gen.map((exp) => {
+	exp = exp.transform((elt) => {
+		return elt._name === 'Identifier' ? elt.setIn(['tags', 'mode'], 'immediate') : elt;
+	});
+
 	return new L.AST.Immediate({target: exp});
 }, Node.simple_term);
 
@@ -207,7 +216,7 @@ Node.infixExpression = gen.map((args) => {
 		lhs: args[1],
 		rhs: args[2]
 	});
-}, gen.array([gen.returnOneOf(lists.infixOperator), Node.term, Node.simple_expression]));
+}, gen.array([gen.returnOneOf(lists.infixOperator), Node.term, Node.term]));//Node.simple_expression]));
 
 Node.expression = gen.oneOf([Node.prefixExpression, Node.infixExpression]);
 
@@ -234,7 +243,7 @@ function selectorFromMessage(message) {
 };
 
 Node.simple_invocation = gen.map((args) => {
-	return new L.AST.Invocation({
+	return new L.AST.Call({
 		target: args[0],
 		selector: selectorFromMessage(args[1]),
 		args: args[1]
@@ -259,8 +268,17 @@ Node.messageSend = gen.map((args) => {
 
 check.isomorphism = (description, nodeList) => {
 	check.it(description, nodeList, (node) => {
-		let parsed;
-		[parsed, scopes] = L.Parser.parse(node.toString()).transform(L.Rules, scopes);
+		let parsed = env.parse(node.toString());
+
+		parsed = parsed.transform((node) => {
+			// Since the generative AST doesn't go through a scoping or
+			// name binding step, we strip the scope and binding values from
+			// the parsed AST before comparison.
+			node = (node.has('binding')) ? node.set('binding', null) : node;
+			node = (node.hasIn(['tags', 'typebinding'])) ? node.deleteIn(['tags', 'typebinding']) : node;
+			return node.set('scope', null);
+		});
+
 		assert.equal(node, parsed.exprs.first());
 	});
 };

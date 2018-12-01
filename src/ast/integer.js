@@ -7,7 +7,7 @@ const _ = null;
 const _map = Map({});
 
 
-let Integer = Record({value: _, tags: _map}, 'Integer');
+let Integer = Record({value: _, scope: _, tags: _map}, 'Integer');
 
 Integer.prototype.toString = function() {
 	const baseMap = {
@@ -22,7 +22,7 @@ Integer.prototype.repr = function(depth, style) {
 };
 
 Integer.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Integer.prototype.transform = function(func) {

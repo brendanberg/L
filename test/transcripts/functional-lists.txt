@@ -1,18 +1,18 @@
 >> Maybe << .Some(Integer) | .None >>
 Maybe << .Some(Integer) | .None >>
->> List << .Cons(Integer, List) | .Nil >>
-List << .Cons(Integer, List) | .Nil >>
->> ls :: List.Cons(1, List.Cons(2, List.Cons(3, List.Nil)))
+>> Cons << .Cons(Integer, Cons) | .Nil >>
+Cons << .Cons(Integer, Cons) | .Nil >>
+>> ls :: Cons.Cons(1, Cons.Cons(2, Cons.Cons(3, Cons.Nil)))
 [.ls: .Cons(1, .Cons(2, .Cons(3, .Nil)))]
 >> head :: {{ (.Cons(x, _)) -> { Maybe.Some(x) }, (.Nil) -> { Maybe.None } }}
 [.head: {{
     (.Cons(x, _)) -> { Maybe.Some(x) }
     (.Nil) -> { Maybe.None }
 }}]
->> tail :: {{ (.Cons(_, x)) -> { x }, (.Nil) -> { List.Nil } }}
+>> tail :: {{ (.Cons(_, x)) -> { x }, (.Nil) -> { Cons.Nil } }}
 [.tail: {{
     (.Cons(_, x)) -> { x }
-    (.Nil) -> { List.Nil }
+    (.Nil) -> { Cons.Nil }
 }}]
 >> tail(ls)
 .Cons(2, .Cons(3, .Nil))
@@ -32,10 +32,10 @@ List << .Cons(Integer, List) | .Nil >>
 .Some(2)
 >> element(ls, 3)
 .None
->> append :: {{ (.Nil, y) -> { y }, (.Cons(x, xs), y) -> { List.Cons(x, append(xs, y)) } }}
+>> append :: {{ (.Nil, y) -> { y }, (.Cons(x, xs), y) -> { Cons.Cons(x, append(xs, y)) } }}
 [.append: {{
     (.Nil, y) -> { y }
-    (.Cons(x, xs), y) -> { List.Cons(x, append(xs, y)) }
+    (.Cons(x, xs), y) -> { Cons.Cons(x, append(xs, y)) }
 }}]
->> append(ls, List.Cons(4, List.Cons(5, List.Nil)))
+>> append(ls, Cons.Cons(4, Cons.Cons(5, Cons.Nil)))
 .Cons(1, .Cons(2, .Cons(3, .Cons(4, .Cons(5, .Nil)))))

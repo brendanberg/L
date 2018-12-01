@@ -1,33 +1,34 @@
-const { Map, List } = require('immutable');
+const { Set, Map, List } = require('immutable');
 const Type = require('../ast/type');
-const Symbol = require('../ast/symbol');
+const A = require('../arbor');
 const dispatch = require('../dispatch');
 
-function make_bool(exp) {
-	return new Symbol({label: exp ? 'True' : 'False', tags: Map({type: 'Boolean'})});
-}
 
-const SymbolType = new Type({label: 'Symbol'});
+const bool = function(exp) { return exp ? 'True' : 'False' };
 
-SymbolType.methods = {
+const Symbol = new Type({label: 'Symbol', scope: Set([])});
+
+Symbol.methods = {
 	// Symbol composition methods
 	// TODO: These should do the same type checking and compile-time analysis
 	//       done by the parser and type checker :-)
 	"('==':)": dispatch({
 		'Symbol': function(s) {
-			return make_bool(this.label === s.label);
+			const label = bool(this.label === s.label);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('!=':)": dispatch({
 		'Symbol': function(s) {
-			return make_bool(this.label !== s.label);
+			const label = bool(this.label !== s.label);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('+':)": dispatch({
 		'Symbol': function(s) {
-			return this.update('label', function(l) { return l + s.label; });
+			return this.update('label', (l) => { return l + s.label; });
 		},
 	}),
 };
 
-module.exports = SymbolType;
+module.exports = Symbol;

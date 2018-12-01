@@ -9,7 +9,7 @@ const _map = I.Map({});
 const _list = I.List([]);
 
 
-let Bottom = I.Record({tags: _map}, 'Bottom');
+let Bottom = I.Record({scope: _, tags: _map}, 'Bottom');
 
 Bottom.prototype.toString = function() {
     return '_';
@@ -20,7 +20,7 @@ Bottom.prototype.repr = function(depth, style) {
 };
 
 Bottom.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Bottom.prototype.transform = function(func) {

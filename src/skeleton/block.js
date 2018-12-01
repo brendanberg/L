@@ -11,7 +11,7 @@ const AST = require('../ast');
 
 Block = Record({exprs: _list, tags: _map}, 'Block');
 
-Block.prototype.transform = function(match, scopes) {
+Block.prototype.transform = function(xform) {
 	// Create a new execution context for the block and recursively
 	// call transform on each of the expressions in the block.
 
@@ -19,45 +19,13 @@ Block.prototype.transform = function(match, scopes) {
 	// expression. A macro defined in a block is accessible
 	// anywhere in the block, so this needs two passes basically.
 
-	let exprs, block = match.block(this, [], scopes.scope);
-	if (!block) { return null; }
+	let args = Array.prototype.slice.call(arguments, 1);
+	args.splice(0, 0, this);
+	let transformed = xform.apply(null, args);
+	if (!transformed) { return null; }
 
-	[exprs, __, newScope] = block;
-	scopes.scope = newScope;
-
-	exprs = exprs.transform((node) => {
-		if (node._name === 'Identifier' && node.binding == null) {
-			if (node.getIn(['tags', 'introduction'])) {
-				if (node.getIn(['tags', 'local'])) {
-					node.binding = scopes.addBinding(node);
-				} else {
-					node.binding = scopes.resolve(node) || scopes.addBinding(node);
-				}
-				log.debug(`+ ${node.debugString()}`);
-			} else {
-				node.binding = scopes.resolve(node);
-				if (node.binding) {
-					 log.debug(`= ${node.debugString()}`);
-				} else {
-					 log.debug(`0 ${node.debugString()}`);
-				}
-			}
-		} else if ((node._name === 'RecordType' || node._name === 'UnionType')
-				&& node.binding == null) {
-			node.binding = scopes.addBinding(node);
-			log.debug(`+ ${node.debugString()}`);
-		}
-
-		return node;
-	}).transform((node) => {
-		if (node._name === 'Identifier' && node.binding == null) {
-			node.binding = scopes.resolve(node);
-			log.debug(`= ${node.debugString()}`);
-		}
-
-		return node;
-	});
-	return [exprs, scopes];
+	let [exprs, __, scope] = transformed;
+	return [exprs, scope];
 };
 
 module.exports = Block;

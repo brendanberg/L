@@ -7,7 +7,7 @@ const _ = null;
 const _map = Map({});
 
 
-let Scientific = Record({significand: _, mantissa: _, tags: _map}, 'Scientific');
+let Scientific = Record({significand: _, mantissa: _, scope: _, tags: _map}, 'Scientific');
 
 Scientific.prototype.toString = function() {
 	return this.significand.toString() + 'e' + this.mantissa.toString();
@@ -18,7 +18,7 @@ Scientific.prototype.repr = function(depth, style) {
 };
 
 Scientific.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Scientific.prototype.transform = function(func) {
