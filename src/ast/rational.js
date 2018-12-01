@@ -33,8 +33,7 @@ Rational.prototype.simplify = function() {//ctx) {
 };
 
 Rational.prototype.eval = function(ctx) {
-	// Simplify the fraction first
-    return this.simplify(ctx);
+    return [this.simplify(), ctx];
 };
 
 Rational.prototype.transform = function(func) {

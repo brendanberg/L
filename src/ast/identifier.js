@@ -27,12 +27,13 @@ Identifier.prototype.eval = function(ctx) {
 	// TODO: If there's no binding at eval time, that's An Error (TM).
 	var value = ctx.get(this.binding);
 
+	//console.log(this.label + ': ' + this.binding);
 	if (value === null || value === undefined) {
 		var msg = `${this.label} is not defined in the current scope`;
 		throw new NameError(msg);
 	}
 
-	return value.setIn(['tags', 'name'], this.label);
+	return [value.setIn(['tags', 'name'], this.label), ctx];
 };
 
 Identifier.prototype.debugString = function () {
@@ -41,6 +42,11 @@ Identifier.prototype.debugString = function () {
 	let binding = this.binding ? this.binding.toString() : '--';
 
 	return `${local}{${this.label}}[${sc}]: ${binding}`;
+};
+
+Identifier.prototype.transform = function (func) {
+	//console.log(this.getIn(['tags', 'mode']));
+	return func(this);
 };
 
 module.exports = Identifier;

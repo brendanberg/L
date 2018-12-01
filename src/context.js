@@ -3,14 +3,13 @@ const { Map, List, Set, Record } = require('immutable');
 const log = require('loglevel');
 const Text = require('./ast/text');
 const Bottom = require('./ast/bottom');
-//const Invocation = require('./ast/invocation');
 const KeyValuePair = require('./ast/keyvaluepair');
 const Symbol_ = require('./ast/symbol');
 const _ = null;
 const _map = Map({});
 
 
-function Context(outer) {
+function Context(outer, closures) {
 	// Creates a new Context object. A context is a map of bindings from
 	// scoped identifiers to memory locations (In this implementation,
 	// "memory" is a dictionary from JS symbols to L values.) This
@@ -21,16 +20,20 @@ function Context(outer) {
 	// http://www.cs.utah.edu/plt/publications/popl16-f.pdf
 	// http://www.cs.utah.edu/~mflatt/scope-sets/
 
-	//this.bindings = Map({});
+	this.bindings = null;
+	this.closures = closures || {};
 	this.outer = outer || null;
 	this.locals = {};
-	this.buffer = [];
-	this.scope = null;
 	this.debug = false;
 }
 
+Context.prototype.getBindings = function() {
+	// TODO: UPDATE THIS TO NOT TRAVERSE?
+	return this.bindings || this.outer.getBindings();
+};
+
 Context.prototype.loadGlobals = function(env) {
-	//const globalScope = Set([]);
+	const globalScope = Set([]);
 
 	let globals = {
 		'Integer': require('./impl/integer'),
@@ -45,60 +48,27 @@ Context.prototype.loadGlobals = function(env) {
 		// TODO: Are there built-in methods that all records and unions use?
 		// Experimental Concurrency Type
 		// 'Fuzzum': require('./impl/filament'),
+		'_': new Bottom(), // TODO: Bottom should be resolved in the parser
 	};
 	
 	Object.keys(globals).map((key) => {
-		let binding = env.bindings.addBinding({label: key, scope: env.scope});
+		let binding = env.bindings.addBinding({label: key, scope: globalScope});
 		this.locals[binding] = globals[key];
 	});
 }
 
 Context.prototype.get = function(binding) {
-	let value = this.locals[binding];
-	if (value === undefined) {
-		if (this.outer) {
-			log.debug(`${binding} not in ${this.scope}`);
-			return this.outer.get(binding);
-		} else {
-			log.debug(`${binding} not in any scope`);
-			return value;
-		}
-	} else {
-		log.debug(`${binding} in ${this.scope}`);
-	}
+	let value = this.closures[binding] || this.locals[binding];
+	if (this.outer === this) { assert(false) };
 	return (value === undefined && this.outer) ? this.outer.get(binding) : value;
 };
 
 Context.prototype.set = function(binding, value) {
-	this.setOuter(binding, value) || this.setLocal(binding, value);
-};
-
-Context.prototype.setLocal = function(binding, value) {
-	this.locals[binding] = value;
-};
-
-Context.prototype.setOuter = function(binding, value) {
-	if (this.locals.hasOwnProperty(binding)) {
-		// The binding is already in locals. Update it.
-		this.locals[binding] = value;
-		return true;
-	} else if (this.outer) {
-		// There's an outer scope. Try to set the value there.
-		return this.outer.setOuter(binding, value);
+	if (this.closures.hasOwnProperty(binding)) {
+		this.closures[binding] = value;
 	} else {
-		return false;
+		this.locals[binding] = value;
 	}
-};
-
-Context.prototype.push = function(binding, value) {
-	this.buffer.push(() => {
-		this.set(binding, value);
-	});
-};
-
-Context.prototype.flush = function() {
-	this.buffer.map((item) => { item.call(this); });
-	this.buffer = [];
 };
 
 Context.prototype.match = function(pattern, value) {
@@ -137,15 +107,7 @@ Context.prototype.match = function(pattern, value) {
 					if (first.label === '_') {
 						return ctx;
 					} else {
-						/*
-						if (first.getIn(['tags', 'local']) === true) {
-							// console.log(`binding ${value} to ${first.debugString()}`);
-							ctx.setLocal(first.binding, value);
-						} else {
-							// console.log(`deferring ${value} to ${first.debugString()}`);
-							ctx.push(first.binding, value);
-						}*/
-						ctx.setLocal(first.binding, value);
+						ctx.set(first.binding, value);
 						locals[first.label] = value;
 						return ctx;
 					}
@@ -196,13 +158,7 @@ Context.prototype.match = function(pattern, value) {
 					if (first.label === '_') {
 						return ctx;
 					} else {
-						if (first.getIn(['tags', 'local']) === true) {
-							// console.log(`binding ${value} to ${pattern.debugString()}`);
-							ctx.setLocal(first.binding, value);
-						} else {
-							// console.log(`deferring ${value} to ${pattern.debugString()}`);
-							ctx.push(first.binding, value);
-						}
+						ctx.set(first.binding, value);
 						locals[first.label] = value;
 						return ctx;
 					}
@@ -263,13 +219,7 @@ Context.prototype.match = function(pattern, value) {
 			let type = pattern.getIn(['tags', 'type'], null);
 			// TODO: Type check here.
 			if (pattern.label !== '_') {
-				if (pattern.getIn(['tags', 'local']) === true) {
-					// console.log(`binding ${value} to ${pattern.debugString()}`);
-					ctx.setLocal(pattern.binding, value);
-				} else {
-					// console.log(`deferring ${value} to ${pattern.debugString()}`);
-					ctx.push(pattern.binding, value);
-				}
+				ctx.set(pattern.binding, value);
 				locals[pattern.label] = value;
 			}
 
@@ -324,17 +274,13 @@ Context.prototype.match = function(pattern, value) {
 		}
 	};
 
-	let ctx = capture(pattern, value, new Context(this));
+	let ctx = capture(pattern, value, this);
 
 	if (ctx) {
-		ctx.scope = this.scope;
 		return [ctx, Map(locals)];
 	} else {
 		return null;
 	}
 };
-
-// TODO: Should underscore be a special case in the parser?
-//Context.prototype['_'] = new AST.Bottom({});
 
 module.exports = Context;

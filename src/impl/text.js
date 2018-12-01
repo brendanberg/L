@@ -1,29 +1,24 @@
 const { Map, List, Set } = require('immutable');
 const punycode = require('punycode');
 const Type = require('../ast/type');
+const A = require('../arbor');
+const dispatch = require('../dispatch');
+/*
 const Symbol = require('../ast/symbol');
 const Text = require('../ast/text');
 const Integer = require('../ast/integer');
 const List_ = require('../ast/list');
 const Bottom = require('../ast/bottom');
-const dispatch = require('../dispatch');
+*/
 
 
-function make_bool(exp) {
-	return new Symbol({
-		label: exp ? 'True' : 'False',
-		scope: Set([]),
-		tags: Map({type: 'Boolean'})
-	});
-}
-
+const bool = function(exp) { return exp ? 'True' : 'False' };
 
 let TextType = new Type({label: 'Text', scope: Set([])});
 
 TextType.methods = {
 	'(count.)': function() {
-		return new Integer({value: this.value.count(), scope: this.scope});
-		// return ctx.createInteger(this.value.count());
+		return A.pushScope(this.scope)(A.Integer(this.value.count()));
 	},
 	"('+':)": dispatch({
 		'Text': function(s) {
@@ -34,15 +29,16 @@ TextType.methods = {
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			return make_bool(this.value.equals(s.value));
-			// return ctx.createSymbol(label, type);
+			const label = bool(this.value.equals(s.value));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		}
 	}),
 	"('!=':)": dispatch({
 		'Text': function(s) {
 			// TODO: Normalize before comparison
 			// https://github.com/walling/unorm
-			return make_bool(!this.value.equals(s.value));
+			const label = bool(!this.value.equals(s.value));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		}
 	}),
 	"('<':)": dispatch({
@@ -53,7 +49,8 @@ TextType.methods = {
 				return Math.sign(chars[0] - chars[1]);
 			}, 0);
 
-			return make_bool((comp === 0) ? (this.value.count() < txt.value.count()) : (comp < 0));
+			const label = bool((comp === 0) ? (this.value.count() < txt.value.count()) : (comp < 0));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('>':)": dispatch({
@@ -69,19 +66,19 @@ TextType.methods = {
 	}),
 	"('@':)": dispatch({
 		'Integer': function(n) {
-			let idx = n.value < 0 ? this.value.count() + n.value : n.value;
-			let ch = this.value.get(idx);
-			return ch ? new Text({value: List([ch]), scope: this.scope}) : new Bottom({scope: this.scope});
+			const ch = this.value.get(n.value < 0 ? this.value.count() + n.value : n.value);
+			return A.pushScope(this.scope)(ch ? A.Text(List([ch])) : A.Bottom());
 		}
 	}),
 	'(reverse.)': function() {
-		return new Text({value: this.value.reverse(), scope: this.scope});
+		return A.pushScope(this.scope)(A.Text(this.value.reverse()));
 	},
 	/*'(contains:)': dispatch({
 		'Text': function(txt) {
 			List(this.value).contains(
 		},	
 	}),*/
+	// TODO: FIX THIS
 	'(split:)': dispatch({
 		'Text': function(s) {
 			// TODO: This is a naive implementation. Replace with a more
@@ -91,11 +88,8 @@ TextType.methods = {
 
 			if (s.value.count() === 0) {
 				// The trivial split
-				items = this.value.reduce((result, item) => {
-					return result.push(new Text({value: [item], scope: this.scope}));
-				}, List([]));
-
-				return new List_({items: items, scope: this.scope});
+				items = this.value.reduce((result, item) => result.push(A.Text(item)), List([]));
+				return A.pushScope(this.scope)(A.List(...items));
 			}
 
 			let splits = this.value.reduce((result, item) => {
@@ -125,26 +119,18 @@ TextType.methods = {
 				}
 			}, [List([List([])]), List([]), List(s.value)]);
 
-			let texts = splits[0].map((item) => {
-				return new Text({value: item, scope: this.scope});
-			});
+			let texts = splits[0].map((item) => A.Text(item));
 
 			if (splits[2].count() === 0) {
-				return new List_({
-					items: texts.push(new Text({
-						value: List([]), scope: this.scope
-					})),
-					scope: this.scope
-				});
+				return A.pushScope(this.scope)(A.List(texts.push(A.Text([]))));
 			} else if (splits[2].count() < s.value.count()) {
 				let fixed = texts.update(-1, (t) => {
-					return t.update('value', (v) => {
-						return v.concat(splits.get(1));
-					});
+					return t.update('value', (v) => v.concat(splits.get(1)));
 				});
-				return new List_({items: fixed, scope: this.scope});
+
+				return A.pushScope(this.scope)(A.List(...fixed));
 			} else {
-				return new List_({items: texts, scope: this.scope});
+				return A.pushScope(this.scope)(A.List(...texts));
 			};
 		}
 	}),

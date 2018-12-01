@@ -1,21 +1,14 @@
 const { Set, Map } = require('immutable');
 const Type = require('../ast/type');
-const Rational = require('../ast/rational');
-const Symbol = require('../ast/symbol');
+const A = require('../arbor');
 const dispatch = require('../dispatch');
 
 
-function make_bool(exp) {
-	return new Symbol({
-		label: exp ? 'True' : 'False',
-		scope: Set([]),
-		tags: Map({type: 'Boolean'})
-	});
-}
+const bool = function(exp) { return exp ? 'True' : 'False' };
 
-let _Rational = new Type({label: 'Rational', scope: Set([])});
+let Rational = new Type({label: 'Rational', scope: Set([])});
 
-_Rational.methods = {
+Rational.methods = {
 	"('+')": function() { return this },
 	"('-')": function() { return this.update('numerator', (v) => { return -v; }); },
 	"('+':)": dispatch({
@@ -23,10 +16,9 @@ _Rational.methods = {
 			return this.set('numerator', this.numerator + n.value * this.denominator);
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: this.numerator * q.denominator + this.denominator * q.numerator,
-				denominator: this.denominator * q.denominator
-			});
+			const numerator = this.numerator * q.denominator + this.denominator * q.numerator;
+			const denominator = this.denominator * q.denominator;
+			return A.pushScope(this.scope)(A.Rational(numerator, denominator));
 		},
 	}),
 	"('-':)": dispatch({
@@ -34,10 +26,9 @@ _Rational.methods = {
 			return this.set('numerator', this.numerator - n.value * this.denominator);
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: this.numerator * q.denominator - this.denominator * q.numerator,
-				denominator: this.denominator * q.denominator
-			});
+			const numerator = this.numerator * q.denominator - this.denominator * q.numerator;
+			const denominator = this.denominator * q.denominator;
+			return A.pushScope(this.scope)(A.Rational(numerator, denominator));
 		},
 	}),
 	"('*':)": dispatch({
@@ -45,10 +36,9 @@ _Rational.methods = {
 			return this.set('numerator', this.numerator * n.value);
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: this.numerator * q.numerator,
-				denominator: this.denominator * q.denominator
-			});
+			const numerator = this.numerator * q.numerator;
+			const denominator = this.denominator * q.denominator;
+			return A.pushScope(this.scope)(A.Rational(numerator, denominator));
 		},
 	}),
 	"('/':)": dispatch({
@@ -56,29 +46,32 @@ _Rational.methods = {
 			return this.set('denominator', n.value * this.denominator);
 		},
 		'Rational': function(q) {
-			return new Rational({
-				numerator: this.numerator * q.denominator,
-				denominator: this.denominator * q.numerator
-			});
+			const numerator = this.numerator * q.denominator;
+			const denominator = this.denominator * q.numerator;
+			return A.pushScope(this.scope)(A.Rational(numerator, denominator));
 		},
 	}),
 	"('==':)": dispatch({
 		'Integer': function(n) {
 			// TODO: Does this really make sense?
-			return make_bool(this.denominator == 1 && this.numerator === n.value);
+			const label = bool(this.denominator == 1 && this.numerator === n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Rational': function(q) {
-			return make_bool(this.denominator == q.denominator && 
+			const label = bool(this.denominator == q.denominator && 
 				this.numerator == q.numerator);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('!=':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(!(this.denominator == 1 && this.numerator === n.value));
+			const label = bool(!(this.denominator == 1 && this.numerator === n.value));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Rational': function(q) {
-			return make_bool(!(this.denominator == q.denominator && 
+			const label = bool(!(this.denominator == q.denominator && 
 				this.numerator == q.numerator));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('<':)": dispatch({
@@ -91,4 +84,4 @@ _Rational.methods = {
 	}),
 };
 
-module.exports = _Rational;			
+module.exports = Rational;			

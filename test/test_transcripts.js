@@ -14,26 +14,26 @@ const create_context = () => {
 	let ctx = new L.Context();
 	ctx.loadGlobals(env);
 
-	let basepath = path.join(path.dirname(fs.realpathSync(__filename)), '../src/lib');
-	let filenames = fs.readdirSync(basepath).filter(function(filename) {
-		return filename.match(/^[^\.].+\.l$/);
+	const basepath = path.join(path.dirname(fs.realpathSync(__filename)), '../src/lib');
+	const filenames = fs.readdirSync(basepath).filter(function(filename) {
+		return filename.match(/^[^\.].+\.l$/) ? true : false;
 	});
 	
-	let ast;
-
 	for (let file of filenames) {
-		let contents = fs.readFileSync(path.join(basepath, file), 'utf-8');
+		let ast, contents = fs.readFileSync(path.join(basepath, file), 'utf-8');
 
 		ast = env.parse(contents);
 
-		ctx.scope = env.scope;
-		ast.invoke(ctx);
+		if (ast) {
+			[_, ctx] = ast.invoke(ctx, false);
+		}
 	}
 
 	return [env, ctx];
 };
 
 const test_transcript = (basepath, filename, environment, context) => {
+	let [env, ctx] = create_context();
 	let contents = fs.readFileSync(path.join(basepath, filename), 'utf-8');
 
 	// Strip leading characters from each line. If the line matches /^>> /
@@ -66,14 +66,12 @@ const test_transcript = (basepath, filename, environment, context) => {
 		}
 	}
 
-	let ctx = new L.Context();
-	ctx.locals = Object.assign({}, context.locals);
-
 	it(`correctly evaluates '${filename}'`, () => {
+
 		input.map((elt, idx) => {
-			environment.parser.scope = Set([]);
-			let ast = environment.parse(elt);
-			let result = ast.invoke(ctx);
+			let result, ast = env.parse(elt);
+			ctx.bindings = env.bindings;
+			[result, _] = ast.invoke(ctx, false);
 
 			if (!(output[idx].join('') === '' || output[idx].join('') === '...')) {
 				let resultString = result.toString().replace(/\n[ \t\n]*/g, ' ');
@@ -85,13 +83,13 @@ const test_transcript = (basepath, filename, environment, context) => {
 };
 
 let basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/transcripts');
-let filenames = fs.readdirSync(basepath).filter(function(filename) {
+let filenames = fs.readdirSync(basepath).filter((filename) => {
 	return filename.match(/^[^\.].+\.txt$/);
 });
 
 
 describe('Transcripts', () => {
-	let [env, ctx] = create_context();
+	let [env, ctx] = [null, null];//create_context();
 
 	for (let name of filenames) {
 		test_transcript(basepath, name, env, ctx);

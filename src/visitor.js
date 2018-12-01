@@ -14,7 +14,7 @@ let visitor = function(tree) {
 		'Method': function (node) { return node; },
 
 		'MessageSend': function (node) { return node; },
-		'Invocation': function (node) { return node; },
+		'Call': function (node) { return node; },
 		'SymbolLookup': function (node) { return node; },
 		'SequenceAccess': function (node) { return node; },
 		'Immediate': function (node) { return node; },

@@ -1,16 +1,9 @@
 const { Set, Map, List } = require('immutable');
 const Type = require('../ast/type');
-const Symbol = require('../ast/symbol');
-const Bottom = require('../ast/bottom');
 const dispatch = require('../dispatch');
 
-function make_bool(exp) {
-	return new Symbol({
-		label: exp ? 'True' : 'False',
-		scope: Set([]),
-		tags: Map({type: 'Boolean'})
-	});
-}
+
+const bool = function(exp) { return exp ? 'True' : 'False' };
 
 let Block = new Type({label: 'Block', scope: Set([])});
 

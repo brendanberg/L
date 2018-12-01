@@ -24,7 +24,7 @@ Complex.prototype.repr = function(depth, style) {
 };
 
 Complex.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Complex.prototype.transform = function(func) {

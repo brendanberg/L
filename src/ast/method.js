@@ -34,7 +34,6 @@ Method.prototype.repr = function(depth, style) {
 
 Method.prototype.eval = function(ctx) {
 	// Do some basic type checking (the target type must already exist).
-	// TODO: PROBABLY ADD SCOPES HERE!!!
 	let type = ctx.get(this.binding);
 
 	if (!(type && 'registerSelector' in type)) {
@@ -59,11 +58,9 @@ Method.prototype.eval = function(ctx) {
 	}, '') + ')';
 
 	// Build the method implementation
-	let templateItems = List([this.target]).concat(this.selector.filter(function(item) {
+	let templateItems = List([this.target]).concat(this.selector.filter((item) => {
 		return (item._name === 'KeyValuePair');
-	}).map(function(item) {
-		return item.val;
-	}));
+	}).map((item) => item.val));
 
 	let impl = new _Function({
 		template: new _List({items: templateItems}),
@@ -73,7 +70,7 @@ Method.prototype.eval = function(ctx) {
 
 	// Associate the method implementation with the selector
 	type.registerSelector(selector, impl);
-	return this;
+	return [this, ctx];
 };
 
 Method.prototype.transform = function(func) {

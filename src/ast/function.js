@@ -37,11 +37,7 @@ Function_.prototype.repr = function(depth, style) {
 }
 
 Function_.prototype.eval = function(ctx) {
-    let func = this.transform((node) => {
-        return node._name === 'Immediate' ? node.eval(ctx) : node;
-    });
-
-	return func.setIn(['block', 'context'], new Context(ctx));
+	return [this.update('block', (block) => block.eval(ctx)[0]), ctx];
 };
 
 Function_.prototype.transform = function(func) {

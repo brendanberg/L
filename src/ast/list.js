@@ -29,9 +29,11 @@ List_.prototype.repr = function(depth, style) {
 };
 
 List_.prototype.eval = function(ctx) {
-    return this.update('items', (list) => {
-        return list.map((it) => { return it.eval(ctx) });
+    let listItems = this.update('items', (list) => {
+        return list.map((it) => { return it.eval(ctx)[0] });
     });
+
+	return [listItems, ctx];
 };
 
 List_.prototype.transform = function(func) {

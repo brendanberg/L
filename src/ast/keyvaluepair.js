@@ -21,7 +21,7 @@ KeyValuePair.prototype.repr = function(depth, style) {
 };
 
 KeyValuePair.prototype.eval = function(ctx) {
-	return this.merge({key: this.key.eval(ctx), val: this.val.eval(ctx)});
+	return [this.merge({key: this.key.eval(ctx)[0], val: this.val.eval(ctx)[0]}), ctx];
 };
 
 KeyValuePair.prototype.transform = function(func) {

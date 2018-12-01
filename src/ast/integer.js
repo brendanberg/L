@@ -22,7 +22,7 @@ Integer.prototype.repr = function(depth, style) {
 };
 
 Integer.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Integer.prototype.transform = function(func) {

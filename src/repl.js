@@ -32,8 +32,7 @@ const loadSourceFile = (basepath, filename) => {
 	}
 
 	if (ast) {
-		ctx.scope = null;//env.parser.scope;
-		ast.invoke(ctx);
+		[_, ctx] = ast.invoke(ctx, false);
 	}
 };
 
@@ -42,8 +41,7 @@ const loadSourceFile = (basepath, filename) => {
 // Create the initial context and load built-in library
 // ---------------------------------------------------------------------------
 
-let ctx = new L.Context();
-//env.parser.scope.debug = true;
+let ctx = new L.Context(null, {});
 ctx.loadGlobals(env);
 
 const basepath = path.join(path.dirname(fs.realpathSync(__filename)), '/lib');
@@ -91,6 +89,7 @@ const rep = repl.start({
 	eval: eval,
 	writer: writer
 });
+
 
 let bufferedCommand = '';
 
@@ -177,7 +176,6 @@ rep.defineCommand('save', {
 
 rep.removeAllListeners('line');
 rep.on('line', (cmd) => {
-	L.log.debug(style.comment('line %j'), cmd);
 	cmd = trimWhitespace(cmd);
 
 	// Check to see if a REPL keyword was used. If it returns true,
@@ -208,7 +206,6 @@ rep.on('line', (cmd) => {
 	}
 
 	const evalCmd = bufferedCommand + cmd + '\n';
-	L.log.debug(style.comment('eval %j'), evalCmd);
 	rep.eval(evalCmd, rep.context, 'repl', finish);
 
 	function finish(e, ret) {
@@ -323,11 +320,13 @@ function eval(cmd, context, filename, finish) {
 		rep.setPrompt(input_start);
 	} catch (e) {
 		if (e.hasOwnProperty('found') && e.found == null) {
+			/*
 			L.log.debug(e.toString());
 
 			if (e.stack) {
 				L.log.debug(style.comment(e.stack.replace(/^[^\n]+\n/, '')));
 			}
+			*/
 
 			rep.setPrompt(input_more);
 			finish(new repl.Recoverable('Unexpected end of input'), '');
@@ -352,8 +351,9 @@ function eval(cmd, context, filename, finish) {
 	}
 
 	try {
-		ctx.scope = null;//env.parser.scope;
-		result = ast.invoke(ctx);
+		// TODO: Bindings needs to be kept at the root context???
+		ctx.bindings = env.bindings;
+		[result, ctx] = ast.invoke(ctx, false);
 	} catch (e) {
 		result = style.error(e.toString());
 		

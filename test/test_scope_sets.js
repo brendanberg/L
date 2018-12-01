@@ -63,7 +63,7 @@ describe('Scope Sets', () => {
 
 	it('the set() method shadows a bound name in an inner scope', () => {
 		let x_in_b = scope.resolve(x_in);
-		inner.setLocal(x_in_b, value3);
+		inner.set(x_in_b, value3);
 		let x_out_b = scope.resolve(x_out);
 		let maybe_val = context.get(x_out_b);
 		assert.equal(value2, maybe_val);
@@ -92,7 +92,7 @@ describe('Scope Sets', () => {
 	it('the get() method respects enclosed scopes', () => {
 		let y_out_b = scope.resolve(y_out);
 		let y_in_b = scope.resolve(y_in);
-		inner.setLocal(y_in_b, value5);
+		inner.set(y_in_b, value5);
 		let maybe_val = inner.get(y_in_b);
 		assert.equal(value5, maybe_val);
 		maybe_val = context.get(y_out_b);

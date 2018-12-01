@@ -41,7 +41,7 @@ SequenceAccess.prototype.eval = function(ctx) {
 		index = item.eval(ctx);
 		if (target._name === 'List') {
 			if (index._name !== 'Integer') {
-				return new Bottom({scope: this.scope});
+				return [new Bottom({scope: this.scope}), ctx];
 			}
 			if (index.value < 0) {
 				result.push(
@@ -72,9 +72,9 @@ SequenceAccess.prototype.eval = function(ctx) {
 	}
 
 	if (target._name === 'Text') {
-		return target.set('value', List(result));
+		return [target.set('value', List(result)), ctx];
 	} else {
-		return new _List({items: result, scope: this.scope});
+		return [new _List({items: result, scope: this.scope}), ctx];
 	}
 };
 

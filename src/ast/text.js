@@ -45,7 +45,7 @@ Text.prototype.repr = function(depth, style) {
 };
 
 Text.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Text.prototype.transform = function(func) {

@@ -160,6 +160,10 @@ Node.simple_infixExpression = gen.map((args) => {
 }, gen.array([gen.returnOneOf(lists.infixOperator), Node.simple_term, Node.simple_term]));
 
 Node.immediate = gen.map((exp) => {
+	exp = exp.transform((elt) => {
+		return elt._name === 'Identifier' ? elt.setIn(['tags', 'mode'], 'immediate') : elt;
+	});
+
 	return new L.AST.Immediate({target: exp});
 }, Node.simple_term);
 
@@ -239,7 +243,7 @@ function selectorFromMessage(message) {
 };
 
 Node.simple_invocation = gen.map((args) => {
-	return new L.AST.Invocation({
+	return new L.AST.Call({
 		target: args[0],
 		selector: selectorFromMessage(args[1]),
 		args: args[1]

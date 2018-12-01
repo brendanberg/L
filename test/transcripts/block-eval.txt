@@ -8,7 +8,7 @@
 
 >> b :: 'everybody!'
 >> one()
-'Hello, everybody!'
+'Hello, world!'
 
 >> two :: { [a, \b](join: ' ') }
 >> b :: 'nobody.'
@@ -20,4 +20,4 @@
  -     .b : 'monde!'
  - ]
 >> one(evaluateWithContext: ctx)
-'Hello, nobody.'
+'Hello, world!'

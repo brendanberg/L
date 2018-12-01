@@ -19,7 +19,7 @@ Symbol.prototype.repr = function(depth, style) {
 };
 
 Symbol.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Symbol.prototype.transform = function(func) {

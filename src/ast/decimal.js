@@ -36,7 +36,7 @@ Decimal.prototype.zeroPad = function (num, len) {
 };
 
 Decimal.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Decimal.prototype.transform = function(func) {

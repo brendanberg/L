@@ -35,17 +35,17 @@ MessageSend.prototype.eval = function(ctx) {
 			// 	selector = recv.__proto__.ctx[name];
 			// }
 
-			return selector;
+			return [selector, ctx];
 		};
 	} else {
-		lookup = function(name) { return ctx.lookup(name); };
+		lookup = function(name) { return [ctx.lookup(name), ctx]; };
 	}
 
 	selector = lookup(this.message.identifier.label);
 
 	if (selector && typeof selector === 'function') {
-		var evaluate = function (x) { return x.eval(ctx) };
-		return selector.apply(this.receiver, this.message.plist.list.map(evaluate));
+		var evaluate = function (x) { return x.eval(ctx)[0] };
+		return [selector.apply(this.receiver, this.message.plist.list.map(evaluate)), ctx];
 	} else if (selector && selector.type === 'Function') {
 		// Eval the function ugh
 		var scope;
@@ -55,9 +55,12 @@ MessageSend.prototype.eval = function(ctx) {
 		}
 
 		scope = clone(selector.ctx);
-
+		// TODO: THIS IS NOT RIGHT
+		// SHOULD USE SAME STRATEGY AS BLOCK INVOCATION
 		selector.plist.forEach(function(param, idx) {
-			scope[param.name] = this.message.plist.list.get(idx).eval(ctx);
+			//scope[param.name] = this.message.plist.list.get(idx).eval(ctx)[0];
+			// selector.context
+			ctx.get(this.message.plist.list.get(idx).eval(ctx)[0]);
 		});
 		// for (var i = 0, len = selector.plist.list.length; i < len; i++) {
 		// 	scope[selector.plist.list[i].name] = this.message.plist.list[i].eval(ctx);
@@ -69,7 +72,7 @@ MessageSend.prototype.eval = function(ctx) {
 			"THIS ISN'T HOW WE DO METHOD INVOCATION ANYMORE");
 		// Method evaluation is slightly different.
 	} else {
-		return selector;
+		return [selector, ctx];
 	}
 }
 

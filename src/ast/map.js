@@ -49,11 +49,13 @@ Map_.prototype.repr = function(depth, style) {
 };
 
 Map_.prototype.eval = function(ctx) {
-	return this.update('items', (items) => {
+	let mapItems = this.update('items', (items) => {
 		return List(items.reduce((map, item) => {
-			return map.set(item.key, item);
+			return map.set(item.key, item.eval(ctx)[0]);
 		}, Map({})).valueSeq());
 	});
+
+	return [mapItems, ctx];
 };
 
 Map_.prototype.transform = function(func) {

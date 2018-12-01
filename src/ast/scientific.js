@@ -18,7 +18,7 @@ Scientific.prototype.repr = function(depth, style) {
 };
 
 Scientific.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Scientific.prototype.transform = function(func) {

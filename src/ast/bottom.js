@@ -20,7 +20,7 @@ Bottom.prototype.repr = function(depth, style) {
 };
 
 Bottom.prototype.eval = function(ctx) {
-    return this;
+    return [this, ctx];
 };
 
 Bottom.prototype.transform = function(func) {

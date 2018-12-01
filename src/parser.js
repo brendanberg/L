@@ -10,7 +10,7 @@ Parser = function (scope) {
 Parser.prototype.parse = function (skeleton) {
 	let ast, match = skeleton.transform(rules.block.bind(rules), [], this.scope);
 	if (!match) {
-		throw ParseError("that's a parse error");
+		throw new ParseError("that's a parse error");
 	}
 
 	[ast, this.scope] = match;

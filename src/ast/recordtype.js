@@ -30,7 +30,7 @@ RecordType.prototype.repr = function (depth, style) {
 
 RecordType.prototype.eval = function(ctx) {
 	ctx.set(this.binding, this);
-	return this;
+	return [this, ctx];
 };
 
 RecordType.prototype.transform = function(func) {

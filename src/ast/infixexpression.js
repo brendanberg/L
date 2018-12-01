@@ -4,7 +4,7 @@
 
 const { Map, List, Record } = require('immutable');
 const KeyValuePair = require('./keyvaluepair');
-const Invocation = require('./invocation');
+const Call = require('./call');
 const _ = null;
 const _map = Map({});
 const _list = List([]);
@@ -42,7 +42,7 @@ InfixExpression.prototype.eval = function(ctx) {
 			scope: this.scope
 		})]); 
 
-    return (new Invocation({
+    return (new Call({
 		target: this.lhs, args: args,
 		selector: "('" + this.op.label + "':)",
 		scope: this.scope

@@ -212,7 +212,7 @@ let match = {
 					);
 
 					if (message) {
-						let invocation = new AST.Invocation({
+						let invocation = new AST.Call({
 							target: target[0],
 							selector: selectorFromMessage(message[0]),
 							args: message[0],
@@ -396,7 +396,7 @@ let match = {
 		//     p2 :: Point(7, 4)
 		//
 		// - A union type consists of two or more variants, separated by `|`
-		//     `Boolean << True | False >>`
+		//     `Boolean << .True | .False >>`
 		//
 		// - A union's variants may be accessed with the dot operator
 		//     ```
@@ -406,8 +406,8 @@ let match = {
 		//
 		// - A union variant may have a list of associated values
 		//     ```
-		//     Color << RGB(Integer, Integer, Integer)
-		//            | CMYK(Decimal, Decimal, Decimal, Decimal) >>
+		//     Color << .RGB(Integer, Integer, Integer)
+		//            | .CMYK(Decimal, Decimal, Decimal, Decimal) >>
 		//     ```
 		//
 		// - Associated values may be instantiated by __
@@ -581,11 +581,12 @@ let match = {
 
 		[body, unparsed, __] = match;
 
-		//name = name.setIn(['tags', 'introduction'], true) // TODO: remove introduction tag
 		name = name.setIn(['tags', 'type'], node.label)
 			.set('scope', innerScope);
 
-		let method = new AST.Method({target: name, selector: selector, block: body, scope: scope});
+		let method = new AST.Method({
+			target: name, selector: selector, block: body, scope: scope
+		});
 		return [method, unparsed, scope];
 	},
 
@@ -873,7 +874,13 @@ let match = {
 		let exp = this.expressionNoInfix(unparsed.first(), unparsed.rest(), scope);
 
 		if (exp && node.label === '\\') {
-			return [new AST.Immediate({target: exp[0], scope: scope}), exp[1], scope];
+			// I'll admit it's a little weird to have this transform here since
+			// we don't typically transform in the parse phase, but we need to
+			// mark immediate evaluation nodes as such.
+			let target = exp[0].transform((elt) => {
+				return elt._name === 'Identifier' ? elt.setIn(['tags', 'mode'], 'immediate') : elt;
+			});
+			return [new AST.Immediate({target: target, scope: scope}), exp[1], scope];
 		} else if (exp) {
 			return [new AST.PrefixExpression({op: node, expr: exp[0], scope: scope}), exp[1], scope];
 		} else {

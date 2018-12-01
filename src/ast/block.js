@@ -10,7 +10,7 @@ const _list = List([]);
 const _map = Map({});
 
 
-let Block = Record({exprs: _list, context: _, scope: _, tags: _map}, 'Block');
+let Block = Record({exprs: _list, context: {}, closures: _map, scope: _, tags: _map}, 'Block');
 
 Block.prototype.toString = function() {
 	let join = (this.exprs.count() > 1) ? '\n' : ' ';
@@ -49,18 +49,45 @@ Block.prototype.eval = function(ctx) {
 	// TODO: Figure out the right evaluation semantics for `\`
 	//       operators in nested blocks
 	// TODO: This needs to be a depth-first traversal?
-	let block = this.transform((node) => {
-		return node._name === 'Immediate' ? node.eval(ctx) : node;
+	const context = {}; //new Context(ctx);
+	const block = this.transform((node) => {
+		return node._name === 'Immediate' ? node.eval(ctx)[0] : node;
 	});
 
-	return block.set('context', new Context(ctx));
+	this.closures.forEach((outer, local) => {
+		context[local] = ctx.get(outer);//.setLocal(local, ctx.get(outer));
+	});
+
+	return [block.set('context', context), ctx];
 };
 
-Block.prototype.invoke = function(ctx) {
-	return this.exprs.reduce((result, exp) => {
-		return result.push(
-				(exp.eval && exp.eval(ctx)) || new Bottom({scope: this.scope}));
+Block.prototype.invoke = function(ctx, pushContext) {
+	if (pushContext === undefined) { pushContext = true; }
+	let newCtx;
+
+	if (pushContext) {
+		newCtx = new Context(null, this.context);
+		if (newCtx !== ctx) { newCtx.outer = ctx; } else {
+			console.log('circular contexts: ', this);
+		}
+	} else {
+		newCtx = ctx;
+	}
+
+	const result = this.exprs.reduce((result, exp) => {
+		let evaluated;
+
+		if (!exp.eval) {
+			return result.push(new Bottom({scope: this.scope}));
+		} else {
+			let evaluated_expr = exp.eval(newCtx);
+			if (evaluated_expr == null) { console.log(exp) };
+			[evaluated, newCtx] = evaluated_expr;
+			return result.push(evaluated);
+		}
 	}, List([])).last();
+	
+	return [result, ctx];
 };
 
 Block.prototype.transform = function(func) {

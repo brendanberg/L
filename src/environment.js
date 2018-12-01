@@ -3,14 +3,14 @@ const Bindings = require('./bindings');
 const Scanner = require('./scanner');
 const Parser = require('./parser');
 const resolve = require('./resolve');
+const { ParseError } = require('./error');
 
 
 const pipeline = (...steps) => (input) => steps.reduce((data, step) => step(data), input);
 
 const Environment = function () {
 	this.bindings = new Bindings();
-	//Not directly needed; gets referenced by Context instance
-	this.scope = Set([]); // TODO: remove this after refactoring ctx.
+
 	this.scanner = Scanner;
 	this.parser = new Parser();
 
@@ -27,7 +27,7 @@ const Environment = function () {
 		(ast) => {
 			let transformed = resolve(ast, this.bindings);
 			if (!transformed) {
-				throw ParseError("binding error, really");
+				throw new ParseError("binding error, really");
 			}
 
 			[ast, this.bindings] = transformed;

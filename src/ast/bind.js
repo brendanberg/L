@@ -7,6 +7,7 @@ const KeyValuePair = require('./keyvaluepair');
 const Map_ = require('./map');
 const List_ = require('./list');
 const Symbol_ = require('./symbol');
+const Bottom = require('./bottom');
 
 const _ = null;
 const _map = Map({});
@@ -31,17 +32,13 @@ Bind.prototype.eval = function(ctx) {
 	// Recursively descend through the template, matching value equivalence
 	// between template and evaluated right-hand expression and capturing
 	// values into identifier placeholders in the template.
-	let match = ctx.match(this.template, this.value.eval(ctx));
+	let match = ctx.match(this.template, this.value.eval(ctx)[0]);
 
 	if (match) {
-		let [newCtx, changeSet] = match;
-		// This is a nasty hack to get flush() to update the context we're
-		// passing around.
-		newCtx.outer = ctx.outer;
-		newCtx.locals = ctx.locals;
-		newCtx.flush();
-		// console.log(ctx.locals);
-		return new Map_({
+		let [_, changeSet] = match;
+
+		//console.log('setting local', ctx);
+		let retval = new Map_({
 			items: List(changeSet.entrySeq().map(([label, val]) => {
 				return new KeyValuePair({
 					key: new Symbol_({label: label, scope: this.scope}),
@@ -49,8 +46,35 @@ Bind.prototype.eval = function(ctx) {
 					scope: this.scope});
 			}))
 		});
+
+		// A block that recursively references the identifier it is being
+		// bound to will have an undefined reference to the identifier in
+		// the outer scope. We resolve that here.
+		for (let key of Object.keys(ctx.locals || {})) {
+			// TODO: We're taking advantage of mutable contexts and modifying
+			// locals as we walk the AST. We should be modifying the node's
+			// context and returning the modified node.
+			// THIS IS GOING TO BE A PAINFUL REFACTOR!
+			if (ctx.locals[key].transform) {
+				ctx.locals[key].transform((node) => {
+					if (node._name === 'Block' && node.context) {
+						node.closures.map((outer, inner) => {
+							if (node.context[inner] === undefined) {
+								node.context[inner] = ctx.get(outer);
+							}
+						});
+					}
+					return node;
+				});
+			} else {
+				console.log('BIND ERROR. resolve rec: [' + key + '] = ' + ctx.locals[key]);
+				console.log(ctx.locals);
+			}
+		}
+
+		return [retval, ctx];
 	} else {
-		return null;
+		return [new Bottom(), ctx];
 	}
 };
 

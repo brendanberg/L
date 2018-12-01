@@ -16,7 +16,7 @@ Operator.prototype.repr = function (depth, fmt) {
 };
 
 Operator.prototype.eval = function(ctx) {
-	return this;
+	return [this, ctx];
 };
 
 Operator.prototype.transform = function(func) {

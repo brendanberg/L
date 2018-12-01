@@ -29,8 +29,7 @@ Tuple.prototype.repr = function(depth, style) {
 };
 
 Tuple.prototype.eval = function(ctx) {
-	ctx.set(this, this);
-	return this;
+	return [this, ctx.set(this, this)];
 };
 
 Tuple.prototype.transform = function(func) {

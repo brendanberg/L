@@ -24,7 +24,11 @@ Record_.prototype.repr = function(depth, style) {
 };
 
 Record_.prototype.eval = function(ctx) {
-	return this;
+	return [this, ctx];
+};
+
+Record_.prototype.transform = function(func) {
+	return func(this);
 };
 
 module.exports = Record_;
