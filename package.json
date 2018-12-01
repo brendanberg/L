@@ -1,6 +1,6 @@
 {
   "name": "l",
-  "version": "0.2.04",
+  "version": "0.2.05",
   "description": "The L Programming Language",
   "author": "Brendan Berg <brendan@berg.industries>",
   "main": "lib/l.js",
