@@ -61,10 +61,9 @@ _Decimal.methods = {
 			});
 		},
 		'Decimal': function(q) {
-			let numerator = Math.floor(this.numerator / q.numerator * Math.pow(10, this.exponent + q.exponent));
-			return A.pushScope(this.scope)(
-				A.Decimal(numerator, this.exponent + q.exponent)
-			);
+			const exp = Math.max(this.exponent, q.exponent);
+			const numerator = Math.floor(this.numerator / q.numerator * Math.pow(10, exp));
+			return A.pushScope(this.scope)(A.Decimal(numerator, exp));
 		},
 	}),
 	"('^':)": dispatch({
