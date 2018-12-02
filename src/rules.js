@@ -207,6 +207,7 @@ let match = {
 				} else if (next._name === 'Message') {
 					let message = (
 						this.symbolMessage(next, rest, scope) ||
+						this.trailingFunc(next, rest, scope) ||
 						this.namedParameterList(next, rest, scope) ||
 						this.positionalParameterList(next, rest, scope)
 					);
@@ -290,6 +291,43 @@ let match = {
 		return null;
 	},
 
+	trailingFunc: function(node, unparsed, scope) {
+		// Matches a list of named parameters plus a trailing callable literal
+		//
+		//     trailingFunc ::= MESSAGE[ namedParameterPart*, partialParameter ] scopedValue
+		//
+		if (node._name === 'Message') {
+			let exprs = node.exprs.reduce((result, expr, key, iter) => {
+				if (!result) { return null; }
+
+				let [first, rest] = [expr.terms.first(), expr.terms.rest()];
+				let match;
+
+				if (key == iter.count() - 1) {
+					match = this.partialParameter(expr.terms.first(), expr.terms.rest(), scope);
+				} else {
+					match = this.namedParameterPart(expr.terms.first(), expr.terms.rest(), scope);
+				}
+				if (!match) { return null; }
+
+				let [exp, remaining, __] = match;
+				if (remaining.count() !== 0) { return null; }
+
+				return result.push(exp);
+			}, List([]));
+
+			if (exprs && exprs.count() > 0) {
+				let match = this.scopedValue(unparsed.first(), unparsed.rest(), scope);
+				if (!match) { return null; }
+
+				let [val, remaining, __] = match;
+				return [exprs.update(-1, (kvp) => kvp.set('val', val)), remaining, scope];
+			}
+		}
+
+		return null;
+	},
+
 	positionalParameterList: function(node, unparsed, scope) {
 		// Matches a list of expressions to be evaluated for a function call
 		//
@@ -317,7 +355,7 @@ let match = {
 	namedParameterPart: function(node, unparsed, scope) {
 		// Matches a named parameter to a function
 		//
-		//     namedParameterPart ::= name OPERATOR[':'] expressionNoInfix
+		//     namedParameterPart ::= name OPERATOR[':'] expressionNoAssign
 		//
 
 		let match = this.identifier(node, unparsed, scope);
@@ -341,6 +379,28 @@ let match = {
 		if (remaining.count() !== 0) { return null; }
 
 		return [new AST.KeyValuePair({key: ident, val: expr, scope: scope}), remaining, scope];
+	},
+
+	partialParameter: function(node, unparsed, scope) {
+		// Matches a parameter name without its argument
+		//
+		//     partialParameter ::= name OPERATOR[':']
+		//
+		let match = this.identifier(node, unparsed, scope);
+		if (!match) { return null; }
+
+		let [ident, remaining, __] = match;
+		let op;
+
+		if (ident.modifier !== null || remaining.count() === 0) { return null; }
+
+		match = this.operator(remaining.first(), remaining.rest(), scope);
+		if (!match) { return null; }
+
+		[op, remaining, __] = match;
+		if (op.label !== ':' || remaining.count() !== 0) { return null; }
+
+		return [new AST.KeyValuePair({key: ident, val: _, scope: scope}), remaining, scope];
 	},
 
 	bindExpression: function(node, unparsed, scope) {
@@ -921,6 +981,29 @@ let match = {
 			this.scientific(node, unparsed, scope) ||
 			this.complex(node, unparsed, scope)
 		);
+
+		return match && [match[0], match[1], scope];
+	},
+
+	scopedValue: function(node, unparsed, scope) {
+		// Match a block, function, or hybrid function
+		//
+		//     scopedValue ::= block | hybridDefn | functionDefn
+		//
+		let symbol = gensym();
+
+		if (node._name === 'Block') {
+			if (node.getIn(['tags', 'envelopeShape']) === '{}') {
+				// Regular ol' block. Recursively descend and build the scope.
+				let block = this.block(node, [], scope.add(symbol));
+				return block && [block[0], unparsed, scope];
+			} else if (node.getIn(['tags', 'envelopeShape']) === '{{}}') {
+				// Pattern matching function. Parse each individual function. 
+				return this.hybridDefn(node, unparsed, scope);
+			}
+		}
+
+		let match = this.functionDefn(node, unparsed, scope.add(symbol));
 
 		return match && [match[0], match[1], scope];
 	},

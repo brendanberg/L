@@ -8,7 +8,9 @@ const _list = List([]);
 const _map = Map({});
 const { ParseError } = require('../error');
 
-const Error = Record({subject: _, message: _, consumed: _, encountered: _list, scope: _}, 'Error');
+const Error = Record({
+		subject: _, message: _, consumed: _, encountered: _list, scope: _, tags: _map
+	}, 'Error');
 
 Error.prototype.toString = function() {
 	let consumed = this.consumed ? this.consumed.toString() + ' ' : '';
