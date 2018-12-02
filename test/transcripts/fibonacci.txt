@@ -11,3 +11,34 @@
 89
 >> fib(-3)
 _
+
+
+>> fib2 :: (n) -> {
+ -       aux :: {{
+ -             ([], sum) -> { sum }
+ -             ([0, xs...], sum) -> {
+ -                   aux(xs, sum)
+ -               }
+ -             ([1, xs...], sum) -> {
+ -                   aux(xs, sum + 1)
+ -               }
+ -             ([n, xs...], sum) -> {
+ -                   aux([n - 1, n - 2] + xs, sum)
+ -               }
+ -         }}
+ -       aux([n], 0)
+ -   }
+[.fib2: (n) -> {
+       aux :: {{
+           ([], sum) -> { sum }
+           ([0, xs...], sum) -> { aux(xs, sum) }
+           ([1, xs...], sum) -> { aux(xs, sum + 1) }
+           ([n, xs...], sum) -> { aux([n - 1, n - 2] + xs, sum) }
+       }}
+       aux([n], 0)
+   }]
+>> fib2(11)
+89
+>> fib2(10) + fib2(11) == fib2(12)
+.True
+
