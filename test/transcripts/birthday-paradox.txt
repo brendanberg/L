@@ -1,0 +1,15 @@
+>> year_size :: 365.0
+[.year_size: 365.0]
+>> unique_bdays :: (prob, people) -> {
+ -   {{
+ -     (p) ? (p < 0.5) -> { people + 1 }
+ -     (p) -> { unique_bdays(p, people + 1) }
+ -   }} ((year_size - people) / year_size * prob)
+ - }
+[.unique_bdays: (prob, people) -> { {{
+        (p) ? (p < 0.5) -> { people + 1 }
+        (p) -> { unique_bdays(p, people + 1) }
+    }}((year_size - people) / year_size * prob) }]
+>> unique_bdays(1.0, 1)
+23
+

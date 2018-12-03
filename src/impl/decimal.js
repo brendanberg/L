@@ -61,9 +61,33 @@ _Decimal.methods = {
 			});
 		},
 		'Decimal': function(q) {
-			return A.pushScope(this.scope)(
-				A.Decimal(this.value * q.denominator + q.numerator, q.denominator)
-			);
+			const numerator = this.numerator;// * Math.pow(10, this.exponent);
+			const denominator = q.numerator;// * Math.pow(10, q.exponent);
+			const dexp = q.exponent - this.exponent;
+			let exp, quotient = numerator / denominator;
+
+			const precision = (num) => {
+				if (!isFinite(num)) { return 0; }
+				let e = 1, p = 0;
+				while (Math.round(num * e) / e !== num) { e *= 10; p += 1; }
+				return p;
+			};
+
+			if (dexp >= 0) {
+				quotient = quotient * Math.pow(10, dexp);
+				let prec = precision(quotient);
+
+				if (prec > 0) {
+					exp = Math.min(prec, 8);
+					quotient = quotient * Math.pow(10, exp);
+				} else {
+					exp = 0;
+				}
+			} else {
+				exp = -dexp;
+			}
+
+			return A.pushScope(this.scope)(A.Decimal(quotient, exp));
 		},
 	}),
 	"('^':)": dispatch({
@@ -81,62 +105,74 @@ _Decimal.methods = {
 	}),
 	"('==':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(this.exponent == 0 && this.numerator == n.value);
+			const label = bool(this.exponent == 0 && this.numerator == n.value);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
-			return make_bool(this.numerator == d.numerator &&
+			const label = bool(this.numerator == d.numerator &&
 				this.exponent == d.exponent);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('!=':)": dispatch({
 		'Integer': function(n) {
-			return make_bool(!(this.exponent == 0 && this.numerator == n.value));
+			const label = bool(!(this.exponent == 0 && this.numerator == n.value));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(q) {
-			return make_bool(!(this.numerator == d.numerator &&
+			const label = bool(!(this.numerator == d.numerator &&
 				this.exponent == d.exponent));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('<':)": dispatch({
 		'Integer': function(n) {
 			let exponent = Math.pow(10, this.exponent);
-			return make_bool(this.numerator < n.value * exponent);
+			const label = bool(this.numerator < n.value * exponent);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, this.exponent - d.exponent);
-			return make_bool(this.numerator < d.numerator * exponent);
+			const label = bool(this.numerator < d.numerator * exponent);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('<=':)": dispatch({
 		'Integer': function(n) {
 			let exponent = Math.pow(10, this.exponent);
-			return make_bool(this.numerator < n.value * exponent || (
+			const label = bool(this.numerator < n.value * exponent || (
 				this.exponent == 0 && this.numerator == n.value));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, this.exponent - d.exponent);
-			return make_bool(this.numerator <= d.numerator * exponent);
+			const label = bool(this.numerator <= d.numerator * exponent);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('>':)": dispatch({
 		'Integer': function(n) {
 			let exponent = Math.pow(10, this.exponent);
-			return make_bool(this.numerator > n.value * exponent);
+			const label = bool(this.numerator > n.value * exponent);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, this.exponent - d.exponent);
-			return make_bool(this.numerator > d.numerator * exponent);
+			const label = bool(this.numerator > d.numerator * exponent);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 	"('>=':)": dispatch({
 		'Integer': function(n) {
 			let exponent = Math.pow(10, this.exponent);
-			return make_bool(this.numerator > n.value * exponent || (
+			const label = bool(this.numerator > n.value * exponent || (
 				this.exponent == 0 && this.numerator == n.value));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 		'Decimal': function(d) {
 			let exponent = Math.pow(10, this.exponent - d.exponent);
-			return make_bool(this.numerator >= d.numerator * exponent);
+			const label = bool(this.numerator >= d.numerator * exponent);
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		},
 	}),
 };
