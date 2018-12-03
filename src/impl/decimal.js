@@ -61,9 +61,33 @@ _Decimal.methods = {
 			});
 		},
 		'Decimal': function(q) {
-			const exp = Math.max(this.exponent, q.exponent);
-			const numerator = Math.floor(this.numerator / q.numerator * Math.pow(10, exp));
-			return A.pushScope(this.scope)(A.Decimal(numerator, exp));
+			const numerator = this.numerator;// * Math.pow(10, this.exponent);
+			const denominator = q.numerator;// * Math.pow(10, q.exponent);
+			const dexp = q.exponent - this.exponent;
+			let exp, quotient = numerator / denominator;
+
+			const precision = (num) => {
+				if (!isFinite(num)) { return 0; }
+				let e = 1, p = 0;
+				while (Math.round(num * e) / e !== num) { e *= 10; p += 1; }
+				return p;
+			};
+
+			if (dexp >= 0) {
+				quotient = quotient * Math.pow(10, dexp);
+				let prec = precision(quotient);
+
+				if (prec > 0) {
+					exp = Math.min(prec, 8);
+					quotient = quotient * Math.pow(10, exp);
+				} else {
+					exp = 0;
+				}
+			} else {
+				exp = -dexp;
+			}
+
+			return A.pushScope(this.scope)(A.Decimal(quotient, exp));
 		},
 	}),
 	"('^':)": dispatch({

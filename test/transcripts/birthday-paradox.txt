@@ -11,5 +11,5 @@
         (p) -> { unique_bdays(p, people + 1) }
     }}((year_size - people) / year_size * prob) }]
 >> unique_bdays(1.0, 1)
-21
+23
 
