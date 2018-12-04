@@ -3,6 +3,7 @@
 
 module.exports = {
 	Bind: require('./ast/bind'),
+	MachineType: require('./ast/machinetype'),
 	RecordType: require('./ast/recordtype'),
 	UnionType: require('./ast/uniontype'),
 	Method: require('./ast/method'),

@@ -434,6 +434,7 @@ let match = {
 		//
 		//     typeDeclaration ::= identifier recordType
 		//                       | identifier unionType
+		//                       | identifier machineType
 		//
 		// A quick primer on type declarations:
 		//
@@ -485,7 +486,8 @@ let match = {
 
 		match = (
 			this.recordType(first, rest, newScope) ||
-			this.unionType(first, rest, newScope)
+			this.unionType(first, rest, newScope) ||
+			this.machineType(first, rest, newScope)
 		);
 		if (!match) { return null; }
 
@@ -497,7 +499,7 @@ let match = {
 	recordType: function(node, unparsed, scope) {
 		// Match a record type declaration
 		//
-		//     recordType ::= TYPE[ (identifier identifier?)* ]
+		//     recordType ::= TYPE[ interfaceList? (identifier identifier?)* ]
 		//
 		if (node._name === 'Type') {
 			let members = [];
@@ -537,7 +539,7 @@ let match = {
 	unionType: function(node, unparsed, scope) {
 		// Matches a union type literal
 		//
-		//     unionType ::= TYPE[ variant ( OPERATOR['|'] variant )* ]
+		//     unionType ::= TYPE[ interfaceList? variant ( OPERATOR['|'] variant )* ]
 		//
 		//     variant ::= symbol | symbol LIST[ Identifier + ]
 		//
@@ -593,7 +595,7 @@ let match = {
 				}
 			}, List([]));
 
-			if (variants.count() >= 2) {
+			if (variants && variants.count() >= 2) {
 				let type = new AST.UnionType({
 					variants: Map(variants.map((v) => { return [v.label, v]; })),
 					scope: scope
@@ -605,6 +607,61 @@ let match = {
 			}
 		}
 		return null;
+	},
+
+	machineType: function(node, unparsed, scope) {
+		//
+		//    machineType ::= TYPE[ interfaceList? bitSize ]
+		//
+		if (node._name !== 'Type') { return null; }
+
+		let terms = node.exprs.first().terms;
+		let match = this.interfaceList(terms.first(), terms.rest(), scope);
+		let ifaces, bitSize, rest;
+
+		if (match) {
+			[ifaces, rest, __] = match;
+		}
+		match = this.integer(rest.first(), rest.rest(), scope);
+		if (!match) { return null; }
+
+		[bitSize, rest, __] = match;
+		if (rest.count() !== 0) { return null; }
+
+		return [new AST.MachineType({
+			bits: bitSize.value, interfaces: ifaces, scope: scope
+		}), unparsed, scope];
+	},
+
+	interfaceList: function(node, unparsed, scope) {
+		//
+		//    interfaceList ::= (Identifier OPERATOR['+'])* Identifier OPERATOR[':']
+		//
+		let op, match, tokens, ifaces = List([]);
+
+		do {
+			match = this.identifier(node, unparsed, scope);
+
+			if (match) {
+				[node, tokens, __] = match;
+				ifaces = ifaces.push(node);
+
+				match = this.operator(tokens.first(), tokens.rest(), scope);
+				if (!match) { return null; }
+
+				[op, tokens, __] = match;
+				node = tokens.first();
+				unparsed = tokens.rest();
+			} else {
+				return null;
+			}
+		} while (op.label === '+');
+
+		if (op.label !== ':') {
+			return null;
+		} else {
+			return [ifaces, tokens, scope];
+		}
 	},
 
 	methodDeclaration: function(node, unparsed, scope) {
