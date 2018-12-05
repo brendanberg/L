@@ -36,6 +36,20 @@ const first_pass = function(ast, bindings) {
 			log.debug(`+ ${node.debugString()}`);
 			return [node, bindings];
 		},
+		'MachineType': function (node, bindings) {
+			if (node.binding === null) {
+				let binding = bindings.resolve(node);
+
+				if (binding) {
+					throw new NameError(`reintroduction of ${node.label}`);
+				}
+
+				node = node.set('binding', bindings.addBinding(node));
+			}
+
+			log.debug(`+ ${node.debugString()}`);
+			return [node, bindings];
+		},
 		'RecordType': function (node, bindings) {
 			if (node.binding === null) {
 				let binding = bindings.resolve(node);
