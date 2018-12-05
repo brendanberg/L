@@ -5,22 +5,42 @@ const _map = Map({});
 const _list = List([]);
 
 
-UnionType = Record({label: _, variants: _map, binding: _, scope: _, tags: _map}, 'UnionType');
+UnionType = Record({
+		label: _, interfaces: _list, variants: _map,
+		binding: _, scope: _, tags: _map
+	}, 'UnionType');
 
 UnionType.prototype.toString = function () {
+	let ifaceStr;
+
+	if (this.interfaces.count() > 0) {
+		ifaceStr = this.interfaces.join(' + ') + ' : ';
+	} else {
+		ifaceStr = '';
+	}
+
 	let variants = this.variants.map(function(node) {
 		return node.toString();
 	});
-	return this.label + ' << ' + variants.valueSeq().join(' | ') + ' >>';
+	return this.label + ' << ' + ifaceStr + variants.valueSeq().join(' | ') + ' >>';
 };
 
 UnionType.prototype.repr = function(depth, style) {
+	let ifaceStr;
+
+	if (this.interfaces.count() > 0) {
+		ifaceStr = this.interfaces.map((i) =>
+			i.repr(depth, style)).join(style.delimiter(' + ')) + style.delimiter(' : ');
+	} else {
+		ifaceStr = '';
+	}
+
 	let variants = this.variants.map(function(node) {
 		return node.repr(depth, style);
 	});
 
 	return (
-		style.name(this.label) + style.delimiter(' << ') + 
+		style.name(this.label) + style.delimiter(' << ') + ifaceStr +
 		variants.join(style.delimiter(' | ')) + style.delimiter(' >>')
 	);
 };

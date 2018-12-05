@@ -10,8 +10,8 @@ const MachineType = Record({
 MachineType.prototype.toString = function() {
 	let ifaceStr;
 
-	if (interfaces.count() > 0) {
-		ifaceStr = interfaces.join(' + ') + ' : ';
+	if (this.interfaces.count() > 0) {
+		ifaceStr = this.interfaces.join(' + ') + ' : ';
 	} else {
 		ifaceStr = '';
 	}

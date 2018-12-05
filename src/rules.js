@@ -502,8 +502,19 @@ let match = {
 		//     recordType ::= TYPE[ interfaceList? (identifier identifier?)* ]
 		//
 		if (node._name === 'Type') {
+			// Match an interface list if there is one
+			let terms = node.exprs.first().terms;
+			let match = this.interfaceList(terms.first(), terms.rest(), scope);
+			let ifaces, bitSize;
+
+			if (match) {
+				[ifaces, terms, __] = match;
+			} else {
+				ifaces = List([]);
+			}
+
 			let members = [];
-			for (let expr of node.exprs) {
+			for (let expr of node.exprs.setIn([0, 'terms'], terms)) {
 				let first = this.identifier(expr.terms.first(), expr.terms.rest(), scope);
 				let second;
 
@@ -530,7 +541,7 @@ let match = {
 				}
 			}
 
-			let type = new AST.RecordType({members: List(members), scope: scope});
+			let type = new AST.RecordType({interfaces: ifaces, members: List(members), scope: scope});
 			return [type, unparsed, scope];
 		}
 		return null;
@@ -548,11 +559,20 @@ let match = {
 				return null;
 			}
 
-			let expr = node.exprs.first();
+			// Match an interface list if there is one
+			let terms = node.exprs.first().terms;
+			let match = this.interfaceList(terms.first(), terms.rest(), scope);
+			let ifaces, bitSize;
+
+			if (match) {
+				[ifaces, terms, __] = match;
+			} else {
+				ifaces = List([]);
+			}
 
 			// Split the variants on the '|' operator, then reduce each sublist
 			// into either a symbol or a tuple.
-			let variants = expr.terms.reduce((result, term) => {
+			let variants = terms.reduce((result, term) => {
 				if (result === null) { return null; }
 
 				if (term._name === 'Message') {
@@ -597,6 +617,7 @@ let match = {
 
 			if (variants && variants.count() >= 2) {
 				let type = new AST.UnionType({
+					interfaces: ifaces,
 					variants: Map(variants.map((v) => { return [v.label, v]; })),
 					scope: scope
 				});
@@ -617,16 +638,19 @@ let match = {
 
 		let terms = node.exprs.first().terms;
 		let match = this.interfaceList(terms.first(), terms.rest(), scope);
-		let ifaces, bitSize, rest;
+		let ifaces, bitSize;
 
 		if (match) {
-			[ifaces, rest, __] = match;
+			[ifaces, terms, __] = match;
+		} else {
+			ifaces = List([]);
 		}
-		match = this.integer(rest.first(), rest.rest(), scope);
+
+		match = this.integer(terms.first(), terms.rest(), scope);
 		if (!match) { return null; }
 
-		[bitSize, rest, __] = match;
-		if (rest.count() !== 0) { return null; }
+		[bitSize, terms, __] = match;
+		if (terms.count() !== 0) { return null; }
 
 		return [new AST.MachineType({
 			bits: bitSize.value, interfaces: ifaces, scope: scope
