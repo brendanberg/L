@@ -503,9 +503,9 @@ let match = {
 		//
 		if (node._name === 'Type') {
 			// Match an interface list if there is one
-			let terms = node.exprs.first().terms;
+			let ifaces, terms = node.exprs.first().terms;
+
 			let match = this.interfaceList(terms.first(), terms.rest(), scope);
-			let ifaces, bitSize;
 
 			if (match) {
 				[ifaces, terms, __] = match;
@@ -562,7 +562,7 @@ let match = {
 			// Match an interface list if there is one
 			let terms = node.exprs.first().terms;
 			let match = this.interfaceList(terms.first(), terms.rest(), scope);
-			let ifaces, bitSize;
+			let ifaces;
 
 			if (match) {
 				[ifaces, terms, __] = match;
@@ -670,6 +670,7 @@ let match = {
 				[node, tokens, __] = match;
 				ifaces = ifaces.push(node);
 
+				if (tokens.count() < 1) { return null; }
 				match = this.operator(tokens.first(), tokens.rest(), scope);
 				if (!match) { return null; }
 
