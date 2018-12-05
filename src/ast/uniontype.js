@@ -11,36 +11,29 @@ UnionType = Record({
 	}, 'UnionType');
 
 UnionType.prototype.toString = function () {
-	let ifaceStr;
+	let interfaces, variants = this.variants.map((node) => node.toString());
 
 	if (this.interfaces.count() > 0) {
-		ifaceStr = this.interfaces.join(' + ') + ' : ';
+		interfaces = ' (' + this.interfaces.join(', ') + ')';
 	} else {
-		ifaceStr = '';
+		interfaces = '';
 	}
 
-	let variants = this.variants.map(function(node) {
-		return node.toString();
-	});
-	return this.label + ' << ' + ifaceStr + variants.valueSeq().join(' | ') + ' >>';
+	return this.label + interfaces + ' << ' + variants.join(' | ') + ' >>';
 };
 
 UnionType.prototype.repr = function(depth, style) {
-	let ifaceStr;
+	let interfaces, variants = this.variants.map((node) => node.repr(depth, style));
 
 	if (this.interfaces.count() > 0) {
-		ifaceStr = this.interfaces.map((i) =>
-			i.repr(depth, style)).join(style.delimiter(' + ')) + style.delimiter(' : ');
+		interfaces = style.delimiter(' (') + this.interfaces.map((i) =>
+			style.name(i)).join(style.delimiter(', ')) + style.delimiter(')');
 	} else {
-		ifaceStr = '';
+		interfaces = '';
 	}
 
-	let variants = this.variants.map(function(node) {
-		return node.repr(depth, style);
-	});
-
 	return (
-		style.name(this.label) + style.delimiter(' << ') + ifaceStr +
+		style.name(this.label) + interfaces + style.delimiter(' << ') +
 		variants.join(style.delimiter(' | ')) + style.delimiter(' >>')
 	);
 };
