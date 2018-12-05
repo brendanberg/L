@@ -512,7 +512,7 @@ let match = {
 
 		match = this.interfaceList(remaining.first(), remaining.rest(), scope);
 
-		if (match) {
+		if (match && match[1].count() > 1) {
 			[interfaces, remaining, __] = match;
 		} else {
 			interfaces = List([]);
@@ -679,6 +679,8 @@ let match = {
 		let op, match, tokens, ifaces = List([]);
 
 		let interfaces = node.exprs.reduce((list, expr) => {
+			if (list === null) { return null; }
+
 			let name, terms, match = this.identifier(expr.terms.first(), expr.terms.rest(), scope);
 			if (!match) { return null; }
 
