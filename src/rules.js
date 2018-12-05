@@ -434,6 +434,7 @@ let match = {
 		//
 		//     typeDeclaration ::= identifier recordType
 		//                       | identifier unionType
+		//                       | identifier machineType
 		//
 		// A quick primer on type declarations:
 		//
@@ -485,7 +486,8 @@ let match = {
 
 		match = (
 			this.recordType(first, rest, newScope) ||
-			this.unionType(first, rest, newScope)
+			this.unionType(first, rest, newScope) ||
+			this.machineType(first, rest, newScope)
 		);
 		if (!match) { return null; }
 
@@ -497,11 +499,22 @@ let match = {
 	recordType: function(node, unparsed, scope) {
 		// Match a record type declaration
 		//
-		//     recordType ::= TYPE[ (identifier identifier?)* ]
+		//     recordType ::= TYPE[ interfaceList? (identifier identifier?)* ]
 		//
 		if (node._name === 'Type') {
+			// Match an interface list if there is one
+			let ifaces, terms = node.exprs.first().terms;
+
+			let match = this.interfaceList(terms.first(), terms.rest(), scope);
+
+			if (match) {
+				[ifaces, terms, __] = match;
+			} else {
+				ifaces = List([]);
+			}
+
 			let members = [];
-			for (let expr of node.exprs) {
+			for (let expr of node.exprs.setIn([0, 'terms'], terms)) {
 				let first = this.identifier(expr.terms.first(), expr.terms.rest(), scope);
 				let second;
 
@@ -528,7 +541,7 @@ let match = {
 				}
 			}
 
-			let type = new AST.RecordType({members: List(members), scope: scope});
+			let type = new AST.RecordType({interfaces: ifaces, members: List(members), scope: scope});
 			return [type, unparsed, scope];
 		}
 		return null;
@@ -537,7 +550,7 @@ let match = {
 	unionType: function(node, unparsed, scope) {
 		// Matches a union type literal
 		//
-		//     unionType ::= TYPE[ variant ( OPERATOR['|'] variant )* ]
+		//     unionType ::= TYPE[ interfaceList? variant ( OPERATOR['|'] variant )* ]
 		//
 		//     variant ::= symbol | symbol LIST[ Identifier + ]
 		//
@@ -546,11 +559,20 @@ let match = {
 				return null;
 			}
 
-			let expr = node.exprs.first();
+			// Match an interface list if there is one
+			let terms = node.exprs.first().terms;
+			let match = this.interfaceList(terms.first(), terms.rest(), scope);
+			let ifaces;
+
+			if (match) {
+				[ifaces, terms, __] = match;
+			} else {
+				ifaces = List([]);
+			}
 
 			// Split the variants on the '|' operator, then reduce each sublist
 			// into either a symbol or a tuple.
-			let variants = expr.terms.reduce((result, term) => {
+			let variants = terms.reduce((result, term) => {
 				if (result === null) { return null; }
 
 				if (term._name === 'Message') {
@@ -593,8 +615,9 @@ let match = {
 				}
 			}, List([]));
 
-			if (variants.count() >= 2) {
+			if (variants && variants.count() >= 2) {
 				let type = new AST.UnionType({
+					interfaces: ifaces,
 					variants: Map(variants.map((v) => { return [v.label, v]; })),
 					scope: scope
 				});
@@ -605,6 +628,65 @@ let match = {
 			}
 		}
 		return null;
+	},
+
+	machineType: function(node, unparsed, scope) {
+		//
+		//    machineType ::= TYPE[ interfaceList? bitSize ]
+		//
+		if (node._name !== 'Type') { return null; }
+
+		let terms = node.exprs.first().terms;
+		let match = this.interfaceList(terms.first(), terms.rest(), scope);
+		let ifaces, bitSize;
+
+		if (match) {
+			[ifaces, terms, __] = match;
+		} else {
+			ifaces = List([]);
+		}
+
+		match = this.integer(terms.first(), terms.rest(), scope);
+		if (!match) { return null; }
+
+		[bitSize, terms, __] = match;
+		if (terms.count() !== 0) { return null; }
+
+		return [new AST.MachineType({
+			bits: bitSize.value, interfaces: ifaces, scope: scope
+		}), unparsed, scope];
+	},
+
+	interfaceList: function(node, unparsed, scope) {
+		//
+		//    interfaceList ::= (Identifier OPERATOR['+'])* Identifier OPERATOR[':']
+		//
+		let op, match, tokens, ifaces = List([]);
+
+		do {
+			match = this.identifier(node, unparsed, scope);
+
+			if (match) {
+				[node, tokens, __] = match;
+				ifaces = ifaces.push(node);
+
+				if (tokens.count() < 1) { return null; }
+				match = this.operator(tokens.first(), tokens.rest(), scope);
+				if (!match) { return null; }
+
+				[op, tokens, __] = match;
+				node = tokens.first();
+				unparsed = tokens.rest();
+			} else {
+				return null;
+			}
+		} while (op.label === '+');
+
+		if (op.label !== ':') {
+			return null;
+		} else {
+			return [ifaces, tokens, scope];
+		}
 	},
 
 	methodDeclaration: function(node, unparsed, scope) {
