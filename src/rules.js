@@ -512,7 +512,7 @@ let match = {
 
 		match = this.interfaceList(remaining.first(), remaining.rest(), scope);
 
-		if (match && match[1].count() > 1) {
+		if (match && match[1].count() > 0) {
 			[interfaces, remaining, __] = match;
 		} else {
 			interfaces = List([]);
