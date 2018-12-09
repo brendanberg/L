@@ -12,33 +12,29 @@ RecordType = Record({
 	}, 'RecordType');
 
 RecordType.prototype.toString = function () {
-	let ifaceStr = (this.interfaces.count() > 0) ? 
-		this.interfaces.join(' + ') + ' : ' : '';
+	let interfaces, members = this.members.map((node) => node.toString());
 
-	let members = this.members.map(function(node) {
-		return node.toString();
-	});
+	if (this.interfaces.count() > 0) {
+		interfaces = ' (' + this.interfaces.join(', ') + ')';
+	} else {
+		interfaces = '';
+	}
 
-	return this.label + ' << ' + ifaceStr + members.join(', ') + ' >>';
+	return this.label + interfaces + ' << ' + members.join(', ') + ' >>';
 };
 
 RecordType.prototype.repr = function (depth, style) {
-	let ifaceStr;
+	let interfaces, members = this.members.map((node) => node.repr(depth, style));
 
 	if (this.interfaces.count() > 0) {
-		ifaceStr = this.interfaces.map((i) =>
-			i.repr(depth, style)).join(style.delimiter(' + ')) + style.delimiter(' : ');
+		interfaces = ' (' + this.interfaces.join(', ') + ')';
 	} else {
-		ifaceStr = '';
+		interfaces = '';
 	}
 
-	let members = this.members.map(function(node) {
-		return node.repr(depth, style);
-	});
-
 	return (
-		style.name(this.label) + 
-		style.delimiter(' << ') + ifaceStr +
+		style.name(this.label) + interfaces +
+		style.delimiter(' << ') +
 		members.join(style.delimiter(', ')) +
 		style.delimiter(' >>')
 	);

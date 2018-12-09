@@ -1,0 +1,26 @@
+>> List this (length.) -> { {{
+ -     ([])->{ 0 }
+ -     ([_])->{ 1 }
+ -     ([_, rest...])->{ 1 + rest(length.) }
+ - }} (this) }
+>> List this (element: pos) -> { {{
+ -     ([first, _...], 0)->{ first }
+ -     ([_, rest...], n)->{ rest(element: n - 1) }
+ - }} (this, pos) }
+>> List this (head.) -> { {{
+ -     ([first, _...])->{ first }
+ -     (_)->{ _ }
+ - }} (this) }
+>> List this (tail.) -> { {{
+ -     ([_, rest...])->{ rest }
+ -     (_)->{ _ }
+ - }} (this) }
+
+>> ls :: ['a', 'b', 'c', 'd']
+[.ls: ['a', 'b', 'c', 'd']]
+>> ls(element:0)
+'a'
+>> ls(length.)
+4
+>> ls(tail.)
+['b', 'c', 'd']

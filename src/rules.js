@@ -432,9 +432,9 @@ let match = {
 	typeDeclaration: function(node, unparsed, scope) {
 		// Matches a type declaration
 		//
-		//     typeDeclaration ::= identifier recordType
-		//                       | identifier unionType
-		//                       | identifier machineType
+		//     typeDeclaration ::= identifier interfaceList? recordType
+		//                       | identifier interfaceList? unionType
+		//                       | identifier interfaceList? machineType
 		//
 		// A quick primer on type declarations:
 		//
@@ -448,10 +448,11 @@ let match = {
 		//     u == v      # .True
 		//     ```
 		//
-		// - A record type is a named, ordered collection of fields
+		// - A record type is an ordered collection of named fields
 		//     `Point << Integer x, Integer y >>
 		//
-		// - An instance of a record type may be instantiated by ___
+		// - An instance of a record type may be instantiated by providing
+		//   positional arguments to the type identifier
 		//     ```
 		//     p1 :: Point(x: 3, y: 5)
 		//     p2 :: Point(7, 4)
@@ -471,16 +472,51 @@ let match = {
 		//            | .CMYK(Decimal, Decimal, Decimal, Decimal) >>
 		//     ```
 		//
-		// - Associated values may be instantiated by __
+		// - A variant with associated values may be instantiated by providing
+		//   positional arguments to the variant
 		//     ```
 		//     redColor :: Color.RGB(255, 0, 0)
 		//     cyanColor :: Color.CMYK(1.0, 0.0, 0.0, 0.0)
+		//     ```
+		// - A machine type specifies only its storage size as a number of bits
+		//     ```
+		//     UInt32 (Unsigned) << 32 >>
+		//     Int32 (Signed) << 32 >>
+		//     UInt64 (Unsigned) << 64 >>
+		//     Int64 (Signed) << 64 >>
+		//     ```
+		//
+		// - Machine types may also indicate bit layouts. The layouts are bit
+		//   aligned and the total size of a value with a particular machine
+		//   type is the sum of the individual segments
+		//     ```
+		//     Float32 (Float) << 1, 8, 23 >>
+		//     Float64 (Float) << 1, 11, 52 >>
+		//     ```
+		//
+		// - Machine types may be matched against in a pattern match template
+		//     ```
+		//     Float32(sign, exponent, fraction) :: -12345.6789
+		//     sign == 0x1
+		//     exponent == 0x8C
+		//     fraction == 0x40E6B7
 		//     ```
 		let match = this.identifier(node, unparsed, scope);
 		if (!match) { return null; }
 
 		let [ident, remaining, newScope] = match;
 		if (!(remaining.count() > 0)) { return null; }
+
+		// Match an interface list if there is one
+		let interfaces;
+
+		match = this.interfaceList(remaining.first(), remaining.rest(), scope);
+
+		if (match && match[1].count() > 0) {
+			[interfaces, remaining, __] = match;
+		} else {
+			interfaces = List([]);
+		}
 
 		let [first, rest] = [remaining.first(), remaining.rest()];
 
@@ -492,29 +528,20 @@ let match = {
 		if (!match) { return null; }
 
 		let [type, returnTokens, returnScope] = match;
+		type = type.set('label', ident.label).set('interfaces', interfaces);
 
-		return [type.set('label', ident.label), returnTokens, returnScope];
+		return [type, returnTokens, returnScope];
 	},
 
 	recordType: function(node, unparsed, scope) {
 		// Match a record type declaration
 		//
-		//     recordType ::= TYPE[ interfaceList? (identifier identifier?)* ]
+		//     recordType ::= TYPE[ (identifier identifier?)* ]
 		//
 		if (node._name === 'Type') {
-			// Match an interface list if there is one
-			let ifaces, terms = node.exprs.first().terms;
-
-			let match = this.interfaceList(terms.first(), terms.rest(), scope);
-
-			if (match) {
-				[ifaces, terms, __] = match;
-			} else {
-				ifaces = List([]);
-			}
-
 			let members = [];
-			for (let expr of node.exprs.setIn([0, 'terms'], terms)) {
+
+			for (let expr of node.exprs) {
 				let first = this.identifier(expr.terms.first(), expr.terms.rest(), scope);
 				let second;
 
@@ -541,7 +568,7 @@ let match = {
 				}
 			}
 
-			let type = new AST.RecordType({interfaces: ifaces, members: List(members), scope: scope});
+			let type = new AST.RecordType({members: List(members), scope: scope});
 			return [type, unparsed, scope];
 		}
 		return null;
@@ -550,7 +577,7 @@ let match = {
 	unionType: function(node, unparsed, scope) {
 		// Matches a union type literal
 		//
-		//     unionType ::= TYPE[ interfaceList? variant ( OPERATOR['|'] variant )* ]
+		//     unionType ::= TYPE[ variant ( OPERATOR['|'] variant )* ]
 		//
 		//     variant ::= symbol | symbol LIST[ Identifier + ]
 		//
@@ -559,20 +586,9 @@ let match = {
 				return null;
 			}
 
-			// Match an interface list if there is one
-			let terms = node.exprs.first().terms;
-			let match = this.interfaceList(terms.first(), terms.rest(), scope);
-			let ifaces;
-
-			if (match) {
-				[ifaces, terms, __] = match;
-			} else {
-				ifaces = List([]);
-			}
-
 			// Split the variants on the '|' operator, then reduce each sublist
 			// into either a symbol or a tuple.
-			let variants = terms.reduce((result, term) => {
+			let variants = node.exprs.first().terms.reduce((result, term) => {
 				if (result === null) { return null; }
 
 				if (term._name === 'Message') {
@@ -617,7 +633,6 @@ let match = {
 
 			if (variants && variants.count() >= 2) {
 				let type = new AST.UnionType({
-					interfaces: ifaces,
 					variants: Map(variants.map((v) => { return [v.label, v]; })),
 					scope: scope
 				});
@@ -632,61 +647,52 @@ let match = {
 
 	machineType: function(node, unparsed, scope) {
 		//
-		//    machineType ::= TYPE[ interfaceList? bitSize ]
+		//    machineType ::= TYPE[ bitSize+ ]
 		//
 		if (node._name !== 'Type') { return null; }
 
-		let terms = node.exprs.first().terms;
-		let match = this.interfaceList(terms.first(), terms.rest(), scope);
-		let ifaces, bitSize;
+		let bitlayout = node.exprs.reduce((list, expr) => {
+			if (list === null) { return null; }
 
-		if (match) {
-			[ifaces, terms, __] = match;
-		} else {
-			ifaces = List([]);
-		}
+			let size, terms, match = this.integer(expr.terms.first(), expr.terms.rest(), scope);
+			if (!match) { return null; }
 
-		match = this.integer(terms.first(), terms.rest(), scope);
-		if (!match) { return null; }
+			[size, terms, __] = match;
+			if (terms.count() !== 0) { return null; }
 
-		[bitSize, terms, __] = match;
-		if (terms.count() !== 0) { return null; }
+			return list.push(size.value);
+		}, List([]));
+
+		if (!bitlayout) { return null; }
 
 		return [new AST.MachineType({
-			bits: bitSize.value, interfaces: ifaces, scope: scope
+			bitlayout: bitlayout, scope: scope
 		}), unparsed, scope];
 	},
 
 	interfaceList: function(node, unparsed, scope) {
 		//
-		//    interfaceList ::= (Identifier OPERATOR['+'])* Identifier OPERATOR[':']
+		//    interfaceList ::= MESSAGE[ Identifier* ]
 		//
+		if (node._name !== 'Message') { return null; }
+
 		let op, match, tokens, ifaces = List([]);
 
-		do {
-			match = this.identifier(node, unparsed, scope);
+		let interfaces = node.exprs.reduce((list, expr) => {
+			if (list === null) { return null; }
 
-			if (match) {
-				[node, tokens, __] = match;
-				ifaces = ifaces.push(node);
+			let name, terms, match = this.identifier(expr.terms.first(), expr.terms.rest(), scope);
+			if (!match) { return null; }
 
-				if (tokens.count() < 1) { return null; }
-				match = this.operator(tokens.first(), tokens.rest(), scope);
-				if (!match) { return null; }
+			[name, terms, __] = match;
+			if (terms.count() !== 0) { return null; }
 
-				[op, tokens, __] = match;
-				node = tokens.first();
-				unparsed = tokens.rest();
-			} else {
-				return null;
-			}
-		} while (op.label === '+');
+			return list.push(name.label);
+		}, List([]));
 
-		if (op.label !== ':') {
-			return null;
-		} else {
-			return [ifaces, tokens, scope];
-		}
+		if (!interfaces) { return null; }
+
+		return [interfaces, unparsed, scope];
 	},
 
 	methodDeclaration: function(node, unparsed, scope) {

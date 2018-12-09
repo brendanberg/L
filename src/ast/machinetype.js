@@ -5,35 +5,36 @@ const _list = List([]);
 
 
 const MachineType = Record({
-	label: _, interfaces: _list, bits: _, binding: _, scope: _, tags: _map}, 'MachineType');
+	label: _, interfaces: _list, bitlayout: _list, binding: _, scope: _, tags: _map}, 'MachineType');
 
 MachineType.prototype.toString = function() {
-	let ifaceStr;
+	let interfaces, bitlayout = this.bitlayout.toJS().join(', ');
 
 	if (this.interfaces.count() > 0) {
-		ifaceStr = this.interfaces.join(' + ') + ' : ';
+		interfaces = ' (' + this.interfaces.join(', ') + ')';
 	} else {
-		ifaceStr = '';
+		interfaces = '';
 	}
 
-	return this.label + ' << ' + ifaceStr + this.bits + ' >>';
+	return this.label + interfaces + ' << ' + bitlayout + ' >>';
 }
 
 MachineType.prototype.repr = function(depth, style) {
-	let ifaceStr;
+	let interfaces, bitlayout = this.bitlayout.map((bits) =>
+			style.number(bits)).toJS().join(style.delimiter(', '));
 
 	if (this.interfaces.count() > 0) {
-		ifaceStr = this.interfaces.map((i) =>
-			i.repr(depth, style)).join(style.delimiter(' + ')) + style.delimiter(' : ');
+		interfaces = style.delimiter(' (') + this.interfaces.map((i) =>
+			style.name(i)).join(style.delimiter(', ')) + style.delimiter(')');
 	} else {
-		ifaceStr = '';
+		interfaces = '';
 	}
 
 	return (
 		style.name(this.label) +
+		interfaces +
 		style.delimiter(' << ') +
-		ifaceStr +
-		style.number(this.bits) +
+		bitlayout +
 		style.delimiter(' >>')
 	);
 };
