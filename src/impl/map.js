@@ -29,21 +29,31 @@ _Map.methods = {
 		return make_bool(this.items.isEmpty());
 	},
 	"('@':)": function(key) {
-		let item = this.items.get(key);
+		let item = this.items.find((val) => {
+			return val.key.toString() == key.toString();
+		});
 		return item ? item.val : A.Bottom();
 	},
 	"('+':)": dispatch({
 		// This is a dictionary merge.
 		'Map': function(s) {
-			return this.update('items', (v) => { return v.merge(s.items); });
+			return this.update('items', (v) => { return v.concat(s.items); });
 		}
 	}),
-	'(contains:)': function(v) {
-		return make_bool(this.items.includes(v));
+	'(contains:)': function(key) {
+		const item = this.items.find((val) => {
+			return val.key.toString() == key.toString();
+		});
+
+		return make_bool(item);
 	},
 	'(items.)': function() {},
-	'(keys.)': function() {},
-	'(values.)': function() {},
+	'(keys.)': function() {
+		return A.pushScope(this.scope)(A.List(...this.items.map((i) => i.key)));
+	},
+	'(values.)': function() {
+		return A.pushScope(this.scope)(A.List(...this.items.map((i) => i.val)));
+	},
 	'(merge:usingMerger:)': function() {},
 	'(setKey:value:)': function(k, v) {
 		return this.set('items', this.items.set(k, new KeyValuePair({
