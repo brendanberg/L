@@ -319,7 +319,7 @@ A negative index will retrieve counting backwards from the end of the list.
 <pre>
 >> <b>ls @ 1</b>
 'b'
->> <b>ls @ -2</b>
+>> <b>ls @ -3</b>
 'a'
 </pre>
 
