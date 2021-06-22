@@ -881,6 +881,7 @@ let match = {
 		// Matches an identifier or scalar literal in a template
 		//
 		//     templatePart ::= [identifier] identifier
+		//                    | OPERATOR['\'] identifier
 		//                    | symbol MESSAGE[ templatePart+ ]
 		//                    | text
 		//                    | integer
@@ -889,6 +890,7 @@ let match = {
 		//                    | complex
 		//
 		let first, match = (
+			this.eagerIdentifier(node, unparsed, scope) ||
 			this.keyValuePart(node, unparsed, scope) ||
 			this.identifier(node, unparsed, scope) ||
 			this.tuplePart(node, unparsed, scope) ||
@@ -1034,6 +1036,26 @@ let match = {
 		} else {
 			return null;
 		}
+	},
+
+	eagerIdentifier: function(node, unparsed, scope) {
+		// Match an identifier with an eager override prefix
+		//
+		//     eagerIdentifier ::= OPERATOR['\'] identifier
+		//
+		let operator, identifier, match = this.operator(node, unparsed, scope);
+		if (!match) { return null; }
+
+		[operator, unparsed, __] = match;
+		if (operator.label !== '\\') { return null; }
+
+		match = this.identifier(unparsed.first(), unparsed.rest(), scope);
+		if (!match) { return null; }
+
+		[identifier, unparsed, __] = match;
+
+		const exp = new AST.Immediate({target: identifier, scope: scope});
+		return [exp, unparsed, scope];
 	},
 
 	value: function(node, unparsed, scope) {
