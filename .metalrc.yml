@@ -1,0 +1,5 @@
+# Configuration for more colorful REPL
+
+repl:
+    theme: "memphis"
+

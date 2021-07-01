@@ -1,9 +1,9 @@
 {
 	"repl": {
 		"banner": [
-			"\u001B[45;97m ${welcome} \u001B[42;35m\uE0B0",
-			"\u001B[97m ${version} \u001B[0m\u001B[32m\uE0B0\u001B[39m\n",
-			"\u001B[42;97m ${help}          \u001B[0m\u001B[32m\uE0B0\n"
+			"\u001B[1;45;97m ${welcome} \u001B[0;35;48;5;90m\uE0B0",
+			"\u001B[38;5;219m ${version} \u001B[0;38;5;90m\uE0B0\n",
+			"\u001B[39;48;5;64;97m ${help}          \u001B[0;38;5;64m\uE0B0\n"
 		],
 		"prompt": {
 			"input_start": "\u001B[44m \u001B[0m\u001B[34m\uE0B0\u001B[39m ",

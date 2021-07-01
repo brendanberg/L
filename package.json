@@ -11,13 +11,16 @@
   "scripts": {
     "build": "rm -f src/scanner.js && pegjs -o src/scanner.js src/scanner.pegjs",
     "test": "node_modules/mocha/bin/mocha test/",
-    "metal": "src/repl.js"
+    "metal": "env-cmd src/repl.js"
   },
   "bin": {
     "metal": "src/repl.js"
   },
   "dependencies": {
+    "commander": "^7.2.0",
     "config": "^2.0.1",
+    "cosmiconfig": "^5.2.1",
+    "env-cmd": "^9.0.3",
     "immutable": "^3.7.6",
     "loglevel": "^1.6.1",
     "punycode": "^2.1.0"

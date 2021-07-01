@@ -47,7 +47,10 @@ Call.prototype.eval = function(ctx) {
 
 	// Call on Records instantiate a value with field values
 	// mapped to named parameters in the message
-	if (target._name === 'RecordType') {
+	if (target._name === 'MachineType') {
+		// TODO: Machine type constructor!!!	
+	
+	} else if (target._name === 'RecordType') {
 		let fields = Map(this.args.map(function(kvp) {
 				return [kvp.key.label, kvp.val.eval(ctx)[0]];
 			}));

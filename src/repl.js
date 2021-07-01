@@ -262,7 +262,7 @@ rep.on('SIGINT', function() {
 		rep.setPrompt(input_start);
 		rep.displayPrompt();
 	} else {
-		rep.outputStream.write('\n   To exit, press Ctrl-D or type !exit\n');
+		rep.outputStream.write('\n   To exit, press Ctrl-D or type #!quit\n');
 		rep.displayPrompt();
 	}
 });

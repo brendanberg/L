@@ -13,7 +13,7 @@
 
 	 1. Read (build the term tree)
 
-	 The read stage reads the source text and outputs a term tree. 
+	 The read stage reads the source text and outputs a term tree.
 	 The read stage recognizes the generalized structure of the program:
 	 delimited lists, literals, identifiers, and operators.
 
@@ -97,13 +97,16 @@ operator "operator"
 	/ "..."
 	/ "..|"
 	/ ".."
+	/ "=>"
 	/ "->"
 	/ "~>"
-	/ "=>"
 	/ ":>"
 	/ "<~"
+	/ "<-"
 	/ "|>"
 	/ "<|"
+	/ "]>"
+	/ "<["
 	/ "??"
 	/ "//:"
 	/ "/\\"
@@ -150,7 +153,7 @@ paren_container
 				tags: Map({envelopeShape: '()', specialForm: true})
 			});
 		}
-    / '(' __ exp:expression __ ')' {
+	/ '(' __ exp:expression __ ')' {
 			return new Skel.Message({
 				exprs: List([exp]),
 				tags: Map({envelopeShape: '()', specialForm: true})
@@ -188,7 +191,7 @@ brace_container
  ----------------------------------------------------------------------------*/
 
 brack_container
-	= '[' __ expList:expressionList ? __ ']' {
+	= '[' __ expList:expressionList ? __ ']' !'>' {
 			return new Skel.List({
 				exprs: expList || List([]),
 				tags: Map({envelopeShape: '[]'})
@@ -414,4 +417,3 @@ Comment "comment"
 	/ '#' t:(!'\n' .)* {
 			return Skel.Comment({text: t.join(''), tags: Map({source: 'trailing'})});
 		}
-

@@ -61,7 +61,8 @@ TextType.methods = {
 				return Math.sign(chars[0] - chars[1]);
 			}, 0);
 
-			return make_bool((comp === 0) ? (this.value.count() > txt.value.count()) : (comp > 0));
+			const label = bool((comp === 0) ? (this.value.count() > txt.value.count()) : (comp > 0));
+			return A.pushScope(this.scope)(A.Symbol(label, 'Boolean'));
 		}
 	}),
 	"('@':)": dispatch({

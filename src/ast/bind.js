@@ -79,12 +79,15 @@ Bind.prototype.eval = function(ctx) {
 };
 
 Bind.prototype.transform = function(func) {
-    return func(this.update('template', (template) => {
+	return func(this.update('template', (template) => {
 		return ('transform' in template) ? template.transform(func) : func(template);
 	}).update('value', (val) => {
 		return ('transform' in val) ? val.transform(func) : func(val);
 	}));
 };
 
-module.exports = Bind;
+Bind.prototype.map = function(func) {
+	
+}
 
+module.exports = Bind;
