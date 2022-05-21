@@ -32,7 +32,11 @@ Bind.prototype.eval = function(ctx) {
 	// Recursively descend through the template, matching value equivalence
 	// between template and evaluated right-hand expression and capturing
 	// values into identifier placeholders in the template.
-	let match = ctx.match(this.template, this.value.eval(ctx)[0]);
+	let template = this.template.transform((node) => {
+		return node._name === 'Immediate' ? node.eval(ctx)[0] : node;
+		// Do I need to do anything for KVPs in map templates?
+	});
+	let match = ctx.match(template, this.value.eval(ctx)[0]);
 
 	if (match) {
 		let [_, changeSet] = match;
